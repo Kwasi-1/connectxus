@@ -36,7 +36,7 @@ export function Sidebar({ activeTab }: SidebarProps) {
   };
 
   return (
-    <div className="flex flex-col h-full w-64 p-4 border-r border-border bg-sidebar">
+    <div className="flex flex-col h-screen w-72 p-4 border-r border-border bg-sidebar">
       {/* Logo */}
       <div className="flex items-center space-x-2 mb-8 px-3">
         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -69,7 +69,7 @@ export function Sidebar({ activeTab }: SidebarProps) {
       </nav>
 
       {/* Post Button */}
-      <Button className="w-full mb-4 bg-primary hover:bg-primary-hover text-primary-foreground font-bold py-3 text-lg rounded-full">
+      <Button className="w-[90%] mb-4 bg-primary hover:bg-primary-hover text-primary-foreground font-bold py-[26px] text-lg rounded-full">
         Post
       </Button>
 

@@ -10,7 +10,7 @@ interface RightSidebarProps {
 
 export function RightSidebar({ trendingTopics, campusHighlights }: RightSidebarProps) {
   return (
-    <div className="w-80 p-4 space-y-4">
+    <div className="w-96 p-4 space-y-4">
       {/* Trending Topics */}
       <Card>
         <CardHeader className="pb-3">
