@@ -1,7 +1,9 @@
+
 import { Home, Search, Bell, Mail, Users, BookOpen, GraduationCap, User, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   activeTab?: string;
@@ -18,7 +20,21 @@ const navigationItems = [
   { icon: User, label: 'Account', path: '/account', id: 'account' },
 ];
 
-export function Sidebar({ activeTab = 'home' }: SidebarProps) {
+export function Sidebar({ activeTab }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  const isActiveRoute = (path: string, id: string) => {
+    if (activeTab) {
+      return activeTab === id;
+    }
+    return location.pathname === path;
+  };
+
   return (
     <div className="flex flex-col h-full w-64 p-4 border-r border-border bg-sidebar">
       {/* Logo */}
@@ -33,12 +49,13 @@ export function Sidebar({ activeTab = 'home' }: SidebarProps) {
       <nav className="flex-1 space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = isActiveRoute(item.path, item.id);
           
           return (
             <Button
               key={item.id}
               variant="ghost"
+              onClick={() => handleNavigation(item.path)}
               className={cn(
                 "w-full justify-start text-left px-3 py-6 text-lg font-medium hover:bg-hover",
                 isActive && "bg-primary/10 text-primary font-bold"

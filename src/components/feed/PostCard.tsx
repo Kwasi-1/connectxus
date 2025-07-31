@@ -1,10 +1,11 @@
+
 import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Post } from '@/types/global';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -15,6 +16,8 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCardProps) {
+  const navigate = useNavigate();
+
   const formatTimeAgo = (date: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
@@ -25,8 +28,25 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
     return `${Math.floor(diffInMinutes / 1440)}d`;
   };
 
+  const handlePostClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) {
+      return;
+    }
+    navigate(`/post/${post.id}`);
+  };
+
+  const handleInteractionClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
   return (
-    <Card className="border-b border-border p-4 hover:bg-hover/50 transition-colors cursor-pointer">
+    <Card 
+      className="border-b border-border p-4 hover:bg-hover/50 transition-colors cursor-pointer"
+      onClick={handlePostClick}
+    >
       <div className="flex space-x-3">
         <Avatar className="w-12 h-12">
           <AvatarImage src={post.author.avatar || "/api/placeholder/48/48"} />
@@ -48,7 +68,12 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
             <div className="ml-auto">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </div>
@@ -73,7 +98,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onComment(post.id)}
+              onClick={(e) => handleInteractionClick(e, () => onComment(post.id))}
               className="flex items-center space-x-2 text-muted-foreground hover:text-interaction-comment hover:bg-interaction-comment/10 p-2 rounded-full"
             >
               <MessageCircle className="h-5 w-5" />
@@ -83,7 +108,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRepost(post.id)}
+              onClick={(e) => handleInteractionClick(e, () => onRepost(post.id))}
               className={cn(
                 "flex items-center space-x-2 p-2 rounded-full",
                 post.isReposted 
@@ -98,7 +123,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onLike(post.id)}
+              onClick={(e) => handleInteractionClick(e, () => onLike(post.id))}
               className={cn(
                 "flex items-center space-x-2 p-2 rounded-full",
                 post.isLiked 
@@ -113,7 +138,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onShare(post.id)}
+              onClick={(e) => handleInteractionClick(e, () => onShare(post.id))}
               className="flex items-center space-x-2 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full"
             >
               <Share className="h-5 w-5" />

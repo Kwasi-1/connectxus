@@ -1,4 +1,4 @@
-import { User, Post, TrendingTopic, CampusHighlight } from '@/types/global';
+import { User, Post, TrendingTopic, CampusHighlight, Comment } from '@/types/global';
 
 export const mockUsers: User[] = [
   {
