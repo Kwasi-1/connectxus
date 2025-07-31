@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -61,7 +62,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				campus: {
+					orange: 'hsl(var(--campus-orange))',
+					purple: 'hsl(var(--campus-purple))'
+				},
+				interaction: {
+					like: 'hsl(var(--like-color))',
+					repost: 'hsl(var(--repost-color))',
+					comment: 'hsl(var(--comment-color))'
+				},
+				hover: 'hsl(var(--hover-bg))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
