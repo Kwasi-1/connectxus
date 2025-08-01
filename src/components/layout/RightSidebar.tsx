@@ -10,9 +10,9 @@ export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="w-full p-4 space-y-4 h-full overflow-y-auto">
+    <div className="w-full p-4 pt-0 space-y-2 h-full overflow-y-auto">
       {/* Search */}
-      <div className="sticky top-0 bg-background pb-4">
+      <div className="sticky top-0 bg-background py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
@@ -24,6 +24,7 @@ export function RightSidebar() {
         </div>
       </div>
 
+      <div className='flex flex-col-reverse gap-4'>
       {/* Trending Topics */}
       <Card className="bg-muted/50">
         <CardHeader className="pb-3">
@@ -105,6 +106,7 @@ export function RightSidebar() {
           </Button>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
