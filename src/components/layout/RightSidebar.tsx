@@ -19,14 +19,14 @@ export function RightSidebar() {
             placeholder="Search Campus Vibe" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 py-3 bg-muted border-none rounded-full text-base"
+            className="pl-10 py-3 border rounded-full text-base"
           />
         </div>
       </div>
 
       <div className='flex flex-col-reverse gap-4'>
       {/* Trending Topics */}
-      <Card className="bg-muted/50">
+      <Card className="rounded-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl font-bold">What's happening</CardTitle>
         </CardHeader>
@@ -53,7 +53,7 @@ export function RightSidebar() {
       </Card>
 
       {/* Campus Highlights */}
-      <Card className="bg-muted/50">
+      <Card className="rounded-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl font-bold">Campus Highlights</CardTitle>
         </CardHeader>
@@ -74,7 +74,7 @@ export function RightSidebar() {
       </Card>
 
       {/* Who to follow */}
-      <Card className="bg-muted/50">
+      <Card className="rounded-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl font-bold">Who to follow</CardTitle>
         </CardHeader>
