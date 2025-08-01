@@ -45,10 +45,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
 
   return (
     <Card 
-      className={cn(
-        "border-b border-border p-4 transition-colors",
-        !detailed && "hover:bg-hover/50 cursor-pointer"
-      )}
+      className="border-b border-border rounded-none border-x-0 p-4 hover:bg-hover/50 transition-colors cursor-pointer"
       onClick={handlePostClick}
     >
       <div className="flex space-x-3">
