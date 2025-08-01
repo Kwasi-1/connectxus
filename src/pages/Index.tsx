@@ -22,7 +22,7 @@ const Index = () => {
     fetchPosts();
   }, []);
 
-  const handleCreatePost = (content: string) => {
+  const handleCreatePost = (content: string, audience?: string) => {
     const newPost: Post = {
       id: Date.now().toString(),
       author: mockUsers[0],
@@ -70,7 +70,7 @@ const Index = () => {
   };
 
   return (
-    <AppLayout>
+    <AppLayout onCreatePost={handleCreatePost}>
       <Feed
         posts={posts}
         onCreatePost={handleCreatePost}

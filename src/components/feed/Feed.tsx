@@ -4,7 +4,9 @@ import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
 import { FeedHeader } from './FeedHeader';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { Post } from '@/types/global';
+import { useNavigate } from 'react-router-dom';
 
 interface FeedProps {
   posts: Post[];
@@ -17,7 +19,12 @@ interface FeedProps {
 }
 
 export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare, loading = false }: FeedProps) {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<'for-you' | 'following' | 'university'>('for-you');
+
+  const handleMobilePostClick = () => {
+    navigate('/compose');
+  };
 
   const filteredPosts = posts.filter(post => {
     if (activeFilter === 'following') {
@@ -67,6 +74,9 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
           </div>
         )}
       </div>
+
+      {/* Mobile Floating Action Button */}
+      <FloatingActionButton onClick={handleMobilePostClick} />
     </div>
   );
 }

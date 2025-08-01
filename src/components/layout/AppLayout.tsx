@@ -1,3 +1,4 @@
+
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { RightSidebar } from './RightSidebar';
@@ -9,9 +10,10 @@ import { useLocation } from 'react-router-dom';
 interface AppLayoutProps {
   children: ReactNode;
   showRightSidebar?: boolean;
+  onCreatePost?: (content: string, audience: string) => void;
 }
 
-export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps) {
+export function AppLayout({ children, showRightSidebar = true, onCreatePost }: AppLayoutProps) {
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
@@ -42,7 +44,7 @@ export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps)
         <div className="flex w-full max-w-7xl">
           {/* Left Sidebar - Positioned within container */}
           <div className="sticky top-0 h-screen w-72 hidden -ml-4 lg:block z-40">
-            <Sidebar />
+            <Sidebar onCreatePost={onCreatePost} />
           </div>
           
           {/* Main Content Area */}
