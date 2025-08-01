@@ -258,11 +258,11 @@ const Messages = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="h-screen flex">
+      <div className="h-screen flex border-r">
         {/* Chat List - Full width on mobile when no chat selected, hidden when chat selected */}
         <div className={`${
           selectedChat && isMobileView ? 'hidden lg:flex' : 'flex'
-        } lg:min-w-[400px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background`}>
+        } lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background`}>
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -317,7 +317,7 @@ const Messages = () => {
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground truncate pr-2">{chat.lastMessage}</p>
                       {chat.unreadCount > 0 && (
-                        <Badge className="bg-primary text-primary-foreground flex-shrink-0">
+                        <Badge className="bg-foreground/80 text-primary-foreground flex-shrink-0">
                           {chat.unreadCount}
                         </Badge>
                       )}
@@ -484,9 +484,9 @@ const Messages = () => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
+                    className="flex-1 rounded-full px-5 py-3 ring-foreground"
                   />
-                  <Button onClick={handleSendMessage} className="bg-primary hover:bg-primary/90">
+                  <Button onClick={handleSendMessage} className="bg-foreground hover:bg-foreground/80">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
