@@ -1,5 +1,5 @@
 
-import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -43,36 +43,134 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
     action();
   };
 
+  const renderMedia = () => {
+    if (post.video) {
+      return (
+        <div className="relative rounded-2xl overflow-hidden border border-border mt-3">
+          <video 
+            className="w-full h-auto max-h-96 object-cover"
+            poster={post.images?.[0]}
+            controls={false}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <source src={post.video} type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-colors cursor-pointer">
+            <div className="bg-white/90 rounded-full p-3 hover:bg-white transition-colors">
+              <Play className="h-6 w-6 text-black fill-current" />
+            </div>
+          </div>
+          {/* Video duration overlay */}
+          <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+            0:59
+          </div>
+        </div>
+      );
+    }
+
+    if (post.images && post.images.length > 0) {
+      return (
+        <div className="mt-3">
+          {post.images.length === 1 ? (
+            <div className="rounded-2xl overflow-hidden border border-border">
+              <img 
+                src={post.images[0]} 
+                alt="Post content" 
+                className="w-full h-auto max-h-96 object-cover hover:brightness-95 transition-all cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          ) : post.images.length === 2 ? (
+            <div className="grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-border">
+              {post.images.map((image, index) => (
+                <img 
+                  key={index}
+                  src={image} 
+                  alt={`Post content ${index + 1}`} 
+                  className="w-full h-48 object-cover hover:brightness-95 transition-all cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-border">
+              <img 
+                src={post.images[0]} 
+                alt="Post content 1" 
+                className="w-full h-48 object-cover hover:brightness-95 transition-all cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="grid gap-1">
+                {post.images.slice(1, 3).map((image, index) => (
+                  <img 
+                    key={index}
+                    src={image} 
+                    alt={`Post content ${index + 2}`} 
+                    className="w-full h-24 object-cover hover:brightness-95 transition-all cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ))}
+                {post.images.length > 3 && (
+                  <div className="relative">
+                    <img 
+                      src={post.images[3]} 
+                      alt="Post content 4" 
+                      className="w-full h-24 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-lg">
+                      +{post.images.length - 3}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <Card 
-      className="border-b border-border rounded-none border-x-0 p-4 hover:bg-hover/50 transition-colors cursor-pointer"
+      className={cn(
+        "border-b border-border rounded-none border-x-0 p-4 transition-colors cursor-pointer",
+        detailed ? "hover:bg-transparent" : "hover:bg-muted/5"
+      )}
       onClick={handlePostClick}
     >
       <div className="flex space-x-3">
-        <Avatar className="w-10 h-10">
+        <Avatar className={detailed ? "w-12 h-12" : "w-10 h-10"}>
           <AvatarImage src={post.author.avatar || "/api/placeholder/48/48"} />
           <AvatarFallback>
             {post.author.displayName.split(' ').map(n => n[0]).join('')}
           </AvatarFallback>
         </Avatar>
         
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-foreground">{post.author.displayName}</span>
+          <div className="flex items-center space-x-2 flex-wrap">
+            <span className="font-bold text-foreground hover:underline cursor-pointer">
+              {post.author.displayName}
+            </span>
             {post.author.verified && (
               <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-primary-foreground text-xs">✓</span>
               </div>
             )}
-            <span className="text-muted-foreground">@{post.author.username}</span>
+            <span className="text-muted-foreground hover:underline cursor-pointer">
+              @{post.author.username}
+            </span>
             <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
+            <span className="text-muted-foreground hover:underline cursor-pointer">
+              {detailed ? new Date(post.createdAt).toLocaleDateString() : formatTimeAgo(post.createdAt)}
+            </span>
             <div className="ml-auto">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-muted/80"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -81,28 +179,28 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
           </div>
           
           {/* Content */}
-          <div className="text-foreground whitespace-pre-wrap">{post.content}</div>
+          <div className={cn(
+            "text-foreground whitespace-pre-wrap mt-1",
+            detailed ? "text-xl leading-relaxed" : "text-base"
+          )}>
+            {post.content}
+          </div>
           
-          {/* Images */}
-          {post.images && post.images.length > 0 && (
-            <div className="rounded-xl overflow-hidden border border-border">
-              <img 
-                src={post.images[0]} 
-                alt="Post content" 
-                className="w-full h-auto max-h-96 object-cover"
-              />
-            </div>
-          )}
+          {/* Media */}
+          {renderMedia()}
           
           {/* Interaction Buttons */}
-          <div className="flex items-center justify-between max-w-md pt-2">
+          <div className={cn(
+            "flex items-center justify-between pt-3",
+            detailed ? "max-w-lg border-t border-border mt-4 pt-4" : "max-w-md"
+          )}>
             <Button
               variant="ghost"
               size="sm"
               onClick={(e) => handleInteractionClick(e, () => onComment(post.id))}
-              className="flex items-center space-x-2 text-muted-foreground hover:text-interaction-comment hover:bg-interaction-comment/10 p-2 rounded-full"
+              className="flex items-center space-x-2 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full group"
             >
-              <MessageCircle className="h-5 w-5" />
+              <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform" />
               <span className="text-sm">{post.comments || 0}</span>
             </Button>
             
@@ -111,13 +209,13 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
               size="sm"
               onClick={(e) => handleInteractionClick(e, () => onRepost(post.id))}
               className={cn(
-                "flex items-center space-x-2 p-2 rounded-full",
+                "flex items-center space-x-2 p-2 rounded-full group",
                 post.isReposted 
-                  ? "text-interaction-repost bg-interaction-repost/10" 
-                  : "text-muted-foreground hover:text-interaction-repost hover:bg-interaction-repost/10"
+                  ? "text-green-500 bg-green-500/10" 
+                  : "text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
               )}
             >
-              <Repeat2 className="h-5 w-5" />
+              <Repeat2 className="h-5 w-5 group-hover:scale-110 transition-transform" />
               <span className="text-sm">{post.reposts || 0}</span>
             </Button>
             
@@ -126,13 +224,16 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
               size="sm"
               onClick={(e) => handleInteractionClick(e, () => onLike(post.id))}
               className={cn(
-                "flex items-center space-x-2 p-2 rounded-full",
+                "flex items-center space-x-2 p-2 rounded-full group",
                 post.isLiked 
-                  ? "text-interaction-like bg-interaction-like/10" 
-                  : "text-muted-foreground hover:text-interaction-like hover:bg-interaction-like/10"
+                  ? "text-red-500 bg-red-500/10" 
+                  : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
               )}
             >
-              <Heart className={cn("h-5 w-5", post.isLiked && "fill-current")} />
+              <Heart className={cn(
+                "h-5 w-5 group-hover:scale-110 transition-transform",
+                post.isLiked && "fill-current"
+              )} />
               <span className="text-sm">{post.likes || 0}</span>
             </Button>
             
@@ -140,9 +241,9 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
               variant="ghost"
               size="sm"
               onClick={(e) => handleInteractionClick(e, () => onShare(post.id))}
-              className="flex items-center space-x-2 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full"
+              className="flex items-center space-x-2 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full group"
             >
-              <Share className="h-5 w-5" />
+              <Share className="h-5 w-5 group-hover:scale-110 transition-transform" />
             </Button>
           </div>
         </div>

@@ -1,10 +1,15 @@
-import { useParams } from 'react-router-dom';
+
+import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PostCard } from '@/components/feed/PostCard';
 import { mockPosts, mockComments } from '@/data/mockData';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const PostView = () => {
   const { postId } = useParams<{ postId: string }>();
+  const navigate = useNavigate();
   
   const post = mockPosts.find(p => p.id === postId);
   
@@ -35,66 +40,118 @@ const PostView = () => {
     console.log('Share post:', postId);
   };
 
+  const postComments = mockComments.filter(c => c.postId === postId);
+
   return (
     <AppLayout>
-      <div className="border-r border-border">
+      <div className="min-h-screen border-r border-border">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+          <div className="flex items-center px-4 py-3">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="mr-8 p-2 hover:bg-muted rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-foreground">Post</h1>
+            </div>
+          </div>
+        </div>
+
         {/* Main Post */}
-        <PostCard
-          post={post}
-          onLike={handleLike}
-          onComment={handleComment}
-          onRepost={handleRepost}
-          onShare={handleShare}
-          detailed={true}
-        />
+        <div className="border-b border-border">
+          <PostCard
+            post={post}
+            onLike={handleLike}
+            onComment={handleComment}
+            onRepost={handleRepost}
+            onShare={handleShare}
+            detailed={true}
+          />
+        </div>
         
-        {/* Comments Section */}
-        <div className="border-t border-border">
-          <div className="p-4">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Replies</h3>
-            
-            {/* Comment Composer */}
-            <div className="flex space-x-3 mb-6">
-              <div className="w-10 h-10 bg-muted rounded-full"></div>
-              <div className="flex-1">
-                <textarea
-                  placeholder="Post your reply"
-                  className="w-full p-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground resize-none"
-                  rows={3}
-                />
-                <div className="flex justify-end mt-2">
-                  <button className="bg-foreground text-background px-6 py-2 rounded-full font-medium hover:bg-foreground/90">
-                    Reply
-                  </button>
+        {/* Reply Composer */}
+        <div className="border-b border-border p-4">
+          <div className="flex space-x-3">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src="/api/placeholder/48/48" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <textarea
+                placeholder="Post your reply"
+                className="w-full p-3 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
+                rows={3}
+              />
+              <div className="flex justify-between items-center mt-3">
+                <div className="flex space-x-4 text-primary">
+                  {/* Media buttons would go here */}
                 </div>
+                <Button className="bg-primary text-primary-foreground px-6 py-2 rounded-full font-bold hover:bg-primary/90 disabled:opacity-50">
+                  Reply
+                </Button>
               </div>
             </div>
-            
-            {/* Comments */}
-            <div className="space-y-4 border-t border-border pt-4">
-              {mockComments.filter(c => c.postId === postId).map((comment) => (
-                <div key={comment.id} className="flex space-x-3 p-4 hover:bg-muted/50 rounded-lg transition-colors">
-                  <div className="w-10 h-10 bg-muted rounded-full"></div>
+          </div>
+        </div>
+        
+        {/* Comments */}
+        <div>
+          {postComments.length > 0 ? (
+            postComments.map((comment) => (
+              <div key={comment.id} className="border-b border-border p-4 hover:bg-muted/5 transition-colors">
+                <div className="flex space-x-3">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={comment.author.avatar || "/api/placeholder/48/48"} />
+                    <AvatarFallback>
+                      {comment.author.displayName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-foreground">{comment.author.displayName}</span>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-bold text-foreground">{comment.author.displayName}</span>
+                      {comment.author.verified && (
+                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                          <span className="text-primary-foreground text-xs">✓</span>
+                        </div>
+                      )}
                       <span className="text-muted-foreground">@{comment.author.username}</span>
                       <span className="text-muted-foreground">·</span>
                       <span className="text-muted-foreground">
                         {new Date(comment.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-foreground mt-1">{comment.content}</p>
-                    <div className="flex items-center space-x-4 mt-2 text-muted-foreground">
-                      <button className="hover:text-red-500 transition-colors">
-                        ❤️ {comment.likes}
+                    <p className="text-foreground whitespace-pre-wrap">{comment.content}</p>
+                    <div className="flex items-center space-x-6 mt-3 text-muted-foreground">
+                      <button className="flex items-center space-x-2 hover:text-primary transition-colors">
+                        <span className="text-sm">💬</span>
+                        <span className="text-sm">0</span>
+                      </button>
+                      <button className="flex items-center space-x-2 hover:text-green-500 transition-colors">
+                        <span className="text-sm">🔄</span>
+                        <span className="text-sm">0</span>
+                      </button>
+                      <button className="flex items-center space-x-2 hover:text-red-500 transition-colors">
+                        <span className="text-sm">❤️</span>
+                        <span className="text-sm">{comment.likes}</span>
+                      </button>
+                      <button className="hover:text-primary transition-colors">
+                        <span className="text-sm">📤</span>
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No replies yet</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </AppLayout>

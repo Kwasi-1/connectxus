@@ -1,369 +1,328 @@
-import { User, Post, TrendingTopic, CampusHighlight, Comment, Group, TutorProfile, MentorProfile, TutoringRequest, UserProfile } from '@/types/global';
+import { Post, User, Comment } from '@/types/global';
 
 export const mockUsers: User[] = [
   {
     id: '1',
-    username: 'sarah_chen',
-    displayName: 'Sarah Chen',
-    email: 'sarah@university.edu',
-    avatar: '/api/placeholder/40/40',
-    bio: 'Computer Science • Class of 2025 • Coffee enthusiast ☕',
+    username: 'johndoe',
+    displayName: 'John Doe',
+    email: 'john@university.edu',
     verified: true,
     followers: 1234,
     following: 567,
     university: 'Tech University',
     major: 'Computer Science',
     year: 3,
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
     createdAt: new Date('2023-01-15')
   },
   {
     id: '2',
-    username: 'mike_johnson',
-    displayName: 'Mike Johnson',
-    email: 'mike@university.edu',
-    bio: 'Engineering Student • Basketball Team Captain 🏀',
+    username: 'sarahtech',
+    displayName: 'Sarah Johnson',
+    email: 'sarah@university.edu',
     verified: false,
     followers: 890,
     following: 234,
     university: 'Tech University',
-    major: 'Mechanical Engineering',
+    major: 'Data Science',
     year: 2,
-    createdAt: new Date('2023-03-20')
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+    createdAt: new Date('2023-08-20')
   },
   {
     id: '3',
-    username: 'prof_davis',
-    displayName: 'Dr. Emily Davis',
-    email: 'davis@university.edu',
-    bio: 'Professor of Psychology • Research in Cognitive Science',
+    username: 'alice_wonder',
+    displayName: 'Alice Williams',
+    email: 'alice@university.edu',
+    verified: true,
+    followers: 2345,
+    following: 789,
+    university: 'Arts College',
+    major: 'Fine Arts',
+    year: 4,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
+    createdAt: new Date('2022-11-01')
+  },
+  {
+    id: '4',
+    username: 'bob_builder',
+    displayName: 'Bob Miller',
+    email: 'bob@university.edu',
+    verified: false,
+    followers: 678,
+    following: 123,
+    university: 'Engineering Institute',
+    major: 'Civil Engineering',
+    year: 1,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
+    createdAt: new Date('2023-05-10')
+  },
+  {
+    id: '5',
+    username: 'emily_eco',
+    displayName: 'Emily Green',
+    email: 'emily@university.edu',
     verified: true,
     followers: 3456,
-    following: 123,
-    university: 'Tech University',
-    createdAt: new Date('2020-08-10')
-  }
+    following: 901,
+    university: 'Environmental Studies',
+    major: 'Environmental Science',
+    year: 2,
+    avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
+    createdAt: new Date('2022-09-22')
+  },
 ];
 
 export const mockPosts: Post[] = [
   {
     id: '1',
-    author: mockUsers[0],
-    content: "Just finished my final project for CS 401! 🎉 Building a machine learning model to predict student success rates. The data patterns are fascinating!",
+    author: {
+      id: '1',
+      username: 'johndoe',
+      displayName: 'John Doe',
+      email: 'john@university.edu',
+      verified: true,
+      followers: 1234,
+      following: 567,
+      university: 'Tech University',
+      major: 'Computer Science',
+      year: 3,
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-01-15')
+    },
+    content: 'Just finished my CS project! The debugging process was intense but totally worth it. Anyone else working on similar assignments this semester? 🎓💻',
+    images: ['https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop'],
     likes: 42,
     comments: 8,
-    reposts: 5,
+    reposts: 12,
     isLiked: false,
     isReposted: false,
-    createdAt: new Date('2024-01-31T10:30:00'),
+    createdAt: new Date('2024-01-20T10:30:00'),
   },
   {
     id: '2',
-    author: mockUsers[1],
-    content: "Big game tomorrow against State University! 🏀 Come out and support the team at 7 PM in the campus gym. We need all the energy we can get!",
-    likes: 127,
+    author: {
+      id: '2',
+      username: 'sarahtech',
+      displayName: 'Sarah Johnson',
+      email: 'sarah@university.edu',
+      verified: false,
+      followers: 890,
+      following: 234,
+      university: 'Tech University',
+      major: 'Data Science',
+      year: 2,
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-08-20')
+    },
+    content: 'Quick demo of my latest machine learning project! This model can predict student performance based on study habits. What do you think? 🤖📊',
+    video: '/api/placeholder/video.mp4',
+    images: ['https://images.unsplash.com/photo-1551808525-51a94da548ce?w=800&h=600&fit=crop'],
+    likes: 156,
     comments: 23,
-    reposts: 15,
+    reposts: 45,
     isLiked: true,
     isReposted: false,
-    createdAt: new Date('2024-01-31T08:15:00'),
+    createdAt: new Date('2024-01-19T15:45:00'),
   },
   {
     id: '3',
-    author: mockUsers[2],
-    content: "Reminder: Office hours today 2-4 PM for anyone struggling with the midterm material. Psychology Building, Room 205. Don't hesitate to ask questions!",
+    author: {
+      id: '3',
+      username: 'alice_wonder',
+      displayName: 'Alice Williams',
+      email: 'alice@university.edu',
+      verified: true,
+      followers: 2345,
+      following: 789,
+      university: 'Arts College',
+      major: 'Fine Arts',
+      year: 4,
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2022-11-01')
+    },
+    content: 'Experimenting with new color palettes for my next art installation. Feedback welcome! 🎨🖌️',
+    images: [
+      'https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1588980334264-1a334a59e4ca?w=400&h=300&fit=crop'
+    ],
     likes: 89,
-    comments: 12,
-    reposts: 8,
+    comments: 15,
+    reposts: 22,
     isLiked: false,
     isReposted: true,
-    createdAt: new Date('2024-01-31T07:45:00'),
+    createdAt: new Date('2024-01-18T09:12:00'),
   },
   {
     id: '4',
-    author: mockUsers[0],
-    content: "Looking for study partners for Data Structures exam next week. Anyone interested in forming a study group? We could meet at the library!",
+    author: {
+      id: '4',
+      username: 'bob_builder',
+      displayName: 'Bob Miller',
+      email: 'bob@university.edu',
+      verified: false,
+      followers: 678,
+      following: 123,
+      university: 'Engineering Institute',
+      major: 'Civil Engineering',
+      year: 1,
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-05-10')
+    },
+    content: 'Site visit today! Checking out the progress on the new campus library. Excited to see it come to life. 🏗️📚',
+    images: [
+      'https://images.unsplash.com/photo-1624736077869-49f0525f4d4a?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1616685085309-098114c53540?w=600&h=400&fit=crop'
+    ],
     likes: 34,
-    comments: 16,
-    reposts: 3,
-    isLiked: true,
+    comments: 5,
+    reposts: 8,
+    isLiked: false,
     isReposted: false,
-    createdAt: new Date('2024-01-30T19:20:00'),
-  }
-];
-
-export const mockTrendingTopics: TrendingTopic[] = [
-  { id: '1', name: '#FinalExams', posts: 1234, category: 'Academic' },
-  { id: '2', name: '#CampusLife', posts: 892, category: 'Social' },
-  { id: '3', name: '#StudyTips', posts: 567, category: 'Academic' },
-  { id: '4', name: '#TechUniversity', posts: 445, category: 'University' },
-  { id: '5', name: '#Basketball', posts: 334, category: 'Sports' }
-];
-
-export const mockCampusHighlights: CampusHighlight[] = [
-  {
-    id: '1',
-    title: 'Spring Career Fair',
-    description: 'Connect with top employers on campus',
-    university: 'Tech University',
-    createdAt: new Date('2024-02-01')
+    createdAt: new Date('2024-01-17T16:55:00'),
   },
   {
-    id: '2',
-    title: 'New Library Hours',
-    description: 'Extended hours during finals week',
-    university: 'Tech University',
-    createdAt: new Date('2024-01-30')
+    id: '5',
+    author: {
+      id: '5',
+      username: 'emily_eco',
+      displayName: 'Emily Green',
+      email: 'emily@university.edu',
+      verified: true,
+      followers: 3456,
+      following: 901,
+      university: 'Environmental Studies',
+      major: 'Environmental Science',
+      year: 2,
+      avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2022-09-22')
+    },
+    content: 'Spent the day volunteering at the local park for a cleanup event. It’s amazing what a little effort can do for our environment! 🌳🌍',
+    images: [
+      'https://images.unsplash.com/photo-1532980400857-89cb849e74ca?w=500&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1563982145495-559e88673d0b?w=500&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1585314064821-3c734549bbff?w=500&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1584401934853-97684d566194?w=500&h=400&fit=crop'
+    ],
+    likes: 210,
+    comments: 32,
+    reposts: 67,
+    isLiked: true,
+    isReposted: true,
+    createdAt: new Date('2024-01-16T11:00:00'),
   },
-  {
-    id: '3',
-    title: 'Research Symposium',
-    description: 'Undergraduate research presentations',
-    university: 'Tech University',
-    createdAt: new Date('2024-01-28')
-  }
 ];
 
 export const mockComments: Comment[] = [
   {
     id: '1',
-    postId: '1',
-    author: mockUsers[1],
-    content: "Great work on the ML project! I'd love to hear more about the data preprocessing steps you used.",
-    likes: 12,
-    isLiked: false,
-    createdAt: new Date('2024-01-31T11:15:00'),
-  },
-  {
-    id: '2',
-    postId: '1',
-    author: mockUsers[2],
-    content: "This sounds fascinating! Have you considered publishing your findings in the student research journal?",
-    likes: 8,
-    isLiked: true,
-    createdAt: new Date('2024-01-31T11:45:00'),
-  },
-  {
-    id: '3',
-    postId: '2',
-    author: mockUsers[0],
-    content: "Can't wait for the game! The team has been practicing hard. 🏀",
-    likes: 15,
-    isLiked: false,
-    createdAt: new Date('2024-01-31T08:30:00'),
-  },
-  {
-    id: '4',
-    postId: '2',
-    author: mockUsers[2],
-    content: "I'll be there cheering you on! Go team!",
-    likes: 6,
-    isLiked: false,
-    createdAt: new Date('2024-01-31T08:45:00'),
-  },
-  {
-    id: '5',
-    postId: '3',
-    author: mockUsers[0],
-    content: "Thank you Dr. Davis! Your office hours always help clarify the material.",
-    likes: 5,
-    isLiked: true,
-    createdAt: new Date('2024-01-31T08:00:00'),
-  },
-  {
-    id: '6',
-    postId: '4',
-    author: mockUsers[1],
-    content: "I'm interested! When were you thinking of meeting?",
-    likes: 3,
-    isLiked: false,
-    createdAt: new Date('2024-01-30T19:35:00'),
-  },
-];
-
-export const mockGroups: Group[] = [
-  {
-    id: '1',
-    name: 'Computer Science Level 100',
-    description: 'A study group for first-year CS students. Share notes, discuss assignments, and prepare for exams together.',
-    avatar: '/api/placeholder/60/60',
-    members: 234,
-    isJoined: true,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Academic',
-    createdAt: new Date('2023-09-15')
-  },
-  {
-    id: '2',
-    name: 'Business Club',
-    description: 'Connect with fellow business students, attend networking events, and discuss entrepreneurship opportunities.',
-    avatar: '/api/placeholder/60/60',
-    members: 156,
-    isJoined: false,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Professional',
-    createdAt: new Date('2023-08-20')
-  },
-  {
-    id: '3',
-    name: 'Basketball Team',
-    description: 'Official university basketball team. Practice schedules, game updates, and team bonding activities.',
-    avatar: '/api/placeholder/60/60',
-    members: 89,
-    isJoined: true,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Sports',
-    createdAt: new Date('2023-07-10')
-  },
-  {
-    id: '4',
-    name: 'Photography Society',
-    description: 'Capture campus life, share photography tips, and organize photo walks around the university.',
-    avatar: '/api/placeholder/60/60',
-    members: 78,
-    isJoined: false,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Arts',
-    createdAt: new Date('2023-09-01')
-  },
-  {
-    id: '5',
-    name: 'Math Study Group',
-    description: 'Weekly study sessions for calculus and statistics. Peer tutoring and problem-solving together.',
-    avatar: '/api/placeholder/60/60',
-    members: 92,
-    isJoined: false,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Study Group',
-    createdAt: new Date('2023-09-05')
-  },
-  {
-    id: '6',
-    name: 'Tech Innovators',
-    description: 'For students interested in technology trends, startups, and innovation. Weekly tech talks and networking.',
-    avatar: '/api/placeholder/60/60',
-    members: 167,
-    isJoined: false,
-    isPrivate: false,
-    university: 'Tech University',
-    category: 'Technology',
-    createdAt: new Date('2023-08-15')
-  }
-];
-
-export const mockTutors: TutorProfile[] = [
-  {
-    id: '1',
-    user: {
-      ...mockUsers[0],
-      displayName: 'Sarah Chen',
-      major: 'Computer Science',
-      year: 3
-    },
-    subjects: ['DCIT 101', 'DCIT 201', 'Mathematics', 'Programming'],
-    hourlyRate: 15,
-    rating: 4.8,
-    reviewCount: 24,
-    availability: [
-      { day: 'Monday', startTime: '14:00', endTime: '17:00' },
-      { day: 'Wednesday', startTime: '10:00', endTime: '12:00' },
-      { day: 'Friday', startTime: '13:00', endTime: '16:00' }
-    ],
-    description: 'Experienced CS student with strong background in programming and mathematics. Specializing in introductory computer science courses.',
-    verified: true
-  },
-  {
-    id: '2',
-    user: {
-      ...mockUsers[1],
-      displayName: 'David Wilson',
-      major: 'Mathematics',
-      year: 4
-    },
-    subjects: ['Calculus I', 'Calculus II', 'Statistics', 'Linear Algebra'],
-    hourlyRate: 20,
-    rating: 4.9,
-    reviewCount: 31,
-    availability: [
-      { day: 'Tuesday', startTime: '15:00', endTime: '18:00' },
-      { day: 'Thursday', startTime: '09:00', endTime: '12:00' }
-    ],
-    description: 'Senior mathematics major with passion for teaching. Helped over 50 students improve their math grades.',
-    verified: true
-  }
-];
-
-export const mockMentors: MentorProfile[] = [
-  {
-    id: '1',
-    user: {
-      ...mockUsers[2],
-      displayName: 'Dr. Emily Davis',
-      major: 'Psychology'
-    },
-    industry: 'Technology',
-    company: 'Google',
-    position: 'Senior Software Engineer',
-    experience: 5,
-    specialties: ['Career Development', 'Tech Industry', 'Leadership', 'Work-Life Balance'],
-    rating: 4.7,
-    reviewCount: 18,
-    availability: [
-      { day: 'Saturday', startTime: '10:00', endTime: '12:00' }
-    ],
-    description: 'Former Tech University graduate now working at Google. Happy to mentor students interested in tech careers.',
-    verified: true
-  },
-  {
-    id: '2',
-    user: {
-      id: '4',
-      username: 'alex_mentor',
-      displayName: 'Alex Thompson',
-      email: 'alex@alumni.edu',
-      bio: 'Business graduate • Startup founder • Mentor',
-      verified: true,
-      followers: 567,
+    author: {
+      id: '2',
+      username: 'sarahtech',
+      displayName: 'Sarah Johnson',
+      email: 'sarah@university.edu',
+      verified: false,
+      followers: 890,
       following: 234,
       university: 'Tech University',
-      major: 'Business Administration',
-      createdAt: new Date('2022-05-15')
+      major: 'Data Science',
+      year: 2,
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-08-20')
     },
-    industry: 'Entrepreneurship',
-    company: 'TechStart Inc.',
-    position: 'Founder & CEO',
-    experience: 3,
-    specialties: ['Entrepreneurship', 'Business Strategy', 'Fundraising', 'Networking'],
-    rating: 4.6,
-    reviewCount: 12,
-    availability: [
-      { day: 'Sunday', startTime: '14:00', endTime: '16:00' }
-    ],
-    description: 'Young entrepreneur who started a successful tech company. Passionate about helping students with business ideas.',
-    verified: true
-  }
-];
-
-export const mockTutoringRequests: TutoringRequest[] = [
+    content: 'Great job, John! Debugging is always the toughest part. What tools did you find most helpful?',
+    postId: '1',
+    likes: 5,
+    isLiked: false,
+    createdAt: new Date('2024-01-20T11:00:00'),
+  },
   {
-    id: '1',
-    subject: 'DCIT 101',
-    description: 'Need help with basic programming concepts and assignments',
-    studentId: '1',
-    tutorId: '1',
-    status: 'accepted',
-    createdAt: new Date('2024-01-28')
-  }
+    id: '2',
+    author: {
+      id: '3',
+      username: 'alice_wonder',
+      displayName: 'Alice Williams',
+      email: 'alice@university.edu',
+      verified: true,
+      followers: 2345,
+      following: 789,
+      university: 'Arts College',
+      major: 'Fine Arts',
+      year: 4,
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2022-11-01')
+    },
+    content: 'Sarah, your machine learning project sounds fascinating! I’d love to see a more in-depth presentation sometime.',
+    postId: '2',
+    likes: 12,
+    isLiked: true,
+    createdAt: new Date('2024-01-19T16:30:00'),
+  },
+  {
+    id: '3',
+    author: {
+      id: '1',
+      username: 'johndoe',
+      displayName: 'John Doe',
+      email: 'john@university.edu',
+      verified: true,
+      followers: 1234,
+      following: 567,
+      university: 'Tech University',
+      major: 'Computer Science',
+      year: 3,
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-01-15')
+    },
+    content: 'Thanks, Sarah! I mainly used VS Code for debugging. The built-in debugger is quite effective!',
+    postId: '1',
+    likes: 3,
+    isLiked: false,
+    createdAt: new Date('2024-01-20T11:15:00'),
+  },
+  {
+    id: '4',
+    author: {
+      id: '4',
+      username: 'bob_builder',
+      displayName: 'Bob Miller',
+      email: 'bob@university.edu',
+      verified: false,
+      followers: 678,
+      following: 123,
+      university: 'Engineering Institute',
+      major: 'Civil Engineering',
+      year: 1,
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2023-05-10')
+    },
+    content: 'Alice, your art installations always bring so much life to the campus. Keep up the amazing work!',
+    postId: '3',
+    likes: 7,
+    isLiked: false,
+    createdAt: new Date('2024-01-18T10:00:00'),
+  },
+  {
+    id: '5',
+    author: {
+      id: '5',
+      username: 'emily_eco',
+      displayName: 'Emily Green',
+      email: 'emily@university.edu',
+      verified: true,
+      followers: 3456,
+      following: 901,
+      university: 'Environmental Studies',
+      major: 'Environmental Science',
+      year: 2,
+      avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
+      createdAt: new Date('2022-09-22')
+    },
+    content: 'Bob, it’s great to see the new library progressing. Sustainable building practices are so important for our future!',
+    postId: '4',
+    likes: 15,
+    isLiked: true,
+    createdAt: new Date('2024-01-17T17:30:00'),
+  },
 ];
-
-export const mockUserProfile: UserProfile = {
-  ...mockUsers[0],
-  posts: [mockPosts[0], mockPosts[3]],
-  joinedGroups: [mockGroups[0], mockGroups[2]],
-  tutoringRequests: mockTutoringRequests,
-  mentorStatus: undefined
-};
