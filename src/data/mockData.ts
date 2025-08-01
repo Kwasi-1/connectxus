@@ -1,4 +1,4 @@
-import { Post, User, Comment } from '@/types/global';
+import { Post, User, Comment, Group, TutorProfile, MentorProfile, UserProfile, TutoringRequest, TrendingTopic, CampusHighlight } from '@/types/global';
 
 export const mockUsers: User[] = [
   {
@@ -198,7 +198,7 @@ export const mockPosts: Post[] = [
       avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
       createdAt: new Date('2022-09-22')
     },
-    content: 'Spent the day volunteering at the local park for a cleanup event. It’s amazing what a little effort can do for our environment! 🌳🌍',
+    content: 'Spent the day volunteering at the local park for a cleanup event. It\'s amazing what a little effort can do for our environment! 🌳🌍',
     images: [
       'https://images.unsplash.com/photo-1532980400857-89cb849e74ca?w=500&h=400&fit=crop',
       'https://images.unsplash.com/photo-1563982145495-559e88673d0b?w=500&h=400&fit=crop',
@@ -253,7 +253,7 @@ export const mockComments: Comment[] = [
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
       createdAt: new Date('2022-11-01')
     },
-    content: 'Sarah, your machine learning project sounds fascinating! I’d love to see a more in-depth presentation sometime.',
+    content: 'Sarah, your machine learning project sounds fascinating! I\'d love to see a more in-depth presentation sometime.',
     postId: '2',
     likes: 12,
     isLiked: true,
@@ -319,10 +319,253 @@ export const mockComments: Comment[] = [
       avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
       createdAt: new Date('2022-09-22')
     },
-    content: 'Bob, it’s great to see the new library progressing. Sustainable building practices are so important for our future!',
+    content: 'Bob, it\'s great to see the new library progressing. Sustainable building practices are so important for our future!',
     postId: '4',
     likes: 15,
     isLiked: true,
     createdAt: new Date('2024-01-17T17:30:00'),
   },
 ];
+
+export const mockGroups: Group[] = [
+  {
+    id: '1',
+    name: 'CS Study Group',
+    description: 'A community for Computer Science students to share resources, discuss assignments, and collaborate on projects.',
+    avatar: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop',
+    members: 234,
+    isJoined: true,
+    isPrivate: false,
+    university: 'Tech University',
+    category: 'Study Group',
+    createdAt: new Date('2023-09-01')
+  },
+  {
+    id: '2',
+    name: 'Campus Basketball',
+    description: 'Join us for weekly basketball games and tournaments. All skill levels welcome!',
+    avatar: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=100&h=100&fit=crop',
+    members: 156,
+    isJoined: false,
+    isPrivate: false,
+    university: 'Tech University',
+    category: 'Sports',
+    createdAt: new Date('2023-08-15')
+  },
+  {
+    id: '3',
+    name: 'Art Collective',
+    description: 'A space for artists to showcase their work, collaborate, and organize exhibitions.',
+    avatar: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=100&h=100&fit=crop',
+    members: 89,
+    isJoined: true,
+    isPrivate: false,
+    university: 'Arts College',
+    category: 'Arts',
+    createdAt: new Date('2023-07-20')
+  },
+  {
+    id: '4',
+    name: 'Tech Entrepreneurs',
+    description: 'Network with fellow entrepreneurs, share startup ideas, and find co-founders.',
+    avatar: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=100&h=100&fit=crop',
+    members: 67,
+    isJoined: false,
+    isPrivate: true,
+    university: 'Tech University',
+    category: 'Professional',
+    createdAt: new Date('2023-06-10')
+  }
+];
+
+export const mockTutors: TutorProfile[] = [
+  {
+    id: '1',
+    user: mockUsers[0],
+    subjects: ['DCIT 101', 'Programming', 'Calculus I'],
+    hourlyRate: 25,
+    rating: 4.8,
+    reviewCount: 24,
+    availability: [
+      { day: 'Monday', startTime: '2:00 PM', endTime: '5:00 PM' },
+      { day: 'Wednesday', startTime: '1:00 PM', endTime: '4:00 PM' },
+      { day: 'Friday', startTime: '3:00 PM', endTime: '6:00 PM' }
+    ],
+    description: 'Experienced CS tutor with 3+ years helping students succeed in programming and mathematics.',
+    verified: true
+  },
+  {
+    id: '2',
+    user: mockUsers[1],
+    subjects: ['DCIT 201', 'Statistics', 'Data Science'],
+    hourlyRate: 30,
+    rating: 4.9,
+    reviewCount: 18,
+    availability: [
+      { day: 'Tuesday', startTime: '10:00 AM', endTime: '1:00 PM' },
+      { day: 'Thursday', startTime: '2:00 PM', endTime: '5:00 PM' }
+    ],
+    description: 'Data Science major specializing in statistics and machine learning concepts.',
+    verified: false
+  },
+  {
+    id: '3',
+    user: mockUsers[2],
+    subjects: ['Mathematics', 'Calculus I', 'Linear Algebra'],
+    hourlyRate: 22,
+    rating: 4.7,
+    reviewCount: 31,
+    availability: [
+      { day: 'Monday', startTime: '9:00 AM', endTime: '12:00 PM' },
+      { day: 'Wednesday', startTime: '10:00 AM', endTime: '2:00 PM' },
+      { day: 'Friday', startTime: '11:00 AM', endTime: '3:00 PM' }
+    ],
+    description: 'Math enthusiast helping students build strong foundations in calculus and algebra.',
+    verified: true
+  }
+];
+
+export const mockMentors: MentorProfile[] = [
+  {
+    id: '1',
+    user: mockUsers[0],
+    industry: 'Technology',
+    company: 'Google',
+    position: 'Senior Software Engineer',
+    experience: 5,
+    specialties: ['Software Development', 'Career Growth', 'Tech Interviews'],
+    rating: 4.9,
+    reviewCount: 42,
+    availability: [
+      { day: 'Saturday', startTime: '10:00 AM', endTime: '2:00 PM' },
+      { day: 'Sunday', startTime: '1:00 PM', endTime: '4:00 PM' }
+    ],
+    description: 'Passionate about helping students transition from university to tech careers. Experienced in mentoring junior developers.',
+    verified: true
+  },
+  {
+    id: '2',
+    user: mockUsers[1],
+    industry: 'Business',
+    company: 'McKinsey & Company',
+    position: 'Business Analyst',
+    experience: 3,
+    specialties: ['Business Strategy', 'Consulting', 'Analytics'],
+    rating: 4.7,
+    reviewCount: 28,
+    availability: [
+      { day: 'Saturday', startTime: '2:00 PM', endTime: '5:00 PM' }
+    ],
+    description: 'Business consultant helping students develop strategic thinking and analytical skills.',
+    verified: true
+  },
+  {
+    id: '3',
+    user: mockUsers[2],
+    industry: 'Entrepreneurship',
+    company: 'Startup Founder',
+    position: 'CEO',
+    experience: 7,
+    specialties: ['Startup Strategy', 'Product Development', 'Fundraising'],
+    rating: 4.8,
+    reviewCount: 35,
+    availability: [
+      { day: 'Friday', startTime: '6:00 PM', endTime: '8:00 PM' },
+      { day: 'Sunday', startTime: '10:00 AM', endTime: '12:00 PM' }
+    ],
+    description: 'Serial entrepreneur with experience building and scaling tech startups. Love helping aspiring entrepreneurs.',
+    verified: true
+  }
+];
+
+export const mockTrendingTopics: TrendingTopic[] = [
+  {
+    id: '1',
+    name: '#FinalExams',
+    posts: 2543,
+    category: 'Academic'
+  },
+  {
+    id: '2',
+    name: '#CampusLife',
+    posts: 1876,
+    category: 'Social'
+  },
+  {
+    id: '3',
+    name: '#TechCareers',
+    posts: 1234,
+    category: 'Professional'
+  },
+  {
+    id: '4',
+    name: '#StudyTips',
+    posts: 987,
+    category: 'Academic'
+  },
+  {
+    id: '5',
+    name: '#Innovation',
+    posts: 765,
+    category: 'Technology'
+  }
+];
+
+export const mockCampusHighlights: CampusHighlight[] = [
+  {
+    id: '1',
+    title: 'New Library Opening',
+    description: 'The state-of-the-art learning center opens next month with 24/7 study spaces.',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=200&fit=crop',
+    university: 'Tech University',
+    createdAt: new Date('2024-01-15')
+  },
+  {
+    id: '2',
+    title: 'Career Fair 2024',
+    description: 'Connect with top employers and explore internship opportunities.',
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&h=200&fit=crop',
+    university: 'Tech University',
+    createdAt: new Date('2024-01-10')
+  },
+  {
+    id: '3',
+    title: 'Research Symposium',
+    description: 'Students present their innovative research projects and compete for awards.',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
+    university: 'Tech University',
+    createdAt: new Date('2024-01-05')
+  },
+  {
+    id: '4',
+    title: 'Spring Semester Registration',
+    description: 'Course registration opens February 1st. Don\'t miss out on popular classes!',
+    university: 'Tech University',
+    createdAt: new Date('2024-01-01')
+  }
+];
+
+export const mockUserProfile: UserProfile = {
+  ...mockUsers[0],
+  posts: mockPosts.slice(0, 2),
+  joinedGroups: mockGroups.slice(0, 2),
+  tutoringRequests: [
+    {
+      id: '1',
+      subject: 'DCIT 101',
+      description: 'Need help with programming basics',
+      studentId: '1',
+      tutorId: '2',
+      status: 'accepted',
+      createdAt: new Date('2024-01-15')
+    },
+    {
+      id: '2',
+      subject: 'Mathematics',
+      description: 'Struggling with calculus concepts',
+      studentId: '1',
+      status: 'pending',
+      createdAt: new Date('2024-01-20')
+    }
+  ]
+};
