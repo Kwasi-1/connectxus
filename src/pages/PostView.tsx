@@ -76,26 +76,21 @@ const PostView = () => {
         
         {/* Reply Composer */}
         <div className="border-b border-border p-4">
-          <div className="flex space-x-3">
-            <Avatar className="w-12 h-12">
+          <div className="flex justify-between items-start">
+            <Avatar className="w-11 h-11">
               <AvatarImage src="/api/placeholder/48/48" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <textarea
                 placeholder="Post your reply"
-                className="w-full p-3 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
+                className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
                 rows={1}
               />
-              <div className="flex justify-between items-center mt-3">
-                <div className="flex space-x-4 text-primary">
-                  {/* Media buttons would go here */}
-                </div>
-                <Button className="bg-primary text-primary-foreground px-6 py-2 rounded-full font-bold hover:bg-primary/90 disabled:opacity-50">
-                  Reply
-                </Button>
-              </div>
             </div>
+            <Button className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50">
+              Reply
+            </Button>
           </div>
         </div>
         
@@ -105,7 +100,7 @@ const PostView = () => {
             postComments.map((comment) => (
               <div key={comment.id} className="border-b border-border p-4 hover:bg-muted/5 transition-colors">
                 <div className="flex space-x-3">
-                  <Avatar className="w-12 h-12">
+                  <Avatar className="w-10 h-10">
                     <AvatarImage src={comment.author.avatar || "/api/placeholder/48/48"} />
                     <AvatarFallback>
                       {comment.author.displayName.split(' ').map(n => n[0]).join('')}
