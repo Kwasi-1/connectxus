@@ -264,7 +264,7 @@ const Messages = () => {
           selectedChat && isMobileView ? 'hidden lg:flex' : 'flex'
         } lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background`}>
           {/* Header */}
-          <div className="p-4 border-b border-border">
+          <div className="sticky top-0 z-40 bg-background p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-bold text-foreground">Messages</h1>
               <Button variant="ghost" size="icon">
