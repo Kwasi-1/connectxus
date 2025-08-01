@@ -8,7 +8,7 @@ interface FeedHeaderProps {
 
 export function FeedHeader({ activeFilter, onFilterChange }: FeedHeaderProps) {
   return (
-    <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+    <div className="sticky top-16 lg:top-0 z-10 bg-background lg:bg-background/80 lg:backdrop-blur-md border-b border-border">
       <Tabs value={activeFilter} onValueChange={(value) => onFilterChange(value as 'all' | 'following')} className="w-full">
         <TabsList className="w-full h-12 bg-transparent rounded-none p-0">
           <TabsTrigger 
