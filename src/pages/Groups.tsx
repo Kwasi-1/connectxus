@@ -36,7 +36,7 @@ const Groups = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className=" mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -66,6 +66,7 @@ const Groups = () => {
               variant={selectedCategory === 'All' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory('All')}
+              className='rounded-full px-5'
             >
               All
             </Button>
@@ -75,6 +76,7 @@ const Groups = () => {
                 variant={selectedCategory === category ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
+                className='rounded-full'
               >
                 {category}
               </Button>

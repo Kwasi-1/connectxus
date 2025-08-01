@@ -36,7 +36,7 @@ const Messages = () => {
     <AppLayout showRightSidebar={false}>
       <div className="flex h-screen">
         {/* Messages Sidebar */}
-        <div className="w-80 border-r border-border flex flex-col">
+        <div className="min-w-[450px] max-w-md border-r border-border flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -51,7 +51,7 @@ const Messages = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
                 placeholder="Search Direct Messages" 
-                className="pl-10 py-3 bg-muted border-none rounded-full"
+                className="pl-10 py-3 border rounded-full"
               />
             </div>
           </div>

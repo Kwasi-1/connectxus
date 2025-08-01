@@ -31,7 +31,7 @@ const Tutoring = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -63,6 +63,7 @@ const Tutoring = () => {
                 variant={selectedSubject === subject ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedSubject(subject)}
+                className='rounded-full px-5'
               >
                 {subject}
               </Button>
