@@ -23,9 +23,9 @@ export function PostComposer({ onPost }: PostComposerProps) {
   const isDisabled = !content.trim() || content.length > maxChars;
 
   return (
-    <Card className="border-b border-border p-4">
+    <Card className="hidden md:block border-0 rounded-none border-border p-4">
       <div className="flex space-x-3">
-        <Avatar className="w-12 h-12">
+        <Avatar className="w-10 h-10">
           <AvatarImage src="/api/placeholder/48/48" />
           <AvatarFallback>YU</AvatarFallback>
         </Avatar>
@@ -34,7 +34,7 @@ export function PostComposer({ onPost }: PostComposerProps) {
             placeholder="What's happening on campus?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[120px] border-none resize-none text-xl placeholder:text-muted-foreground focus-visible:ring-0 p-0"
+            className="min-h-[40px] border-none resize-none text-xl placeholder:text-muted-foreground focus-visible:ring-0 p-0"
           />
           
           {/* Character Count */}
