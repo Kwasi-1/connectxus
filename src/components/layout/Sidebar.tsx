@@ -3,7 +3,7 @@ import { Home, Search, Bell, Mail, Users, BookOpen, GraduationCap, User, MoreHor
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -31,7 +31,7 @@ export function Sidebar() {
   return (
     <div className="flex flex-col h-full w-full p-6 bg-background border-r border-border">
       {/* Logo */}
-      <div className="flex items-center space-x-3 mb-8">
+      <div className="flex items-center space-x-3 mb-8 mx-3">
         <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
           <span className="text-background font-bold text-sm">CV</span>
         </div>
@@ -39,31 +39,32 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y1">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = isActiveRoute(item.path);
           
           return (
-            <Button
+            <Link
               key={item.id}
-              variant="ghost"
-              onClick={() => handleNavigation(item.path)}
+              // variant="ghost"
+              // onClick={() => handleNavigation(item.path)}
+              to={item.path}
               className={cn(
-                "w-full justify-start text-left px-4 py-3 text-xl font-medium rounded-full transition-colors",
-                "hover:bg-muted",
+                "w-full justify-start text-left px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
+                "hover:bg-muted font-[300]",
                 isActive && "font-bold"
               )}
             >
-              <Icon className="mr-4 h-7 w-7" />
+              <Icon className="mr-4 h-6 w-6 text-3xl" />
               {item.label}
-            </Button>
+            </Link>
           );
         })}
       </nav>
 
       {/* Post Button */}
-      <Button className="w-full mb-4 bg-foreground hover:bg-foreground/90 text-background font-bold py-4 text-lg rounded-full">
+      <Button className="w-[90%] mb-4 bg-foreground hover:bg-foreground/90 text-background font-bold py-6 text-lg rounded-full">
         Post
       </Button>
 
