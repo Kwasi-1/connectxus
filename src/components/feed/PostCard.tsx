@@ -87,7 +87,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                   key={index}
                   src={image} 
                   alt={`Post content ${index + 1}`} 
-                  className="w-full h-48 object-cover hover:brightness-95 transition-all cursor-pointer"
+                  className="w-full h-72 object-cover hover:brightness-95 transition-all cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 />
               ))}
@@ -106,7 +106,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                     key={index}
                     src={image} 
                     alt={`Post content ${index + 2}`} 
-                    className="w-full h-24 object-cover hover:brightness-95 transition-all cursor-pointer"
+                    className="w-full h-40 object-cover hover:brightness-95 transition-all cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
                   />
                 ))}
@@ -135,7 +135,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
   return (
     <Card 
       className={cn(
-        "border-b border-border rounded-none border-x-0 p-4 transition-colors cursor-pointer",
+        "border-b  border-border rounded-none border-0 p-4 transition-colors cursor-pointer",
         detailed ? "hover:bg-transparent" : "hover:bg-muted/5"
       )}
       onClick={handlePostClick}
@@ -150,22 +150,24 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
         
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center space-x-2 flex-wrap">
-            <span className="font-bold text-foreground hover:underline cursor-pointer">
-              {post.author.displayName}
-            </span>
-            {post.author.verified && (
-              <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground text-xs">✓</span>
-              </div>
-            )}
-            <span className="text-muted-foreground hover:underline cursor-pointer">
-              @{post.author.username}
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground hover:underline cursor-pointer">
-              {detailed ? new Date(post.createdAt).toLocaleDateString() : formatTimeAgo(post.createdAt)}
-            </span>
+          <div className="flex items-center justify-between space-x-2 flex-wrap">
+            <div className='flex items-center justify-center space-x-2 flex-wrap'>
+              <span className="font-bold text-foreground hover:underline cursor-pointer">
+                {post.author.displayName}
+              </span>
+              {post.author.verified && (
+                <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-primary-foreground text-xs">✓</span>
+                </div>
+              )}
+              <span className="text-muted-foreground hover:underline cursor-pointer">
+                @{post.author.username}
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground hover:underline cursor-pointer">
+                {detailed ? new Date(post.createdAt).toLocaleDateString() : formatTimeAgo(post.createdAt)}
+              </span>
+            </div>
             <div className="ml-auto">
               <Button 
                 variant="ghost" 
@@ -181,7 +183,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
           {/* Content */}
           <div className={cn(
             "text-foreground whitespace-pre-wrap mt-1",
-            detailed ? "text-xl leading-relaxed" : "text-base"
+            detailed ? "text-base md:text-lg leading-relaxed" : "text-base"
           )}>
             {post.content}
           </div>
