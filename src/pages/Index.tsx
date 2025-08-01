@@ -1,12 +1,26 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Feed } from '@/components/feed/Feed';
 import { mockPosts, mockUsers } from '@/data/mockData';
 import { Post } from '@/types/global';
 
 const Index = () => {
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Simulate API call with useEffect
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setPosts(mockPosts);
+      setLoading(false);
+    };
+
+    fetchPosts();
+  }, []);
 
   const handleCreatePost = (content: string) => {
     const newPost: Post = {
@@ -64,6 +78,7 @@ const Index = () => {
         onComment={handleComment}
         onRepost={handleRepost}
         onShare={handleShare}
+        loading={loading}
       />
     </AppLayout>
   );

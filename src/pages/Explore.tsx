@@ -1,16 +1,47 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/feed/PostCard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { mockPosts } from '@/data/mockData';
-import { ExploreTab } from '@/types/global';
+import { ExploreTab, Post } from '@/types/global';
 
 const Explore = () => {
   const [activeTab, setActiveTab] = useState<ExploreTab>('for-you');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Simulate API call with useEffect
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Filter posts based on active tab
+      let filteredPosts = mockPosts;
+      if (activeTab === 'trending') {
+        filteredPosts = mockPosts.slice(0, 3);
+      }
+      
+      setPosts(filteredPosts);
+      setLoading(false);
+    };
+
+    fetchPosts();
+  }, [activeTab]);
 
   const handleLike = (postId: string) => {
-    console.log('Like post:', postId);
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            isLiked: !post.isLiked, 
+            likes: post.isLiked ? post.likes - 1 : post.likes + 1 
+          }
+        : post
+    ));
   };
 
   const handleComment = (postId: string) => {
@@ -18,7 +49,15 @@ const Explore = () => {
   };
 
   const handleRepost = (postId: string) => {
-    console.log('Repost:', postId);
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            isReposted: !post.isReposted, 
+            reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1 
+          }
+        : post
+    ));
   };
 
   const handleShare = (postId: string) => {
@@ -70,33 +109,41 @@ const Explore = () => {
             </TabsList>
             
             <TabsContent value="for-you" className="mt-0">
-              <div className="divide-y divide-border">
-                {mockPosts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onComment={handleComment}
-                    onRepost={handleRepost}
-                    onShare={handleShare}
-                  />
-                ))}
-              </div>
+              {loading ? (
+                <LoadingSpinner size="lg" />
+              ) : (
+                <div className="divide-y divide-border">
+                  {posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onLike={handleLike}
+                      onComment={handleComment}
+                      onRepost={handleRepost}
+                      onShare={handleShare}
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="trending" className="mt-0">
-              <div className="divide-y divide-border">
-                {mockPosts.slice(0, 3).map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onComment={handleComment}
-                    onRepost={handleRepost}
-                    onShare={handleShare}
-                  />
-                ))}
-              </div>
+              {loading ? (
+                <LoadingSpinner size="lg" />
+              ) : (
+                <div className="divide-y divide-border">
+                  {posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onLike={handleLike}
+                      onComment={handleComment}
+                      onRepost={handleRepost}
+                      onShare={handleShare}
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="news" className="mt-0">

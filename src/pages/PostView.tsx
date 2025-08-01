@@ -1,19 +1,131 @@
 
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PostCard } from '@/components/feed/PostCard';
-import { mockPosts, mockComments } from '@/data/mockData';
-import { ArrowLeft, Heart, MessageCircle } from 'lucide-react';
+import { Comment } from '@/components/feed/Comment';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { mockPosts, mockComments, mockUsers } from '@/data/mockData';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
+import { Post, Comment as CommentType } from '@/types/global';
 
 const PostView = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   
-  const post = mockPosts.find(p => p.id === postId);
-  
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<CommentType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [newComment, setNewComment] = useState('');
+
+  // Fetch post data
+  useEffect(() => {
+    const fetchPost = async () => {
+      setLoading(true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const foundPost = mockPosts.find(p => p.id === postId);
+      setPost(foundPost || null);
+      setLoading(false);
+    };
+
+    fetchPost();
+  }, [postId]);
+
+  // Fetch comments data
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!postId) return;
+      
+      setCommentsLoading(true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      const postComments = mockComments.filter(c => c.postId === postId);
+      setComments(postComments);
+      setCommentsLoading(false);
+    };
+
+    fetchComments();
+  }, [postId]);
+
+  const handleLike = (postId: string) => {
+    if (post && post.id === postId) {
+      setPost({
+        ...post,
+        isLiked: !post.isLiked,
+        likes: post.isLiked ? post.likes - 1 : post.likes + 1
+      });
+    }
+  };
+
+  const handleComment = (postId: string) => {
+    console.log('Comment on post:', postId);
+  };
+
+  const handleRepost = (postId: string) => {
+    if (post && post.id === postId) {
+      setPost({
+        ...post,
+        isReposted: !post.isReposted,
+        reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1
+      });
+    }
+  };
+
+  const handleShare = (postId: string) => {
+    console.log('Share post:', postId);
+  };
+
+  const handleCommentLike = (commentId: string) => {
+    setComments(comments.map(comment => 
+      comment.id === commentId 
+        ? { 
+            ...comment, 
+            isLiked: !comment.isLiked, 
+            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1 
+          }
+        : comment
+    ));
+  };
+
+  const handleAddComment = () => {
+    if (!newComment.trim() || !post) return;
+
+    const comment: CommentType = {
+      id: Date.now().toString(),
+      author: mockUsers[0], // Current user
+      content: newComment,
+      postId: post.id,
+      likes: 0,
+      isLiked: false,
+      createdAt: new Date(),
+    };
+
+    setComments([...comments, comment]);
+    setNewComment('');
+    
+    // Update post comment count
+    setPost({
+      ...post,
+      comments: post.comments + 1
+    });
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen border-r border-border">
+          <LoadingSpinner size="lg" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   if (!post) {
     return (
       <AppLayout>
@@ -24,24 +136,6 @@ const PostView = () => {
       </AppLayout>
     );
   }
-
-  const handleLike = (postId: string) => {
-    console.log('Like post:', postId);
-  };
-
-  const handleComment = (postId: string) => {
-    console.log('Comment on post:', postId);
-  };
-
-  const handleRepost = (postId: string) => {
-    console.log('Repost:', postId);
-  };
-
-  const handleShare = (postId: string) => {
-    console.log('Share post:', postId);
-  };
-
-  const postComments = mockComments.filter(c => c.postId === postId);
 
   return (
     <AppLayout>
@@ -77,71 +171,46 @@ const PostView = () => {
         
         {/* Reply Composer */}
         <div className="border-b border-border p-4">
-          <div className="flex justify-between items-start">
+          <div className="flex space-x-3">
             <Avatar className="w-11 h-11">
-              <AvatarImage src="/api/placeholder/48/48" />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarImage src={mockUsers[0].avatar} />
+              <AvatarFallback>
+                {mockUsers[0].displayName.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <textarea
                 placeholder="Post your reply"
                 className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
-                rows={1}
+                rows={3}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
               />
+              <div className="flex justify-end mt-2">
+                <Button 
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50"
+                >
+                  Reply
+                </Button>
+              </div>
             </div>
-            <Button className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50">
-              Reply
-            </Button>
           </div>
         </div>
         
         {/* Comments */}
         <div>
-          {postComments.length > 0 ? (
-            postComments.map((comment) => (
-              <div key={comment.id} className="border-b border-border p-4 hover:bg-muted/5 transition-colors">
-                <div className="flex space-x-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={comment.author.avatar || "/api/placeholder/48/48"} />
-                    <AvatarFallback>
-                      {comment.author.displayName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-bold text-foreground">{comment.author.displayName}</span>
-                      {comment.author.verified && (
-                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                          <span className="text-primary-foreground text-xs">✓</span>
-                        </div>
-                      )}
-                      <span className="text-muted-foreground">@{comment.author.username}</span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-muted-foreground">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-foreground whitespace-pre-wrap">{comment.content}</p>
-                    <div className="flex items-center space-x-6 mt-3 text-muted-foreground">
-                      <button className="flex items-center space-x-2 hover:text-primary transition-colors">
-                        <MessageCircle className="h-4 w-4" />
-                        <span className="text-sm">0</span>
-                      </button>
-                      <button className="flex items-center space-x-2 hover:text-green-500 transition-colors">
-                        <span className="text-sm">🔄</span>
-                        <span className="text-sm">0</span>
-                      </button>
-                      <button className="flex items-center space-x-2 hover:text-red-500 transition-colors">
-                        <Heart className={cn("h-4 w-4", comment.isLiked && "fill-current")} />
-                        <span className="text-sm">{comment.likes}</span>
-                      </button>
-                      <button className="hover:text-primary transition-colors">
-                        <span className="text-sm">📤</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {commentsLoading ? (
+            <LoadingSpinner size="md" />
+          ) : comments.length > 0 ? (
+            comments.map((comment) => (
+              <Comment
+                key={comment.id}
+                comment={comment}
+                onLike={handleCommentLike}
+                onReply={(commentId) => console.log('Reply to comment:', commentId)}
+              />
             ))
           ) : (
             <div className="p-8 text-center">

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
 import { FeedHeader } from './FeedHeader';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Post } from '@/types/global';
 
 interface FeedProps {
@@ -11,18 +13,34 @@ interface FeedProps {
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
   onShare: (postId: string) => void;
+  loading?: boolean;
 }
 
-export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare }: FeedProps) {
-  const [activeFilter, setActiveFilter] = useState<'all' | 'following'>('all');
+export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare, loading = false }: FeedProps) {
+  const [activeFilter, setActiveFilter] = useState<'for-you' | 'following' | 'university'>('for-you');
 
   const filteredPosts = posts.filter(post => {
     if (activeFilter === 'following') {
       // In a real app, this would filter based on followed users
       return true; // For now, show all posts
     }
+    if (activeFilter === 'university') {
+      // Filter for university-related posts
+      return post.content.toLowerCase().includes('university') || 
+             post.content.toLowerCase().includes('campus') ||
+             post.content.toLowerCase().includes('tech university');
+    }
     return true;
   });
+
+  if (loading) {
+    return (
+      <div className="flex-1 border-r border-border">
+        <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 border-r border-border">
@@ -43,6 +61,11 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
             onShare={onShare}
           />
         ))}
+        {filteredPosts.length === 0 && (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No posts found for this filter.</p>
+          </div>
+        )}
       </div>
     </div>
   );
