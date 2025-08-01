@@ -1,4 +1,3 @@
-
 // Global types for Campus Vibe Net
 
 export interface User {
@@ -154,6 +153,23 @@ export interface CampusHighlight {
   createdAt: Date;
 }
 
-// Tab types for different pages
 export type ExploreTab = 'for-you' | 'trending' | 'news' | 'sports' | 'entertainment';
+
 export type NotificationTab = 'all' | 'verified' | 'mentions';
+
+export interface UserProfile extends User {
+  posts: Post[];
+  joinedGroups: Group[];
+  tutoringRequests: TutoringRequest[];
+  mentorStatus?: MentorProfile;
+}
+
+export interface TutoringRequest {
+  id: string;
+  subject: string;
+  description: string;
+  studentId: string;
+  tutorId?: string;
+  status: 'pending' | 'accepted' | 'completed';
+  createdAt: Date;
+}
