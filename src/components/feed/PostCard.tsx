@@ -87,7 +87,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                   key={index}
                   src={image} 
                   alt={`Post content ${index + 1}`} 
-                  className="w-full h-72 object-cover hover:brightness-95 transition-all cursor-pointer"
+                  className="w-full h-48 sm:h-64 md:-72 object-cover hover:brightness-95 transition-all cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 />
               ))}
@@ -106,7 +106,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                     key={index}
                     src={image} 
                     alt={`Post content ${index + 2}`} 
-                    className="w-full h-40 object-cover hover:brightness-95 transition-all cursor-pointer"
+                    className="w-full h-24 sm:h-32 md:h-40 object-cover hover:brightness-95 transition-all cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
                   />
                 ))}
