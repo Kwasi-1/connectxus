@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PostCard } from '@/components/feed/PostCard';
 import { mockPosts, mockComments } from '@/data/mockData';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 const PostView = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -46,7 +47,7 @@ const PostView = () => {
     <AppLayout>
       <div className="min-h-screen border-r border-border">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b-none border-border">
+        <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b-none border-border">
           <div className="flex items-center px-4 py-3">
             <Button 
               variant="ghost" 
@@ -123,7 +124,7 @@ const PostView = () => {
                     <p className="text-foreground whitespace-pre-wrap">{comment.content}</p>
                     <div className="flex items-center space-x-6 mt-3 text-muted-foreground">
                       <button className="flex items-center space-x-2 hover:text-primary transition-colors">
-                        <span className="text-sm">💬</span>
+                        <MessageCircle className="h-4 w-4" />
                         <span className="text-sm">0</span>
                       </button>
                       <button className="flex items-center space-x-2 hover:text-green-500 transition-colors">
@@ -131,7 +132,7 @@ const PostView = () => {
                         <span className="text-sm">0</span>
                       </button>
                       <button className="flex items-center space-x-2 hover:text-red-500 transition-colors">
-                        <span className="text-sm">❤️</span>
+                        <Heart className={cn("h-4 w-4", comment.isLiked && "fill-current")} />
                         <span className="text-sm">{comment.likes}</span>
                       </button>
                       <button className="hover:text-primary transition-colors">
