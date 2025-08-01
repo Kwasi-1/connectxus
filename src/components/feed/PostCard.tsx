@@ -150,8 +150,11 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
         
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center justify-between space-x-2 flex-wrap">
-            <div className='flex items-center justify-center space-x-2 flex-wrap'>
+          <div className="flex items-start md:items-center justify-between space-x-2 flex-wrap">
+            <div className='flex items-start justify-center space-x-2 flex-wrap'>
+              <div className='flex flex-col md:flex-row items-start md:items-center gap-x-2'>
+                <div className='flex gap-2 items-start'>
+
               <span className="font-bold text-foreground hover:underline cursor-pointer">
                 {post.author.displayName}
               </span>
@@ -160,9 +163,11 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                   <span className="text-primary-foreground text-xs">✓</span>
                 </div>
               )}
+              </div>
               <span className="text-muted-foreground hover:underline cursor-pointer">
                 @{post.author.username}
               </span>
+              </div>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground hover:underline cursor-pointer">
                 {detailed ? new Date(post.createdAt).toLocaleDateString() : formatTimeAgo(post.createdAt)}
@@ -175,10 +180,12 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                 className="h-8 w-8 p-0 hover:bg-muted/80"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-4 w-4 rotate-90 md:rotate-0" />
               </Button>
             </div>
           </div>
+
+          <div className={detailed && '-ml-12 mt-2 md:mt-6'}>
           
           {/* Content */}
           <div className={cn(
@@ -247,6 +254,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
             >
               <Share className="h-5 w-5 group-hover:scale-110 transition-transform" />
             </Button>
+          </div>
           </div>
         </div>
       </div>
