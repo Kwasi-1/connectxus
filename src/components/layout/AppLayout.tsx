@@ -1,7 +1,9 @@
-
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { RightSidebar } from './RightSidebar';
+import { MobileBottomNav } from './MobileBottomNav';
+import { MobileHeader } from './MobileHeader';
+import { MobileSidebar } from './MobileSidebar';
 import { useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
@@ -11,37 +13,58 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps) {
   const location = useLocation();
-
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  
   // Determine which pages should show the right sidebar
   const shouldShowRightSidebar = showRightSidebar && [
     '/', '/explore', '/notifications'
   ].includes(location.pathname);
-
+  
+  const handleMobileMenuClick = () => {
+    setIsMobileSidebarOpen(true);
+  };
+  
+  const handleMobileSidebarClose = () => {
+    setIsMobileSidebarOpen(false);
+  };
+  
   return (
-    <div className="min-h-screen bg-background font-['Poppins']">
-      <div className="flex max-w-7xl mx-auto">
-        {/* Fixed Left Sidebar */}
-        <div className="fixed left-0 top-0 h-screen w-72 hidden lg:block z-40">
-          <Sidebar />
-        </div>
-        
-        {/* Main Content Area with left margin to account for fixed sidebar */}
-        <div className="flex-1 lg:ml-72">
-          <div className="flex">
-            {/* Page Content */}
-            <main className={`flex-1 min-w-0 ${shouldShowRightSidebar ? 'xl:mr-96' : ''}`}>
+    <div className="min-h-screen bg-background">
+      {/* Mobile Header */}
+      <MobileHeader onMenuClick={handleMobileMenuClick} />
+     
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        isOpen={isMobileSidebarOpen}
+        onClose={handleMobileSidebarClose}
+      />
+      
+      {/* Main Container - Centered with max width constraint */}
+      <div className="flex justify-center w-full min-h-screen">
+        <div className="flex w-full max-w-7xl">
+          {/* Left Sidebar - Positioned within container */}
+          <div className="sticky top-0 h-screen w-72 hidden lg:block z-40">
+            <Sidebar />
+          </div>
+          
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            <main className="w-full  mx-auto pt-16 pb-16 lg:pt-0 lg:pb-0 border-none border-border">
               {children}
             </main>
-            
-            {/* Fixed Right Sidebar */}
-            {shouldShowRightSidebar && (
-              <div className="fixed right-0 top-0 h-screen w-96 hidden xl:block z-30 bg-background border-l border-border">
-                <RightSidebar />
-              </div>
-            )}
           </div>
+          
+          {/* Right Sidebar - Positioned within container */}
+          {shouldShowRightSidebar && (
+            <div className="sticky top-0 h-screen w-96 hidden xl:block z-30 bg-background border-l border-border">
+              <RightSidebar />
+            </div>
+          )}
         </div>
       </div>
+     
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }
