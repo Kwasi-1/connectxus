@@ -13,10 +13,9 @@ interface PostCardProps {
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
   onShare: (postId: string) => void;
-  detailed?: boolean;
 }
 
-export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed = false }: PostCardProps) {
+export function PostCard({ post, onLike, onComment, onRepost, onShare }: PostCardProps) {
   const navigate = useNavigate();
 
   const formatTimeAgo = (date: Date) => {
@@ -30,9 +29,9 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
   };
 
   const handlePostClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements or if in detailed view
+    // Don't navigate if clicking on interactive elements
     const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || detailed) {
+    if (target.closest('button') || target.closest('a')) {
       return;
     }
     navigate(`/post/${post.id}`);
@@ -45,10 +44,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
 
   return (
     <Card 
-      className={cn(
-        "border-b border-border p-4 transition-colors",
-        !detailed && "hover:bg-hover/50 cursor-pointer"
-      )}
+      className="border-b border-border p-4 hover:bg-hover/50 transition-colors cursor-pointer"
       onClick={handlePostClick}
     >
       <div className="flex space-x-3">
