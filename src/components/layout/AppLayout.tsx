@@ -1,4 +1,3 @@
-
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { RightSidebar } from './RightSidebar';
@@ -17,9 +16,7 @@ export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Determine which pages should show the right sidebar
-  const shouldShowRightSidebar = showRightSidebar && [
-    '/', '/explore', '/notifications'
-  ].includes(location.pathname);
+  const shouldShowRightSidebar = showRightSidebar;
   
   const handleMobileMenuClick = () => {
     setIsMobileSidebarOpen(true);
@@ -28,9 +25,6 @@ export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps)
   const handleMobileSidebarClose = () => {
     setIsMobileSidebarOpen(false);
   };
-  
-  // Special layout for messages page
-  const isMessagesPage = location.pathname === '/messages';
   
   return (
     <div className="min-h-screen bg-background">
@@ -45,31 +39,22 @@ export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps)
       
       {/* Main Container - Centered with max width constraint */}
       <div className="flex justify-center w-full min-h-screen">
-        <div className={cn(
-          "flex w-full",
-          isMessagesPage ? "max-w-full" : "max-w-7xl"
-        )}>
+        <div className="flex w-full max-w-7xl">
           {/* Left Sidebar - Positioned within container */}
-          <div className="sticky top-0 h-screen w-72 hidden lg:block z-40 flex-shrink-0">
+          <div className="sticky top-0 h-screen w-72 hidden -ml-4 lg:block z-40">
             <Sidebar />
           </div>
           
           {/* Main Content Area */}
-          <div className={cn(
-            "flex-1 min-w-0",
-            isMessagesPage ? "max-w-none" : ""
-          )}>
-            <main className={cn(
-              "w-full mx-auto pt-16 pb-16 lg:pt-0 lg:pb-0 border-none border-border",
-              isMessagesPage ? "h-screen pt-0 pb-0 lg:pt-0 lg:pb-0" : ""
-            )}>
+          <div className="flex-1 min-w-0">
+            <main className="w-full  mx-auto pt-16 pb-16 lg:pt-0 lg:pb-0 border-none border-border">
               {children}
             </main>
           </div>
           
           {/* Right Sidebar - Positioned within container */}
-          {shouldShowRightSidebar && !isMessagesPage && (
-            <div className="sticky top-0 h-screen w-96 hidden xl:block z-30 bg-background border-l border-border flex-shrink-0">
+          {shouldShowRightSidebar && (
+            <div className="sticky top-0 h-screen w-96 hidden xl:block z-30 bg-background border-l border-border">
               <RightSidebar />
             </div>
           )}
@@ -80,8 +65,4 @@ export function AppLayout({ children, showRightSidebar = true }: AppLayoutProps)
       <MobileBottomNav />
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]): string {
-  return classes.filter(Boolean).join(' ');
 }

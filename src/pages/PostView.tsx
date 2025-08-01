@@ -46,7 +46,7 @@ const PostView = () => {
     <AppLayout>
       <div className="min-h-screen border-r border-border">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b-none border-border">
           <div className="flex items-center px-4 py-3">
             <Button 
               variant="ghost" 
@@ -85,7 +85,7 @@ const PostView = () => {
               <textarea
                 placeholder="Post your reply"
                 className="w-full p-3 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
-                rows={3}
+                rows={1}
               />
               <div className="flex justify-between items-center mt-3">
                 <div className="flex space-x-4 text-primary">

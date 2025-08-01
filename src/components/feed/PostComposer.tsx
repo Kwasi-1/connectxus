@@ -23,7 +23,7 @@ export function PostComposer({ onPost }: PostComposerProps) {
   const isDisabled = !content.trim() || content.length > maxChars;
 
   return (
-    <Card className="hidden md:block border-0 rounded-none border-border p-4">
+    <Card className="hidden md:block border-0 rounded-none border-b border-border p-4">
       <div className="flex space-x-3">
         <Avatar className="w-10 h-10">
           <AvatarImage src="/api/placeholder/48/48" />
