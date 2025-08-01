@@ -185,7 +185,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
             </div>
           </div>
 
-          <div className={detailed && '-ml-12 mt-2 md:mt-6'}>
+          <div className={detailed && '-ml-12 mt-3 md:mt-6'}>
           
           {/* Content */}
           <div className={cn(
