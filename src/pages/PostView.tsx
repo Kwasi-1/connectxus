@@ -10,7 +10,7 @@ const PostView = () => {
   
   if (!post) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="p-8 text-center">
           <h1 className="text-2xl font-bold text-foreground">Post not found</h1>
           <p className="text-muted-foreground mt-2">The post you're looking for doesn't exist.</p>
@@ -36,7 +36,7 @@ const PostView = () => {
   };
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <AppLayout>
       <div className="border-r border-border">
         {/* Main Post */}
         <PostCard
@@ -71,7 +71,7 @@ const PostView = () => {
             </div>
             
             {/* Comments */}
-            <div className="space-y-4">
+            <div className="space-y-4 border-t border-border pt-4">
               {mockComments.filter(c => c.postId === postId).map((comment) => (
                 <div key={comment.id} className="flex space-x-3 p-4 hover:bg-muted/50 rounded-lg transition-colors">
                   <div className="w-10 h-10 bg-muted rounded-full"></div>
