@@ -228,6 +228,30 @@ export const mockGroups: Group[] = [
     university: 'Tech University',
     category: 'Arts',
     createdAt: new Date('2023-09-01')
+  },
+  {
+    id: '5',
+    name: 'Math Study Group',
+    description: 'Weekly study sessions for calculus and statistics. Peer tutoring and problem-solving together.',
+    avatar: '/api/placeholder/60/60',
+    members: 92,
+    isJoined: false,
+    isPrivate: false,
+    university: 'Tech University',
+    category: 'Study Group',
+    createdAt: new Date('2023-09-05')
+  },
+  {
+    id: '6',
+    name: 'Tech Innovators',
+    description: 'For students interested in technology trends, startups, and innovation. Weekly tech talks and networking.',
+    avatar: '/api/placeholder/60/60',
+    members: 167,
+    isJoined: false,
+    isPrivate: false,
+    university: 'Tech University',
+    category: 'Technology',
+    createdAt: new Date('2023-08-15')
   }
 ];
 
