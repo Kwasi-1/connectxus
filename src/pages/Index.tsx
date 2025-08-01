@@ -1,8 +1,8 @@
+
 import { useState } from 'react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { RightSidebar } from '@/components/layout/RightSidebar';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Feed } from '@/components/feed/Feed';
-import { mockPosts, mockTrendingTopics, mockCampusHighlights, mockUsers } from '@/data/mockData';
+import { mockPosts, mockUsers } from '@/data/mockData';
 import { Post } from '@/types/global';
 
 const Index = () => {
@@ -11,7 +11,7 @@ const Index = () => {
   const handleCreatePost = (content: string) => {
     const newPost: Post = {
       id: Date.now().toString(),
-      author: mockUsers[0], // Current user
+      author: mockUsers[0],
       content,
       likes: 0,
       comments: 0,
@@ -36,7 +36,6 @@ const Index = () => {
   };
 
   const handleComment = (postId: string) => {
-    // Stub for comment functionality
     console.log('Comment on post:', postId);
   };
 
@@ -53,39 +52,20 @@ const Index = () => {
   };
 
   const handleShare = (postId: string) => {
-    // Stub for share functionality
     console.log('Share post:', postId);
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex max-w-7xl mx-auto">
-        {/* Left Sidebar - Hidden on mobile */}
-        <div className="hidden lg:block">
-          <Sidebar activeTab="home" />
-        </div>
-        
-        {/* Main Feed */}
-        <div className="flex-1 min-w-0">
-          <Feed
-            posts={posts}
-            onCreatePost={handleCreatePost}
-            onLike={handleLike}
-            onComment={handleComment}
-            onRepost={handleRepost}
-            onShare={handleShare}
-          />
-        </div>
-        
-        {/* Right Sidebar - Hidden on mobile and tablet */}
-        <div className="hidden xl:block">
-          <RightSidebar 
-            trendingTopics={mockTrendingTopics}
-            campusHighlights={mockCampusHighlights}
-          />
-        </div>
-      </div>
-    </div>
+    <AppLayout>
+      <Feed
+        posts={posts}
+        onCreatePost={handleCreatePost}
+        onLike={handleLike}
+        onComment={handleComment}
+        onRepost={handleRepost}
+        onShare={handleShare}
+      />
+    </AppLayout>
   );
 };
 

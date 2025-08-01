@@ -1,3 +1,4 @@
+
 // Global types for Campus Vibe Net
 
 export interface User {
@@ -152,3 +153,7 @@ export interface CampusHighlight {
   university?: string;
   createdAt: Date;
 }
+
+// Tab types for different pages
+export type ExploreTab = 'for-you' | 'trending' | 'news' | 'sports' | 'entertainment';
+export type NotificationTab = 'all' | 'verified' | 'mentions';

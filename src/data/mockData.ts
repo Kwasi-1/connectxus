@@ -1,3 +1,4 @@
+
 import { User, Post, TrendingTopic, CampusHighlight, Comment } from '@/types/global';
 
 export const mockUsers: User[] = [
@@ -88,6 +89,36 @@ export const mockPosts: Post[] = [
     isLiked: true,
     isReposted: false,
     createdAt: new Date('2024-01-30T19:20:00'),
+  }
+];
+
+export const mockComments: Comment[] = [
+  {
+    id: '1',
+    author: mockUsers[1],
+    content: "This sounds really interesting! Would love to hear more about your methodology.",
+    postId: '1',
+    likes: 12,
+    isLiked: false,
+    createdAt: new Date('2024-01-31T11:15:00')
+  },
+  {
+    id: '2', 
+    author: mockUsers[2],
+    content: "Great work Sarah! Machine learning applications in education are so promising.",
+    postId: '1',
+    likes: 8,
+    isLiked: true,
+    createdAt: new Date('2024-01-31T12:30:00')
+  },
+  {
+    id: '3',
+    author: mockUsers[0],
+    content: "Let's go team! I'll be there cheering from the front row 📣",
+    postId: '2',
+    likes: 15,
+    isLiked: false,
+    createdAt: new Date('2024-01-31T09:45:00')
   }
 ];
 
