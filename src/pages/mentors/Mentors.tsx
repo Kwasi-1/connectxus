@@ -41,7 +41,7 @@ const Mentors = () => {
           </div>
           <Button variant="outline">
             <UserPlus className="h-4 w-4" />
-            <span className='hidden md:block ml-2'>Join our mentor program</span>
+            <span className='hidden md:block ml-2'>Become a Mentor</span>
           </Button>
         </div>
 
