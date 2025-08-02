@@ -32,7 +32,7 @@ const Mentors = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 custom-fonts">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -53,7 +53,7 @@ const Mentors = () => {
               placeholder="Search mentors or industries..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 rounded-full"
             />
           </div>
 
