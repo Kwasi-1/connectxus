@@ -62,9 +62,9 @@ const Mentors = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="p-6 space-y-6 custom-fonts">
+      <div className="p-6 custom-fonts">
         {/* Header */}
-        <div className="flex justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold">Mentors</h1>
             <p className="text-muted-foreground mt-1">Connect with experienced professionals and alumni</p>
@@ -76,7 +76,7 @@ const Mentors = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="space-y-4">
+        <div className="space-y-4 sticky top-16 bg-background z-40 -mt-2 pt-2 pb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -104,11 +104,11 @@ const Mentors = () => {
 
         {/* Loading State */}
         {loading ? (
-          <LoadingSpinner size="lg" />
+          <LoadingSpinner />
         ) : (
           <>
             {/* Mentors Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
               {filteredMentors.map((mentor) => (
                 <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
