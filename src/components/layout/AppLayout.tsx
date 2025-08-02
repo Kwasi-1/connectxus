@@ -48,7 +48,7 @@ export function AppLayout({ children, showRightSidebar = true, onCreatePost }: A
           </div>
           
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          <div className={`flex-1 min-w-0 ${!shouldShowRightSidebar ? 'border-r border-border' : ''}`}>
             <main className="w-full  mx-auto pt-16 pb-16 lg:pt-0 lg:pb-0 border-none border-border">
               {children}
             </main>

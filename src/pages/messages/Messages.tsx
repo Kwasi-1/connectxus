@@ -258,7 +258,7 @@ const Messages = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="h-screen flex border-r">
+      <div className="h-screen flex">
         {/* Chat List - Full width on mobile when no chat selected, hidden when chat selected */}
         <div className={`${
           selectedChat && isMobileView ? 'hidden lg:flex' : 'flex'
