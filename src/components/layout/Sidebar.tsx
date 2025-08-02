@@ -5,6 +5,7 @@ import { PostModal } from '@/components/post/PostModal';
 import { cn } from '@/lib/utils';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
+import logo from '@/assets/connect_logo.png';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -54,7 +55,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
             <span className="text-background font-bold text-sm">CV</span>
           </div>
           <span className="font-bold text-xl text-foreground">Campus Vibe</span> */}
-          <img src="/src/assets/connect_logo.png" alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
+          <img src={logo} alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
         </div>
 
         {/* Navigation */}

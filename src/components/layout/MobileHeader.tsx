@@ -1,6 +1,7 @@
 
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -26,7 +27,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <img src="/src/assets/logo.png" alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
+          <img src={logo} alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
         </div>
 
         {/* Menu Button */}
