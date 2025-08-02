@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Search, Star, Briefcase, MessageCircle, UserPlus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,10 +11,12 @@ import { MentoringRequestModal } from '@/components/mentors/MentoringRequestModa
 import { MessageModal } from '@/components/messages/MessageModal';
 import { mockMentors } from '@/data/mockData';
 import { MentorProfile } from '@/types/global';
+import { useNavigate } from 'react-router-dom';
 
 const industryFilters = ['All', 'Technology', 'Business', 'Entrepreneurship', 'Finance', 'Healthcare', 'Education'];
 
 const Mentors = () => {
+  const navigate = useNavigate();
   const [mentors, setMentors] = useState<MentorProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +57,7 @@ const Mentors = () => {
   };
 
   const handleBecomeMentor = () => {
-    // Future: Navigate to mentor application form
-    console.log('Navigate to become a mentor form');
+    navigate('/mentors/become-mentor');
   };
 
   return (

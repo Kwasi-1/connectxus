@@ -14,6 +14,8 @@ import Tutoring from "./pages/tutoring/Tutoring";
 import Mentors from "./pages/mentors/Mentors";
 import Account from "./pages/account/Account";
 import Compose from "./pages/feed/Compose";
+import BecomeTutor from "./pages/applications/BecomeTutor";
+import BecomeMentor from "./pages/applications/BecomeMentor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +35,9 @@ const App = () => (
           <Route path="/messages" element={<Messages />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/tutoring" element={<Tutoring />} />
+          <Route path="/tutoring/become-tutor" element={<BecomeTutor />} />
           <Route path="/mentors" element={<Mentors />} />
+          <Route path="/mentors/become-mentor" element={<BecomeMentor />} />
           <Route path="/account" element={<Account />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Search, Star, Clock, DollarSign, BookOpen } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,10 +10,12 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { TutoringRequestModal } from '@/components/tutoring/TutoringRequestModal';
 import { mockTutors } from '@/data/mockData';
 import { TutorProfile } from '@/types/global';
+import { useNavigate } from 'react-router-dom';
 
 const subjectFilters = ['All', 'DCIT 101', 'DCIT 201', 'Mathematics', 'Programming', 'Calculus I', 'Statistics'];
 
 const Tutoring = () => {
+  const navigate = useNavigate();
   const [tutors, setTutors] = useState<TutorProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,8 +48,7 @@ const Tutoring = () => {
   };
 
   const handleBecomeTutor = () => {
-    // Future: Navigate to tutor application form
-    console.log('Navigate to become a tutor form');
+    navigate('/tutoring/become-tutor');
   };
 
   return (
