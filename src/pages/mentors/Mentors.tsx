@@ -34,14 +34,14 @@ const Mentors = () => {
     <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Mentors</h1>
             <p className="text-muted-foreground mt-1">Connect with experienced professionals and alumni</p>
           </div>
           <Button variant="outline">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Become a Mentor
+            <UserPlus className="h-4 w-4" />
+            <span className='hidden md:block ml-2'>Join our mentor program</span>
           </Button>
         </div>
 
@@ -57,7 +57,7 @@ const Mentors = () => {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
             {industryFilters.map((industry) => (
               <Button
                 key={industry}

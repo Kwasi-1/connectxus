@@ -56,7 +56,7 @@ const Tutoring = () => {
             />
           </div>
 
-          <div className="flex flexwrap w-full overflow-x-auto scrollbar-hide gap-2">
+          <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
             {subjectFilters.map((subject) => (
               <Button
                 key={subject}
