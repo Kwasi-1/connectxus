@@ -90,11 +90,11 @@ const Tutoring = () => {
                           <Badge variant="default" className="text-xs">Verified</Badge>
                         )}
                       </div>
-                      <p className="text-muted-foreground mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
-                      <p className="text-sm mb-3">{tutor.description}</p>
+                      <p className="text-muted-foreground mb-4 lg:mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
+                      <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">{tutor.description}</p>
                       
                       {/* Subjects */}
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
                         {tutor.subjects.map((subject, index) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             {subject}
@@ -103,7 +103,7 @@ const Tutoring = () => {
                       </div>
 
                       {/* Stats */}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
                         <div className="flex items-center">
                           <Star className="h-4 w-4 text-yellow-500 mr-1" />
                           {tutor.rating} ({tutor.reviewCount} reviews)
