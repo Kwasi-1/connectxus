@@ -44,7 +44,8 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
     return (
       <div className="flex-1 border-r border-border">
         <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-        <LoadingSpinner size="lg" />
+        <PostComposer onPost={onCreatePost} />
+        <LoadingSpinner />
       </div>
     );
   }
