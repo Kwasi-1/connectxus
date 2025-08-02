@@ -33,14 +33,14 @@ const Tutoring = () => {
     <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Tutoring</h1>
             <p className="text-muted-foreground mt-1">Find tutors to help with your studies</p>
           </div>
           <Button variant="outline">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Become a Tutor
+            <BookOpen className="h-4 w-4" />
+            <span className='hidden md:block ml-2'>Become a Tutor</span>
           </Button>
         </div>
 
@@ -56,7 +56,7 @@ const Tutoring = () => {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flexwrap w-full overflow-x-auto scrollbar-hide gap-2">
             {subjectFilters.map((subject) => (
               <Button
                 key={subject}
