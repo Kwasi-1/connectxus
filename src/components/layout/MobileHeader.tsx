@@ -26,10 +26,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 bg-foreground rounded-md flex items-center justify-center">
-            <span className="text-background font-bold text-xs">CV</span>
-          </div>
-          <span className="font-bold text-lg text-foreground">Campus Vibe</span>
+          <img src="/src/assets/logo.png" alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
         </div>
 
         {/* Menu Button */}

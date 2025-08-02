@@ -50,10 +50,11 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
       <div className="flex flex-col h-full w-full p-6 bg-background border-r border-border">
         {/* Logo */}
         <div className="flex items-center space-x-3 mb-8 mx-3">
-          <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
+          {/* <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
             <span className="text-background font-bold text-sm">CV</span>
           </div>
-          <span className="font-bold text-xl text-foreground">Campus Vibe</span>
+          <span className="font-bold text-xl text-foreground">Campus Vibe</span> */}
+          <img src="/src/assets/connect_logo.png" alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
         </div>
 
         {/* Navigation */}
