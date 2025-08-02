@@ -36,7 +36,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-72 p-0">
+      <SheetContent side="left" className="w-full max-w-80 p-0">
         <div className="flex flex-col h-full">
           <SheetHeader className="p-6 border-b border-border">
             <div className="flex items-center space-x-3">
@@ -58,7 +58,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   variant="ghost"
                   onClick={() => handleNavigation(item.path)}
                   className={cn(
-                    "w-full justify-start text-left px-4 py-3 text-lg font-medium rounded-full transition-colors",
+                    "w-full justify-start text-left px-4 py-3 text-lg font-[300] rounded-full transition-colors",
                     "hover:bg-muted",
                     isActive && "font-bold"
                   )}
@@ -71,7 +71,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </nav>
 
           <div className="p-6 border-t border-border">
-            <Button className="w-full bg-foreground hover:bg-foreground/90 text-background font-bold py-3 text-lg rounded-full">
+            <Button className="w-full bg-foreground hover:bg-foreground/90 text-background font-bold py-7 text-lg rounded-full">
               Post
             </Button>
           </div>
