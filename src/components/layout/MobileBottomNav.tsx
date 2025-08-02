@@ -1,13 +1,13 @@
 
-import { Home, Search, Bell, Mail, User } from 'lucide-react';
+import { Home, User, Users, BookOpen, GraduationCap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
-  { icon: Search, label: 'Explore', path: '/explore', id: 'explore' },
-  { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
-  { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
+  { icon: Users, label: 'Groups', path: '/groups', id: 'groups' },
+  { icon: BookOpen, label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
+  { icon: GraduationCap, label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: User, label: 'Account', path: '/account', id: 'account' },
 ];
 
@@ -24,7 +24,7 @@ export function MobileBottomNav() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border lg:hidden z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border/50 lg:hidden z-50">
       <nav className="flex justify-around items-center py-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
