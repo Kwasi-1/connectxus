@@ -162,8 +162,8 @@ const Mentors = () => {
                             size="sm"
                             variant="outline"
                           >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Message
+                            <MessageCircle className="h-4 w-4" />
+                            <span className="hidden md:inline ml-2">Message</span>
                           </Button>
                           <Button 
                             onClick={() => handleRequestMentoring(mentor)}
