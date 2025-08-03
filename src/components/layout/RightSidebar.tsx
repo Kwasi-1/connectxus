@@ -10,7 +10,7 @@ export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="w-full p-4 pt-0 space-y-2 h-full overflow-y-auto">
+    <div className="w-full p-4 pt-0 space-y-2">
       {/* Search */}
       <div className="sticky top-0 bg-background py-2">
         <div className="relative">
