@@ -15,7 +15,7 @@ const Account = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="max-w-3xl mx-auto">
+      <div className="">
         <ProfileHeader user={user} onUserUpdate={handleUserUpdate} />
         <ProfileTabs user={user} />
       </div>

@@ -167,7 +167,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
         </TabsContent>
       )}
 
-      <TabsContent value="settings" className="space-y-4 mt-0">
+      <TabsContent value="settings" className="space-y-4 mt-0 px-6">
         <div className="border-b border-border pt-4" />
         <Card>
           <CardContent className="p-6 space-y-6">
