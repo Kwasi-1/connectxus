@@ -178,7 +178,7 @@ export function FullScreenPostModal({
         </div>
 
         {/* Comments Section */}
-        <div className="w-80 lg:w-96 bg-background border-l border-border flex flex-col">
+        <div className="hidden w-80 lg:w-96 bg-background border-l border-border lg:flex flex-col">
           {/* Post Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-start space-x-3">
