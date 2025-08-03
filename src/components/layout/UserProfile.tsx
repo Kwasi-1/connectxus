@@ -53,8 +53,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
           variant="ghost"
           className={`w-full justify-start p-3 h-auto hover:bg-muted ${collapsed ? 'px-2' : 'px-3'}`}
         >
-          <div className="flex items-center space-x-3 w-full">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center space-x-2 w-full">
+            <div className="w-10 h-10 bg-foreground/50 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground text-sm font-medium">
                 {getInitials(user.name)}
               </span>
