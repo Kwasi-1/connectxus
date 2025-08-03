@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { UserProfile } from './UserProfile';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -70,10 +71,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             })}
           </nav>
 
-          <div className="p-6 border-t border-border">
+          <div className="p-6 space-y-4 border-t border-border">
             <Button className="w-full bg-foreground hover:bg-foreground/90 text-background font-bold py-7 text-lg rounded-full">
               Post
             </Button>
+            
+            {/* User Profile */}
+            <UserProfile />
           </div>
         </div>
       </SheetContent>

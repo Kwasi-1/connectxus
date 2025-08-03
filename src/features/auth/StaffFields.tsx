@@ -13,24 +13,6 @@ export const StaffFields: React.FC<StaffFieldsProps> = ({ control }) => {
     <div className="space-y-4">
       <FormField
         control={control}
-        name="email"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Institutional Email</FormLabel>
-            <FormControl>
-              <Input 
-                type="email" 
-                placeholder="Enter your institutional email" 
-                {...field} 
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={control}
         name="department"
         render={({ field }) => (
           <FormItem>

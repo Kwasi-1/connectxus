@@ -58,7 +58,7 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
         control={control}
         name="wantsToBeTutor"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
             <FormControl>
               <Checkbox
                 checked={field.value}
@@ -66,7 +66,10 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
               />
             </FormControl>
             <div className="space-y-1 leading-none">
-              <FormLabel>I want to be a Tutor</FormLabel>
+              <FormLabel className="cursor-pointer">I want to be a Tutor</FormLabel>
+              <p className="text-xs text-muted-foreground">
+                Help other students with academic subjects
+              </p>
             </div>
           </FormItem>
         )}
@@ -76,7 +79,7 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
         control={control}
         name="wantsToBeMapMentor"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
             <FormControl>
               <Checkbox
                 checked={field.value}
@@ -84,7 +87,10 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
               />
             </FormControl>
             <div className="space-y-1 leading-none">
-              <FormLabel>I want to be a Mentor</FormLabel>
+              <FormLabel className="cursor-pointer">I want to be a Mentor</FormLabel>
+              <p className="text-xs text-muted-foreground">
+                Guide students in career and personal development
+              </p>
             </div>
           </FormItem>
         )}

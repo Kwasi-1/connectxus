@@ -1,12 +1,12 @@
+
 import { Home, Search, Bell, Mail, Users, BookOpen, GraduationCap, User, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { PostModal } from '@/components/post/PostModal';
 import { cn } from '@/lib/utils';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
-import logo from '@/assets/connect_logo.png';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { UserProfile } from './UserProfile';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -56,7 +56,6 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
             <span className="text-background font-bold text-sm">CV</span>
           </div>
           <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span>
-          {/* <img src={logo} alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" /> */}
         </div>
 
         {/* Navigation */}
@@ -91,12 +90,9 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
           <span className="hidden xl:block ml-2">Post</span>
         </Button>
 
-        {/* Bottom Section */}
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
-          <ThemeToggle />
+        {/* User Profile */}
+        <div className="mb-4">
+          <UserProfile />
         </div>
       </div>
 
