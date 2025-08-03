@@ -92,7 +92,7 @@ export function FullScreenPostModal({
   const renderMedia = () => {
     if (post.video) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-black">
+        <div className="flex-1 flex items-center justify-center bg-black/85 backdrop-blur-sm">
           <video 
             className="max-w-full max-h-full object-contain"
             controls
@@ -106,7 +106,7 @@ export function FullScreenPostModal({
 
     if (post.images && post.images.length > 0) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-black relative">
+        <div className="flex-1 flex items-center justify-center bg-black/85 backdrop-blur-sm relative">
           <img 
             src={post.images[currentImageIndex]} 
             alt="Post content" 
@@ -118,7 +118,7 @@ export function FullScreenPostModal({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-secondary/50 rounded-full text-white hover:bg-secondary/70"
                 onClick={prevImage}
                 disabled={currentImageIndex === 0}
               >
@@ -128,7 +128,7 @@ export function FullScreenPostModal({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-secondary/50 rounded-full text-white hover:bg-secondary/70"
                 onClick={nextImage}
                 disabled={currentImageIndex === post.images.length - 1}
               >
@@ -157,17 +157,17 @@ export function FullScreenPostModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm">
       <div className="h-full flex">
         {/* Media Section */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 bg-black/50">
+          <div className="absolute z-40 flex items-center justify-between p-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 rounded-full"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -178,7 +178,7 @@ export function FullScreenPostModal({
         </div>
 
         {/* Comments Section */}
-        <div className="hidden w-80 lg:w-96 bg-background border-l border-border lg:flex flex-col">
+        <div className="hidden w-80 lg:w-full max-w-md bg-background border-l border-border lg:flex flex-col">
           {/* Post Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-start space-x-3">
