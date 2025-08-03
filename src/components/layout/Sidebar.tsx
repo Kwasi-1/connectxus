@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
 import logo from '@/assets/connect_logo.png';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -50,16 +51,16 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
     <>
       <div className="flex flex-col h-full w-full p-6 bg-background border-r border-border">
         {/* Logo */}
-        <div className="flex items-center space-x-3 mb-8 mx-3">
-          <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
+        <div className="flex items-center space-x-3 mb-8 mx-auto xl:mx-3">
+          <div className="w-8 h-8 bg-foreground rounded-full xl:rounded-lg flex items-center justify-center px-2">
             <span className="text-background font-bold text-sm">CV</span>
           </div>
-          <span className="font-bold text-xl text-foreground">Campus Vibe</span>
+          <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span>
           {/* <img src={logo} alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" /> */}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y1">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(item.path);
@@ -69,13 +70,13 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
                 key={item.id}
                 to={item.path}
                 className={cn(
-                  "w-full justify-start text-left px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
+                  "w-fit xl:w-full justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
                   "hover:bg-muted font-[300]",
                   isActive && "font-bold"
                 )}
               >
-                <Icon className="mr-4 h-5 w-5 text-3xl" />
-                {item.label}
+                <Icon className="h-6 w-6 text-3xl xl:h-5 xl:w-5" />
+                <span className="ml-4 hidden xl:block">{item.label}</span>
               </Link>
             );
           })}
@@ -84,9 +85,10 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
         {/* Post Button */}
         <Button 
           onClick={handlePostClick}
-          className="w-[90%] mb-4 bg-foreground hover:bg-foreground/90 text-background font-bold py-6 text-lg rounded-full"
+          className="mx-auto xl:mx-0 w-full xl:w-[90%] mb-4 bg-foreground hover:bg-foreground/90 text-background font-bold py-6 text-lg rounded-full"
         >
-          Post
+          <Icon icon="gridicons:create" className="h-6 w-6 block xl:hidden" />
+          <span className="hidden xl:block ml-2">Post</span>
         </Button>
 
         {/* Bottom Section */}
