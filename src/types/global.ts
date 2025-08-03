@@ -1,5 +1,8 @@
 // Global types for Campus Vibe Net
 
+export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface User {
   id: string;
   username: string;
@@ -14,6 +17,12 @@ export interface User {
   major?: string;
   year?: number;
   createdAt: Date;
+  // New authentication fields
+  roles: UserRole[];
+  department?: string;
+  level?: string;
+  mentorStatus?: ApprovalStatus;
+  tutorStatus?: ApprovalStatus;
 }
 
 export interface Post {
