@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Settings, LogOut, Palette } from 'lucide-react';
+import { User, Settings, LogOut, Palette, MoreHorizontal } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,10 +51,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={`w-full justify-start p-3 h-auto hover:bg-muted ${collapsed ? 'px-2' : 'px-3'}`}
+          className={`w-full justify-start p-3 h-auto hover:bg-muted -ml-3 ${collapsed ? 'px-2' : 'px-3'}`}
         >
           <div className="flex items-center space-x-2 w-full">
-            <div className="w-10 h-10 bg-foreground/50 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 xl:w-10 xl:h-10 bg-foreground/50 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground text-sm font-medium">
                 {getInitials(user.name)}
               </span>
@@ -66,9 +66,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
               </div>
             )}
           </div>
+          <MoreHorizontal className="h-5 w-5 block lg:hidden xl:block" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg">
+      <DropdownMenuContent align="end" className="w-64 sm:w-80 lg:w-56 bg-background border shadow-lg">
         <div className="px-2 py-1.5">
           <p className="text-sm font-medium">{user.name}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
