@@ -47,7 +47,7 @@ export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
   return (
     <div className="relative">
       {/* Cover Photo */}
-      <div className="h-48 bg-gradient-to-r from-blue-400 to-purple-600 relative">
+      <div className="h-36 bg-gradient-to-r from-blue-400 to-purple-600 relative">
         {/* Profile Picture */}
         <div className="absolute -bottom-16 left-4">
           <Avatar className="h-32 w-32 border-4 border-background">
@@ -60,7 +60,7 @@ export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
       </div>
 
       {/* Profile Info */}
-      <div className="pt-20 px-4 pb-4">
+      <div className="pt-8 px-6 pb-4">
         <div className="flex justify-end mb-4">
           <Button
             onClick={() => setIsEditing(!isEditing)}

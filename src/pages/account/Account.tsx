@@ -14,8 +14,8 @@ const Account = () => {
   };
 
   return (
-    <AppLayout showRightSidebar={false}>
-      <div className="">
+    <AppLayout>
+      <div className="border-x min-h-screen lg:border-x-0">
         <ProfileHeader user={user} onUserUpdate={handleUserUpdate} />
         <ProfileTabs user={user} />
       </div>
