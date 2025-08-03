@@ -60,7 +60,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(item.path);
