@@ -20,7 +20,7 @@ export const AuthPage: React.FC = () => {
           <p className="text-muted-foreground">Connect with your university community</p> */}
         </div>
         
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0 shadow-lg custom-fonts">
           <CardContent className="p-8">
             {isSignUp ? (
               <SignUpForm onToggleMode={toggleMode} />

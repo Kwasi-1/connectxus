@@ -43,7 +43,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
+        <h2 className="text-3xl font-bold tracking-tight">Welcome Back</h2>
         <p className="text-muted-foreground">Sign in to your Campus Vibe account</p>
       </div>
 

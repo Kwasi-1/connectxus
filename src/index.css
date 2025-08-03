@@ -191,4 +191,8 @@
       @apply 2xl:text-4xl;
     }
   }
+  .custom-font {
+    font-family: 'IvyOraDisplay', sans-serif;
+    @apply tracking-wide font-[300];
+  }
 }
