@@ -8,7 +8,7 @@ const navigationItems = [
   { icon: 'hugeicons:home-04', label: 'Home', path: '/', id: 'home' },
   { icon: 'uil:users-alt', label: 'Groups', path: '/groups', id: 'groups' },
   { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: 'ph:graduation-cap-light', label: 'Mentors', path: '/mentors', id: 'mentors' },
+  { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: 'line-md:account', label: 'Account', path: '/account', id: 'account' },
 ];
 
@@ -40,8 +40,8 @@ export function MobileBottomNav() {
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
-              <Icon icon={item.icon} className={cn("h-[1.35rem] w-[1.35rem] mb-1", isActive && "stroke-2")} />
-              <span className={cn("text-xs truncate", isActive && "font-semibold")}>
+              <Icon icon={item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
+              <span className={cn("text-xs hidden sm:block truncate", isActive && "font-semibold")}>
                 {item.label}
               </span>
             </button>
