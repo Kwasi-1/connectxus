@@ -317,7 +317,7 @@ const Tutoring = () => {
 
               {/* Loading State */}
               {loading ? (
-                <LoadingSpinner size="lg" />
+                <LoadingSpinner />
               ) : (
                 <>
                   {/* Tutors List */}
@@ -467,7 +467,7 @@ const Tutoring = () => {
 
             {/* Loading State */}
             {loading ? (
-              <LoadingSpinner size="lg" />
+              <LoadingSpinner />
             ) : (
               <>
                 {/* Tutors List */}
