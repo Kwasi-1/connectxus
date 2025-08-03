@@ -39,12 +39,12 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="left" className="w-full max-w-80 p-0">
         <div className="flex flex-col h-full">
-          <SheetHeader className="p-6 border-b border-border">
+          <SheetHeader className="p-6 borderb border-border custom-font">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
                 <span className="text-background font-bold text-sm">CV</span>
               </div>
-              <SheetTitle className="font-bold text-xl text-foreground">Campus Vibe</SheetTitle>
+              <SheetTitle className="font-semibold text-xl text-foreground">Campus Vibe</SheetTitle>
             </div>
           </SheetHeader>
 
@@ -71,11 +71,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             })}
           </nav>
 
-          <div className="p-6 space-y-4 border-t border-border">
+          <div className="px-6 mb-4 space-y-4">
             <Button className="w-full bg-foreground hover:bg-foreground/90 text-background font-bold py-7 text-lg rounded-full">
               Post
             </Button>
-            
+          </div>
+
+          <div className="p-6 pt-2 space-y-4 border-t border-border">       
             {/* User Profile */}
             <UserProfile />
           </div>
