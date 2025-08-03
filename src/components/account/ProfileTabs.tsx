@@ -45,7 +45,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
 
   return (
     <Tabs defaultValue="posts" className="w-full">
-      <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-b rounded-none">
+      <TabsList className="w-full overflow-x-auto justify-start h-auto p-0 bg-transparent border-b rounded-none">
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.id}
@@ -54,7 +54,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
           >
             <div className="flex items-center gap-2 min-w-0">
               <tab.icon className="h-4 w-4" />
-              <span className="truncate">{tab.label}</span>
+              <span className="truncat">{tab.label}</span>
               {tab.count !== null && (
                 <span className="text-muted-foreground">({tab.count})</span>
               )}
@@ -64,7 +64,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
       </TabsList>
 
       <TabsContent value="posts" className="space-y-4 mt-0">
-        <div className="border-b border-border pt-4" />
+        <div className="pt-4" />
         {user.posts.length > 0 ? (
           user.posts.map((post) => (
             <Card key={post.id} className="border-0 border-b border-border rounded-none">
@@ -89,7 +89,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
       </TabsContent>
 
       <TabsContent value="likes" className="space-y-4 mt-0">
-        <div className="border-b border-border pt-4" />
+        <div className="pt-4" />
         <div className="text-center py-12 text-muted-foreground">
           <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="text-lg mb-2">No likes yet</p>
@@ -99,7 +99,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
 
       {hasRole(authUser, 'student') && (
         <TabsContent value="groups" className="space-y-4 mt-0">
-          <div className="border-b border-border pt-4" />
+          <div className="pt-4" />
           {user.joinedGroups.length > 0 ? (
             user.joinedGroups.map((group) => (
               <Card key={group.id} className="border-0 border-b border-border rounded-none">
@@ -129,7 +129,7 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
 
       {hasRole(authUser, 'tutor') && (
         <TabsContent value="tutoring" className="space-y-4 mt-0">
-          <div className="border-b border-border pt-4" />
+          <div className="pt-4" />
           {user.tutoringRequests.length > 0 ? (
             user.tutoringRequests.map((request) => (
               <Card key={request.id} className="border-0 border-b border-border rounded-none">
@@ -167,10 +167,9 @@ export const ProfileTabs = ({ user }: ProfileTabsProps) => {
         </TabsContent>
       )}
 
-      <TabsContent value="settings" className="space-y-4 mt-0 px-6">
-        <div className="border-b border-border pt-4" />
-        <Card>
-          <CardContent className="p-6 space-y-6">
+      <TabsContent value="settings" className="space-y-4">
+        <Card className='rounded-none border-0'>
+          <CardContent className="p-6 space-y-6 rounded-none">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Appearance</h3>
