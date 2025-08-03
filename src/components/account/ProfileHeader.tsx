@@ -114,7 +114,7 @@ export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
               )}
             </div>
             <p className="text-muted-foreground">@{user.username}</p>
-            {user.bio && <p className="text-base">{user.bio}</p>}
+            {user.bio && <p className="text-base text-wrap text-foreground/90 whitespace-pre-line break-words">{user.bio}</p>}
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               {user.major && <span>🎓 {user.major}</span>}
               {user.year && <span>📅 Year {user.year}</span>}
