@@ -1,3 +1,4 @@
+
 // Global types for Campus Vibe Net
 
 export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
@@ -170,7 +171,7 @@ export interface UserProfile extends User {
   posts: Post[];
   joinedGroups: Group[];
   tutoringRequests: TutoringRequest[];
-  mentorStatus?: MentorProfile;
+  mentorProfile?: MentorProfile;
 }
 
 export interface TutoringRequest {

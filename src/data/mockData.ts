@@ -4,7 +4,7 @@ export const mockUsers: User[] = [
   {
     id: '1',
     username: 'johndoe',
-    displayName: 'John Doe',
+    displayName: 'John Doe', 
     email: 'john@university.edu',
     verified: true,
     followers: 1234,
@@ -13,7 +13,11 @@ export const mockUsers: User[] = [
     major: 'Computer Science',
     year: 3,
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-    createdAt: new Date('2023-01-15')
+    createdAt: new Date('2023-01-15'),
+    roles: ['student', 'tutor'],
+    department: 'Computer Science',
+    level: '300',
+    tutorStatus: 'approved'
   },
   {
     id: '2',
@@ -27,7 +31,10 @@ export const mockUsers: User[] = [
     major: 'Data Science',
     year: 2,
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-    createdAt: new Date('2023-08-20')
+    createdAt: new Date('2023-08-20'),
+    roles: ['student'],
+    department: 'Data Science',
+    level: '200'
   },
   {
     id: '3',
@@ -41,7 +48,11 @@ export const mockUsers: User[] = [
     major: 'Fine Arts',
     year: 4,
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
-    createdAt: new Date('2022-11-01')
+    createdAt: new Date('2022-11-01'),
+    roles: ['student', 'mentor'],
+    department: 'Fine Arts',
+    level: '400',
+    mentorStatus: 'approved'
   },
   {
     id: '4',
@@ -55,7 +66,10 @@ export const mockUsers: User[] = [
     major: 'Civil Engineering',
     year: 1,
     avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
-    createdAt: new Date('2023-05-10')
+    createdAt: new Date('2023-05-10'),
+    roles: ['student'],
+    department: 'Civil Engineering',
+    level: '100'
   },
   {
     id: '5',
@@ -69,7 +83,11 @@ export const mockUsers: User[] = [
     major: 'Environmental Science',
     year: 2,
     avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
-    createdAt: new Date('2022-09-22')
+    createdAt: new Date('2022-09-22'),
+    roles: ['student', 'mentor'],
+    department: 'Environmental Science',
+    level: '200',
+    mentorStatus: 'pending'
   },
 ];
 
@@ -88,7 +106,11 @@ export const mockPosts: Post[] = [
       major: 'Computer Science',
       year: 3,
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-01-15')
+      createdAt: new Date('2023-01-15'),
+      roles: ['student', 'tutor'],
+      department: 'Computer Science',
+      level: '300',
+      tutorStatus: 'approved'
     },
     content: 'Just finished my CS project! The debugging process was intense but totally worth it. Anyone else working on similar assignments this semester? 🎓💻',
     images: ['https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop'],
@@ -113,7 +135,10 @@ export const mockPosts: Post[] = [
       major: 'Data Science',
       year: 2,
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-08-20')
+      createdAt: new Date('2023-08-20'),
+      roles: ['student'],
+      department: 'Data Science',
+      level: '200'
     },
     content: 'Quick demo of my latest machine learning project! This model can predict student performance based on study habits. What do you think? 🤖📊',
     video: '/api/placeholder/video.mp4',
@@ -139,7 +164,11 @@ export const mockPosts: Post[] = [
       major: 'Fine Arts',
       year: 4,
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2022-11-01')
+      createdAt: new Date('2022-11-01'),
+      roles: ['student', 'mentor'],
+      department: 'Fine Arts',
+      level: '400',
+      mentorStatus: 'approved'
     },
     content: 'Experimenting with new color palettes for my next art installation. Feedback welcome! 🎨🖌️',
     images: [
@@ -167,7 +196,10 @@ export const mockPosts: Post[] = [
       major: 'Civil Engineering',
       year: 1,
       avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-05-10')
+      createdAt: new Date('2023-05-10'),
+      roles: ['student'],
+      department: 'Civil Engineering',
+      level: '100'
     },
     content: 'Site visit today! Checking out the progress on the new campus library. Excited to see it come to life. 🏗️📚',
     images: [
@@ -196,7 +228,11 @@ export const mockPosts: Post[] = [
       major: 'Environmental Science',
       year: 2,
       avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2022-09-22')
+      createdAt: new Date('2022-09-22'),
+      roles: ['student', 'mentor'],
+      department: 'Environmental Science',
+      level: '200',
+      mentorStatus: 'pending'
     },
     content: 'Spent the day volunteering at the local park for a cleanup event. It\'s amazing what a little effort can do for our environment! 🌳🌍',
     images: [
@@ -229,7 +265,10 @@ export const mockComments: Comment[] = [
       major: 'Data Science',
       year: 2,
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-08-20')
+      createdAt: new Date('2023-08-20'),
+      roles: ['student'],
+      department: 'Data Science',
+      level: '200'
     },
     content: 'Great job, John! Debugging is always the toughest part. What tools did you find most helpful?',
     postId: '1',
@@ -251,7 +290,11 @@ export const mockComments: Comment[] = [
       major: 'Fine Arts',
       year: 4,
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b8d21c?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2022-11-01')
+      createdAt: new Date('2022-11-01'),
+      roles: ['student', 'mentor'],
+      department: 'Fine Arts',
+      level: '400',
+      mentorStatus: 'approved'
     },
     content: 'Sarah, your machine learning project sounds fascinating! I\'d love to see a more in-depth presentation sometime.',
     postId: '2',
@@ -273,7 +316,11 @@ export const mockComments: Comment[] = [
       major: 'Computer Science',
       year: 3,
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-01-15')
+      createdAt: new Date('2023-01-15'),
+      roles: ['student', 'tutor'],
+      department: 'Computer Science',
+      level: '300',
+      tutorStatus: 'approved'
     },
     content: 'Thanks, Sarah! I mainly used VS Code for debugging. The built-in debugger is quite effective!',
     postId: '1',
@@ -295,7 +342,10 @@ export const mockComments: Comment[] = [
       major: 'Civil Engineering',
       year: 1,
       avatar: 'https://images.unsplash.com/photo-1500648767791-00d5a4ee9baa?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2023-05-10')
+      createdAt: new Date('2023-05-10'),
+      roles: ['student'],
+      department: 'Civil Engineering',
+      level: '100'
     },
     content: 'Alice, your art installations always bring so much life to the campus. Keep up the amazing work!',
     postId: '3',
@@ -317,7 +367,11 @@ export const mockComments: Comment[] = [
       major: 'Environmental Science',
       year: 2,
       avatar: 'https://images.unsplash.com/photo-1507038366474-4a63c142aa9c?w=100&h=100&fit=crop&crop=face',
-      createdAt: new Date('2022-09-22')
+      createdAt: new Date('2022-09-22'),
+      roles: ['student', 'mentor'],
+      department: 'Environmental Science',
+      level: '200',
+      mentorStatus: 'pending'
     },
     content: 'Bob, it\'s great to see the new library progressing. Sustainable building practices are so important for our future!',
     postId: '4',
