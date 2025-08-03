@@ -49,7 +49,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
 
   return (
     <>
-      <div className="flex flex-col h-full w-full p-6 bg-background border-r border-border">
+      <div className="flex flex-col h-full w-full p-6 pb-4 bg-background border-r border-border">
         {/* Logo */}
         <div className="flex items-center space-x-3 mb-8 mx-auto xl:mx-3">
           <div className="w-8 h-8 bg-foreground rounded-full xl:rounded-lg flex items-center justify-center px-2">
@@ -91,7 +91,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
         </Button>
 
         {/* User Profile */}
-        <div className="mb-4">
+        <div>
           <UserProfile />
         </div>
       </div>
