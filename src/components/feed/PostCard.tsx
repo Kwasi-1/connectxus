@@ -13,10 +13,19 @@ interface PostCardProps {
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
   onShare: (postId: string) => void;
+  onMediaClick?: (post: Post) => void;
   detailed?: boolean;
 }
 
-export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed = false }: PostCardProps) {
+export function PostCard({ 
+  post, 
+  onLike, 
+  onComment, 
+  onRepost, 
+  onShare, 
+  onMediaClick,
+  detailed = false 
+}: PostCardProps) {
   const navigate = useNavigate();
 
   const formatTimeAgo = (date: Date) => {
@@ -43,19 +52,26 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
     action();
   };
 
+  const handleMediaClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onMediaClick) {
+      onMediaClick(post);
+    }
+  };
+
   const renderMedia = () => {
     if (post.video) {
       return (
         <div className="relative rounded-2xl overflow-hidden border border-border mt-3">
           <video 
-            className="w-full h-auto max-h-96 object-cover"
+            className="w-full h-auto max-h-96 object-cover cursor-pointer"
             poster={post.images?.[0]}
             controls={false}
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleMediaClick}
           >
             <source src={post.video} type="video/mp4" />
           </video>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-colors cursor-pointer">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-colors cursor-pointer" onClick={handleMediaClick}>
             <div className="bg-white/90 rounded-full p-3 hover:bg-white transition-colors">
               <Play className="h-6 w-6 text-black fill-current" />
             </div>
@@ -77,7 +93,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                 src={post.images[0]} 
                 alt="Post content" 
                 className="w-full h-auto max-h-96 object-cover hover:brightness-95 transition-all cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
+                onClick={handleMediaClick}
               />
             </div>
           ) : post.images.length === 2 ? (
@@ -88,7 +104,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                   src={image} 
                   alt={`Post content ${index + 1}`} 
                   className="w-full h-48 sm:h-64 md:-72 object-cover hover:brightness-95 transition-all cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleMediaClick}
                 />
               ))}
             </div>
@@ -98,7 +114,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                 src={post.images[0]} 
                 alt="Post content 1" 
                 className="w-full h-48 object-cover hover:brightness-95 transition-all cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
+                onClick={handleMediaClick}
               />
               <div className="grid gap-1">
                 {post.images.slice(1, 3).map((image, index) => (
@@ -107,7 +123,7 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                     src={image} 
                     alt={`Post content ${index + 2}`} 
                     className="w-full h-24 sm:h-32 md:h-40 object-cover hover:brightness-95 transition-all cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={handleMediaClick}
                   />
                 ))}
                 {post.images.length > 3 && (
@@ -115,9 +131,10 @@ export function PostCard({ post, onLike, onComment, onRepost, onShare, detailed 
                     <img 
                       src={post.images[3]} 
                       alt="Post content 4" 
-                      className="w-full h-24 object-cover"
+                      className="w-full h-24 object-cover cursor-pointer"
+                      onClick={handleMediaClick}
                     />
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-lg cursor-pointer" onClick={handleMediaClick}>
                       +{post.images.length - 3}
                     </div>
                   </div>

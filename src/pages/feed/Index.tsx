@@ -2,12 +2,15 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Feed } from '@/components/feed/Feed';
+import { FullScreenPostModal } from '@/components/feed/FullScreenPostModal';
 import { mockPosts, mockUsers } from '@/data/mockData';
 import { Post } from '@/types/global';
 
 const Index = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Simulate API call with useEffect
   useEffect(() => {
@@ -69,18 +72,38 @@ const Index = () => {
     console.log('Share post:', postId);
   };
 
+  const handleMediaClick = (post: Post) => {
+    setSelectedPost(post);
+    setIsModalOpen(true);
+  };
+
   return (
-    <AppLayout onCreatePost={handleCreatePost}>
-      <Feed
-        posts={posts}
-        onCreatePost={handleCreatePost}
-        onLike={handleLike}
-        onComment={handleComment}
-        onRepost={handleRepost}
-        onShare={handleShare}
-        loading={loading}
-      />
-    </AppLayout>
+    <>
+      <AppLayout onCreatePost={handleCreatePost}>
+        <Feed
+          posts={posts}
+          onCreatePost={handleCreatePost}
+          onLike={handleLike}
+          onComment={handleComment}
+          onRepost={handleRepost}
+          onShare={handleShare}
+          onMediaClick={handleMediaClick}
+          loading={loading}
+        />
+      </AppLayout>
+
+      {selectedPost && (
+        <FullScreenPostModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          post={selectedPost}
+          onLike={handleLike}
+          onComment={handleComment}
+          onRepost={handleRepost}
+          onShare={handleShare}
+        />
+      )}
+    </>
   );
 };
 
