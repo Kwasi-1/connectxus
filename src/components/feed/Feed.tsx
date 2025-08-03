@@ -42,7 +42,7 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
 
   if (loading) {
     return (
-      <div className="flex-1 border-r border-border">
+      <div className="flex-1 border-l xl:border-l-0 border-r border-border min-h-screen">
         <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
         <PostComposer onPost={onCreatePost} />
         <LoadingSpinner />
@@ -51,9 +51,10 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
   }
 
   return (
-    <div className="flex-1 border-r border-border">
+    <div className="flex-1">
       <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-      
+
+      <div className='min-h-screen border-l xl:border-l-0 border-r border-border'>     
       {/* Post Composer */}
       <PostComposer onPost={onCreatePost} />
       
@@ -74,6 +75,8 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
             <p className="text-muted-foreground">No posts found for this filter.</p>
           </div>
         )}
+      </div>
+
       </div>
 
       {/* Mobile Floating Action Button */}
