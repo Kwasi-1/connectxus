@@ -15,10 +15,11 @@ interface FeedProps {
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
   onShare: (postId: string) => void;
+  onMediaClick: (post: Post) => void;
   loading?: boolean;
 }
 
-export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare, loading = false }: FeedProps) {
+export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare, onMediaClick, loading = false }: FeedProps) {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<'for-you' | 'following' | 'university'>('for-you');
 
@@ -68,6 +69,7 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare
             onComment={onComment}
             onRepost={onRepost}
             onShare={onShare}
+            onMediaClick={onMediaClick}
           />
         ))}
         {filteredPosts.length === 0 && (
