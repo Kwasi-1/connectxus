@@ -44,11 +44,11 @@ const Hub = () => {
 
   if (isLoading) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="border-r border-border">
           <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
-              <h1 className="text-xl font-bold text-foreground">Communities & Groups</h1>
+              <h2 className="text-xl custom-font text-foreground">Communities & Groups</h2>
             </div>
           </div>
           <LoadingSpinner />
@@ -130,12 +130,12 @@ const Hub = () => {
   );
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
-            <h1 className="text-xl font-bold text-foreground">Communities & Groups</h1>
+            <h2 className="text-xl font-bold text-foreground">Communities & Groups</h2>
           </div>
           
           {/* Tabs */}

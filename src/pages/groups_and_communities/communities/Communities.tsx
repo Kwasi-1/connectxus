@@ -68,7 +68,7 @@ const Communities = () => {
 
   if (isLoading) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="border-r border-border">
           <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
@@ -132,7 +132,7 @@ const Communities = () => {
   );
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
@@ -149,10 +149,11 @@ const Communities = () => {
               <h1 className="text-xl font-bold text-foreground">Communities</h1>
             </div>
           </div>
-          
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
-            <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
+          <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
               <TabsTrigger 
                 value="my" 
                 className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -176,7 +177,7 @@ const Communities = () => {
                     placeholder="Search your communities..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 rounded-full"
                   />
                 </div>
 
@@ -209,7 +210,7 @@ const Communities = () => {
                       placeholder="Search communities..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 rounded-full"
                     />
                   </div>
 
@@ -253,7 +254,6 @@ const Communities = () => {
               </div>
             </TabsContent>
           </Tabs>
-        </div>
       </div>
     </AppLayout>
   );

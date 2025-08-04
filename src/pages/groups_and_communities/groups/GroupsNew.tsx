@@ -68,9 +68,9 @@ const GroupsNew = () => {
 
   if (isLoading) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="border-r border-border">
-          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+          <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -144,10 +144,10 @@ const GroupsNew = () => {
   );
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -167,6 +167,8 @@ const GroupsNew = () => {
               </Button>
             </div>
           </div>
+          </div>
+
           
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
@@ -194,7 +196,7 @@ const GroupsNew = () => {
                     placeholder="Search your groups..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 rounded-full"
                   />
                 </div>
 
@@ -227,7 +229,7 @@ const GroupsNew = () => {
                       placeholder="Search groups..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 rounded-full"
                     />
                   </div>
 
@@ -271,7 +273,6 @@ const GroupsNew = () => {
               </div>
             </TabsContent>
           </Tabs>
-        </div>
       </div>
     </AppLayout>
   );
