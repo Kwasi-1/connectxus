@@ -48,7 +48,7 @@ const Hub = () => {
         <div className="border-r border-border">
           <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
-              <h2 className="text-xl custom-font text-foreground">Communities & Groups</h2>
+              <h2 className="text-xl tracking-wider font-[600] custom-font text-foreground">Communities & Groups</h2>
             </div>
           </div>
           <LoadingSpinner />
@@ -133,129 +133,129 @@ const Hub = () => {
     <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
-            <h2 className="text-xl font-bold text-foreground">Communities & Groups</h2>
+            <h2 className="text-xl tracking-wider font-[600] custom-font text-foreground">Communities & Groups</h2>
           </div>
+        </div>
           
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
-            <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
-              <TabsTrigger 
-                value="my" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                My Communities
-              </TabsTrigger>
-              <TabsTrigger 
-                value="explore" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                Explore
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="my" className="mt-0">
-              <div className="p-4 space-y-6">
-                {/* My Communities */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Your Communities</h2>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => navigate('/communities')}
-                      className="text-primary"
-                    >
-                      View All <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {myCommunities.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        You haven't joined any communities yet.
-                      </p>
-                    ) : (
-                      myCommunities.slice(0, 3).map((community) => (
-                        <CommunityCard key={community.id} community={community} />
-                      ))
-                    )}
-                  </div>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
+          <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
+            <TabsTrigger 
+              value="my" 
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              My Communities
+            </TabsTrigger>
+            <TabsTrigger 
+              value="explore" 
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              Explore
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="my" className="mt-0">
+            <div className="p-4 space-y-6">
+              {/* My Communities */}
+              <div>
+                <div className="flex justify-between items-center tra mb-4">
+                  <h2 className="text-lg font-semibold">Your Communities</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/communities')}
+                    className="text-primary"
+                  >
+                    View All <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
                 </div>
-
-                {/* My Groups */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Your Groups</h2>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => navigate('/groups')}
-                      className="text-primary"
-                    >
-                      View All <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {myGroups.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        You haven't joined any groups yet.
-                      </p>
-                    ) : (
-                      myGroups.slice(0, 3).map((group) => (
-                        <GroupCard key={group.id} group={group} />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="explore" className="mt-0">
-              <div className="p-4 space-y-6">
-                {/* Discover Communities */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Discover Communities</h2>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => navigate('/communities')}
-                      className="text-primary"
-                    >
-                      View All <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {exploreCommunities.map((community) => (
+                <div className="space-y-3">
+                  {myCommunities.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      You haven't joined any communities yet.
+                    </p>
+                  ) : (
+                    myCommunities.slice(0, 3).map((community) => (
                       <CommunityCard key={community.id} community={community} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Discover Groups */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Discover Groups</h2>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => navigate('/groups')}
-                      className="text-primary"
-                    >
-                      View All <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {exploreGroups.map((group) => (
-                      <GroupCard key={group.id} group={group} />
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+
+              {/* My Groups */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Your Groups</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/groups')}
+                    className="text-primary"
+                  >
+                    View All <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {myGroups.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      You haven't joined any groups yet.
+                    </p>
+                  ) : (
+                    myGroups.slice(0, 3).map((group) => (
+                      <GroupCard key={group.id} group={group} />
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="explore" className="mt-0">
+            <div className="p-4 space-y-6">
+              {/* Discover Communities */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Discover Communities</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/communities')}
+                    className="text-primary"
+                  >
+                    View All <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {exploreCommunities.map((community) => (
+                    <CommunityCard key={community.id} community={community} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Discover Groups */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Discover Groups</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/groups')}
+                    className="text-primary"
+                  >
+                    View All <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {exploreGroups.map((group) => (
+                    <GroupCard key={group.id} group={group} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
