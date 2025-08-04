@@ -133,7 +133,7 @@ const Hub = () => {
     <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
-        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md borderb border-border">
           <div className="px-4 py-3">
             <h2 className="text-xl tracking-wider font-[600] custom-font text-foreground">Communities & Groups</h2>
           </div>
@@ -160,7 +160,7 @@ const Hub = () => {
             <div className="p-4 space-y-6">
               {/* My Communities */}
               <div>
-                <div className="flex justify-between items-center tra mb-4">
+                <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Your Communities</h2>
                   <Button 
                     variant="ghost" 
