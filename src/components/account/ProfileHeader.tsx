@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Edit } from 'lucide-react';
+import { Edit, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,14 +8,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserProfile } from '@/types/global';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProfileHeaderProps {
   user: UserProfile;
   onUserUpdate: (updatedUser: UserProfile) => void;
+  isOwnProfile?: boolean;
 }
 
-export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
+export const ProfileHeader = ({ user, onUserUpdate, isOwnProfile = true }: ProfileHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [editForm, setEditForm] = useState({
     displayName: user.displayName,
     bio: user.bio || '',
@@ -44,6 +50,20 @@ export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
     setIsEditing(false);
   };
 
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
+    toast({
+      title: isFollowing ? "Unfollowed" : "Following",
+      description: isFollowing ? 
+        `You unfollowed ${user.displayName}` : 
+        `You are now following ${user.displayName}`,
+    });
+  };
+
+  const handleMessage = () => {
+    navigate('/messages', { state: { recipient: user } });
+  };
+
   return (
     <div className="relative">
       {/* Cover Photo */}
@@ -62,17 +82,39 @@ export const ProfileHeader = ({ user, onUserUpdate }: ProfileHeaderProps) => {
       {/* Profile Info */}
       <div className="pt-8 px-6 pb-4">
         <div className="flex justify-end mb-4">
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant="outline"
-            className="rounded-full"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </Button>
+          {isOwnProfile ? (
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              variant="outline"
+              className="rounded-full"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              {isEditing ? 'Cancel' : 'Edit Profile'}
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              {isFollowing && (
+                <Button
+                  onClick={handleMessage}
+                  variant="outline"
+                  className="rounded-full"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Message
+                </Button>
+              )}
+              <Button
+                onClick={handleFollow}
+                variant={isFollowing ? "outline" : "default"}
+                className="rounded-full"
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {isEditing ? (
+        {isEditing && isOwnProfile ? (
           <div className="space-y-4 max-w-lg">
             <Input
               value={editForm.displayName}

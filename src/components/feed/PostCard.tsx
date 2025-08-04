@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,6 +44,11 @@ export function PostCard({
       return;
     }
     navigate(`/post/${post.id}`);
+  };
+
+  const handleUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/profile/${post.author.id}`);
   };
 
   const handleInteractionClick = (e: React.MouseEvent, action: () => void) => {
@@ -158,7 +162,7 @@ export function PostCard({
       onClick={handlePostClick}
     >
       <div className="flex space-x-3">
-        <Avatar className={detailed ? "w-11 h-11" : "w-10 h-10"}>
+        <Avatar className={detailed ? "w-11 h-11" : "w-10 h-10"} onClick={handleUserClick}>
           <AvatarImage src={post.author.avatar || "/api/placeholder/48/48"} />
           <AvatarFallback>
             {post.author.displayName.split(' ').map(n => n[0]).join('')}
@@ -171,19 +175,24 @@ export function PostCard({
             <div className='flex items-start justify-center space-x-2 flex-wrap'>
               <div className='flex flex-col md:flex-row items-start md:items-center gap-x-2'>
                 <div className='flex gap-2 items-start'>
-
-              <span className="font-bold text-foreground hover:underline cursor-pointer">
-                {post.author.displayName}
-              </span>
-              {post.author.verified && (
-                <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-primary-foreground text-xs">✓</span>
+                  <span 
+                    className="font-bold text-foreground hover:underline cursor-pointer"
+                    onClick={handleUserClick}
+                  >
+                    {post.author.displayName}
+                  </span>
+                  {post.author.verified && (
+                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <span className="text-primary-foreground text-xs">✓</span>
+                    </div>
+                  )}
                 </div>
-              )}
-              </div>
-              <span className="text-muted-foreground hover:underline cursor-pointer">
-                @{post.author.username}
-              </span>
+                <span 
+                  className="text-muted-foreground hover:underline cursor-pointer"
+                  onClick={handleUserClick}
+                >
+                  @{post.author.username}
+                </span>
               </div>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground hover:underline cursor-pointer">
@@ -202,7 +211,7 @@ export function PostCard({
             </div>
           </div>
 
-          <div className={detailed && '-ml-12 mt-3 md:mt-6'}>
+          <div className={detailed ? '-ml-12 mt-3 md:mt-6' : ''}>
           
           {/* Content */}
           <div className={cn(

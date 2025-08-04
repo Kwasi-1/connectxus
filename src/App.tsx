@@ -15,6 +15,7 @@ import Groups from "./pages/groups/Groups";
 import Tutoring from "./pages/tutoring/Tutoring";
 import Mentors from "./pages/mentors/Mentors";
 import Account from "./pages/account/Account";
+import UserProfile from "./pages/profile/UserProfile";
 import Compose from "./pages/feed/Compose";
 import BecomeTutor from "./pages/applications/BecomeTutor";
 import BecomeMentor from "./pages/applications/BecomeMentor";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/compose" element={<Compose />} />
               <Route path="/post/:postId" element={<PostView />} />
+              <Route path="/profile/:userId" element={<UserProfile />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/messages" element={<Messages />} />
