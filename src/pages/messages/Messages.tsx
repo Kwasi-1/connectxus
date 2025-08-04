@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { 
   Search, 
   Phone, 
@@ -49,78 +49,134 @@ const Messages = () => {
   const [messageSearchQuery, setMessageSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
-  
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: '1',
-      name: 'Sarah Chen',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
-      lastMessage: 'Hey! How\'s the project going?',
-      timestamp: '2 min ago',
-      unreadCount: 2,
-      isOnline: true,
-      isPinned: false,
-      phone: '+233667788801',
-      lastMessageTime: Date.now() - 120000,
-      messages: [
-        { id: '1', content: 'Hey! How are you?', timestamp: '10:00 AM', isOwn: false },
-        { id: '2', content: 'I\'m good! How about you?', timestamp: '10:01 AM', isOwn: true },
-        { id: '3', content: 'Great! Working on the new project', timestamp: '10:02 AM', isOwn: false },
-        { id: '4', content: 'Hey! How\'s the project going?', timestamp: '10:05 AM', isOwn: false }
-      ]
-    },
-    {
-      id: '2',
-      name: 'John Doe',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-      lastMessage: 'Thanks for the help!',
-      timestamp: '1 hour ago',
-      unreadCount: 0,
-      isOnline: false,
-      isPinned: true,
-      phone: '+233667788802',
-      lastMessageTime: Date.now() - 3600000,
-      messages: [
-        { id: '1', content: 'Can you help me with this?', timestamp: '9:00 AM', isOwn: false },
-        { id: '2', content: 'Sure! What do you need?', timestamp: '9:01 AM', isOwn: true },
-        { id: '3', content: 'Thanks for the help!', timestamp: '9:30 AM', isOwn: false }
-      ]
-    },
-    {
-      id: '3',
-      name: 'Emma Wilson',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-      lastMessage: 'See you tomorrow!',
-      timestamp: '3 hours ago',
-      unreadCount: 1,
-      isOnline: true,
-      isPinned: false,
-      phone: '+233667788803',
-      lastMessageTime: Date.now() - 10800000,
-      messages: [
-        { id: '1', content: 'Are we still meeting tomorrow?', timestamp: '8:00 AM', isOwn: false },
-        { id: '2', content: 'Yes! 2 PM at the coffee shop', timestamp: '8:01 AM', isOwn: true },
-        { id: '3', content: 'See you tomorrow!', timestamp: '8:02 AM', isOwn: false }
-      ]
-    },
-    {
-      id: '4',
-      name: 'Mike Johnson',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-      lastMessage: 'Good luck with the presentation!',
-      timestamp: '1 day ago',
-      unreadCount: 0,
-      isOnline: false,
-      isPinned: true,
-      phone: '+233667788804',
-      lastMessageTime: Date.now() - 86400000,
-      messages: [
-        { id: '1', content: 'How did the presentation go?', timestamp: 'Yesterday', isOwn: false },
-        { id: '2', content: 'It went really well, thanks!', timestamp: 'Yesterday', isOwn: true },
-        { id: '3', content: 'Good luck with the presentation!', timestamp: 'Yesterday', isOwn: false }
-      ]
-    }
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [chats, setChats] = useState<Chat[]>([]);
+
+  const Pageheader = () => (
+    <div className="sticky top-0 z-40 bg-background p-4 border-b border-border">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-foreground">Messages</h1>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          placeholder="Search conversations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 py-3 border rounded-full"
+        />
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      setIsLoading(true);
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Mock chats data
+        const mockChats: Chat[] = [
+          {
+            id: '1',
+            name: 'Sarah Chen',
+            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+            lastMessage: 'Hey! How\'s the project going?',
+            timestamp: '2 min ago',
+            unreadCount: 2,
+            isOnline: true,
+            isPinned: false,
+            phone: '+233667788801',
+            lastMessageTime: Date.now() - 120000,
+            messages: [
+              { id: '1', content: 'Hey! How are you?', timestamp: '10:00 AM', isOwn: false },
+              { id: '2', content: 'I\'m good! How about you?', timestamp: '10:01 AM', isOwn: true },
+              { id: '3', content: 'Great! Working on the new project', timestamp: '10:02 AM', isOwn: false },
+              { id: '4', content: 'Hey! How\'s the project going?', timestamp: '10:05 AM', isOwn: false }
+            ]
+          },
+          {
+            id: '2',
+            name: 'John Doe',
+            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+            lastMessage: 'Thanks for the help!',
+            timestamp: '1 hour ago',
+            unreadCount: 0,
+            isOnline: false,
+            isPinned: true,
+            phone: '+233667788802',
+            lastMessageTime: Date.now() - 3600000,
+            messages: [
+              { id: '1', content: 'Can you help me with this?', timestamp: '9:00 AM', isOwn: false },
+              { id: '2', content: 'Sure! What do you need?', timestamp: '9:01 AM', isOwn: true },
+              { id: '3', content: 'Thanks for the help!', timestamp: '9:30 AM', isOwn: false }
+            ]
+          },
+          {
+            id: '3',
+            name: 'Emma Wilson',
+            avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+            lastMessage: 'See you tomorrow!',
+            timestamp: '3 hours ago',
+            unreadCount: 1,
+            isOnline: true,
+            isPinned: false,
+            phone: '+233667788803',
+            lastMessageTime: Date.now() - 10800000,
+            messages: [
+              { id: '1', content: 'Are we still meeting tomorrow?', timestamp: '8:00 AM', isOwn: false },
+              { id: '2', content: 'Yes! 2 PM at the coffee shop', timestamp: '8:01 AM', isOwn: true },
+              { id: '3', content: 'See you tomorrow!', timestamp: '8:02 AM', isOwn: false }
+            ]
+          },
+          {
+            id: '4',
+            name: 'Mike Johnson',
+            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+            lastMessage: 'Good luck with the presentation!',
+            timestamp: '1 day ago',
+            unreadCount: 0,
+            isOnline: false,
+            isPinned: true,
+            phone: '+233667788804',
+            lastMessageTime: Date.now() - 86400000,
+            messages: [
+              { id: '1', content: 'How did the presentation go?', timestamp: 'Yesterday', isOwn: false },
+              { id: '2', content: 'It went really well, thanks!', timestamp: 'Yesterday', isOwn: true },
+              { id: '3', content: 'Good luck with the presentation!', timestamp: 'Yesterday', isOwn: false }
+            ]
+          }
+        ];
+        
+        setChats(mockChats);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <AppLayout showRightSidebar={false}>
+        <div className="h-screen flex">
+          <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background">
+            <Pageheader />
+            <LoadingSpinner />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Sort chats: pinned first (by last message time), then unpinned by latest activity
   const sortedChats = [...chats].sort((a, b) => {
@@ -264,25 +320,7 @@ const Messages = () => {
           selectedChat && isMobileView ? 'hidden lg:flex' : 'flex'
         } lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background`}>
           {/* Header */}
-          <div className="sticky top-0 z-40 bg-background p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-foreground">Messages</h1>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input 
-                placeholder="Search conversations..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 py-3 border rounded-full"
-              />
-            </div>
-          </div>
+          <Pageheader />
           
           {/* Conversations */}
           <div className="flex-1 overflow-y-auto">

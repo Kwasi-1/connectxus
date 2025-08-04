@@ -8,6 +8,7 @@ import { mockUserProfile, mockPosts } from '@/data/mockData';
 import { UserProfile as UserProfileType } from '@/types/global';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const UserProfile = () => {
   const { userId } = useParams();
@@ -78,7 +79,7 @@ const UserProfile = () => {
       <AppLayout>
         <div className="border-x min-h-screen lg:border-x-0 pb-6">
           <div className="flex items-center justify-center h-64">
-            <div className="text-muted-foreground">Loading...</div>
+            <LoadingSpinner/>
           </div>
         </div>
       </AppLayout>
