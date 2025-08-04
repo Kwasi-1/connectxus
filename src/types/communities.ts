@@ -2,7 +2,7 @@
 export type CommunityCategory = 'Academic' | 'Social' | 'Professional' | 'Sports' | 'Arts' | 'Technology' | 'Other';
 export type GroupCategory = 'Academic' | 'Study Group' | 'Professional' | 'Social' | 'Sports' | 'Arts' | 'Technology' | 'Other';
 
-export interface User {
+export interface CommunityUser {
   id: string;
   name: string;
   username: string;
@@ -12,7 +12,7 @@ export interface User {
 export interface CommunityPost {
   id: string;
   content: string;
-  author: User;
+  author: CommunityUser;
   createdAt: Date;
   likes: number;
   replies: number;
@@ -44,5 +44,5 @@ export interface Group {
   isJoined: boolean;
   isCreator: boolean;
   createdAt: Date;
-  creator: User;
+  creator: CommunityUser;
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Users, ArrowLeft } from 'lucide-react';
@@ -13,6 +12,7 @@ import { PostCard } from '@/components/feed/PostCard';
 import { mockCommunities } from '@/data/mockCommunitiesData';
 import { Community } from '@/types/communities';
 import { useNavigate } from 'react-router-dom';
+import { User } from '@/types/global';
 
 const CommunityDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -122,7 +122,17 @@ const CommunityDetail = () => {
                   post={{
                     id: post.id,
                     content: post.content,
-                    author: post.author,
+                    author: {
+                      id: post.author.id,
+                      username: post.author.username,
+                      displayName: post.author.name,
+                      email: `${post.author.username}@university.edu`,
+                      avatar: post.author.avatar,
+                      verified: false,
+                      followers: 0,
+                      following: 0,
+                      createdAt: new Date('2024-01-01')
+                    } as User,
                     createdAt: post.createdAt.toISOString(),
                     likes: post.likes,
                     comments: post.replies,
