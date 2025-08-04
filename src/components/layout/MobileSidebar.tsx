@@ -48,7 +48,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </div>
           </SheetHeader>
 
-          <nav className="flex-1 p-6 space-y-1">
+          <nav className="flex-1 p-6 space-y-1 md:space-y-4 overflow-y-auto scrollbar-hide">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveRoute(item.path);
@@ -59,7 +59,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   variant="ghost"
                   onClick={() => handleNavigation(item.path)}
                   className={cn(
-                    "w-full justify-start text-left px-4 py-3 text-lg font-[300] rounded-full transition-colors",
+                    "w-full justify-start text-left px-4 py-3 text-lg md:text-xl font-[300] rounded-full transition-colors",
                     "hover:bg-muted",
                     isActive && "font-bold"
                   )}

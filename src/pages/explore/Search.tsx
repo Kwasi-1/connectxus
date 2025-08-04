@@ -46,7 +46,7 @@ const Search = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border">
+      <div className="border-r border-border h-full">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 md:px-6 py-3">

@@ -169,7 +169,7 @@ const Messages = () => {
     return (
       <AppLayout showRightSidebar={false}>
         <div className="h-screen flex">
-          <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background">
+          <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-x border-border flex-col bg-background">
             <Pageheader />
             <LoadingSpinner />
           </div>
@@ -318,7 +318,7 @@ const Messages = () => {
         {/* Chat List - Full width on mobile when no chat selected, hidden when chat selected */}
         <div className={`${
           selectedChat && isMobileView ? 'hidden lg:flex' : 'flex'
-        } lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-r border-border flex-col bg-background`}>
+        } lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-x border-border flex-col bg-background`}>
           {/* Header */}
           <Pageheader />
           

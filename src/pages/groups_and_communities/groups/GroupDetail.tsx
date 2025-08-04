@@ -121,7 +121,7 @@ const GroupDetail = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="border-r border-border">
+        <div className="border-r border-border h-full">
           <LoadingSpinner />
         </div>
       </AppLayout>
@@ -131,7 +131,7 @@ const GroupDetail = () => {
   if (!group) {
     return (
       <AppLayout>
-        <div className="border-r border-border p-8 text-center">
+        <div className="border-r border-border p-8 text-center h-full">
           <h2 className="text-2xl font-bold mb-2">Group not found</h2>
           <p className="text-muted-foreground mb-4">The group you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/groups')}>
@@ -144,7 +144,7 @@ const GroupDetail = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border">
+      <div className="border-r border-border h-full">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">

@@ -133,7 +133,7 @@ const CommunityDetail = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="border-r border-border">
+        <div className="border-r border-border h-full">
           <LoadingSpinner />
         </div>
       </AppLayout>
@@ -143,7 +143,7 @@ const CommunityDetail = () => {
   if (!community) {
     return (
       <AppLayout>
-        <div className="border-r border-border p-8 text-center">
+        <div className="border-r border-border h-full p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">Community not found</h2>
           <p className="text-muted-foreground mb-4">The community you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/communities')}>
@@ -156,7 +156,7 @@ const CommunityDetail = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border">
+      <div className="border-r border-border h-full">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">

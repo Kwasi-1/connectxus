@@ -77,7 +77,7 @@ const UserProfile = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="border-x min-h-screen lg:border-x-0 pb-6">
+        <div className="border-x min-h-screen lg:border-x-0 pb-6 h-full">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner/>
           </div>
@@ -89,7 +89,7 @@ const UserProfile = () => {
   if (!user) {
     return (
       <AppLayout>
-        <div className="border-x min-h-screen lg:border-x-0 pb-6">
+        <div className="border-x min-h-screen lg:border-x-0 pb-6 h-full">
           <div className="flex items-center justify-center h-64">
             <div className="text-muted-foreground">User not found</div>
           </div>
@@ -104,7 +104,7 @@ const UserProfile = () => {
 
   return (
     <AppLayout>
-      <div className="border-x min-h-screen lg:border-x-0 pb-6">
+      <div className="border-x min-h-screen lg:border-x-0 pb-6 h-full">
         <div className='hidden px-2 py-4 sticky top-16 lg:top-0 bg-background z-50 md:flex items-center gap-2 border-b'>
           <Button variant="ghost" onClick={() => window.history.back()}>
             <Icon icon="line-md:arrow-left" className="h-6 w-6" />
