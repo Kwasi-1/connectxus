@@ -8,7 +8,7 @@ import { UserProfile } from './UserProfile';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
-  { icon: Search, label: 'Explore', path: '/explore', id: 'explore' },
+  { icon: Search, label: 'Explore', path: '/search', id: 'search' },
   { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
   { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
   { icon: Users, label: 'Groups', path: '/groups', id: 'groups' },

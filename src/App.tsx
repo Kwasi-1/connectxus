@@ -20,6 +20,7 @@ import Compose from "./pages/feed/Compose";
 import BecomeTutor from "./pages/applications/BecomeTutor";
 import BecomeMentor from "./pages/applications/BecomeMentor";
 import NotFound from "./pages/NotFound";
+import Search from "./pages/explore/Search";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/compose" element={<Compose />} />
               <Route path="/post/:postId" element={<PostView />} />
               <Route path="/profile/:userId" element={<UserProfile />} />
+              <Route path="/search" element={<Search />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/messages" element={<Messages />} />
