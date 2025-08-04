@@ -1,10 +1,9 @@
-
 import { MessageSquare, Heart, Users, BookOpen, GraduationCap, Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserProfile } from '@/types/global';
+import { UserProfile, Post } from '@/types/global';
 import { hasRole } from '@/lib/role';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -14,9 +13,22 @@ import { PostCard } from '@/components/feed/PostCard';
 interface ProfileTabsProps {
   user: UserProfile;
   isOwnProfile?: boolean;
+  onLike?: (postId: string) => void;
+  onComment?: (postId: string) => void;
+  onRepost?: (postId: string) => void;
+  onShare?: (postId: string) => void;
+  onMediaClick?: (post: Post) => void;
 }
 
-export const ProfileTabs = ({ user, isOwnProfile = true }: ProfileTabsProps) => {
+export const ProfileTabs = ({ 
+  user, 
+  isOwnProfile = true, 
+  onLike = () => {},
+  onComment = () => {},
+  onRepost = () => {},
+  onShare = () => {},
+  onMediaClick = () => {}
+}: ProfileTabsProps) => {
   const { user: authUser } = useAuth();
 
   const getTabs = () => {
@@ -49,26 +61,6 @@ export const ProfileTabs = ({ user, isOwnProfile = true }: ProfileTabsProps) => 
 
   const tabs = getTabs();
 
-  const handleLike = (postId: string) => {
-    console.log('Liked post:', postId);
-  };
-
-  const handleComment = (postId: string) => {
-    console.log('Comment on post:', postId);
-  };
-
-  const handleRepost = (postId: string) => {
-    console.log('Reposted:', postId);
-  };
-
-  const handleShare = (postId: string) => {
-    console.log('Shared:', postId);
-  };
-
-  const handleMediaClick = (post: any) => {
-    console.log('Media clicked:', post);
-  };
-
   return (
     <Tabs defaultValue="posts" className="w-full">
       <TabsList className="w-full overflow-x-auto justify-start h-auto p-0 bg-transparent border-b rounded-none">
@@ -95,11 +87,11 @@ export const ProfileTabs = ({ user, isOwnProfile = true }: ProfileTabsProps) => 
             <PostCard
               key={post.id}
               post={post}
-              onLike={handleLike}
-              onComment={handleComment}
-              onRepost={handleRepost}
-              onShare={handleShare}
-              onMediaClick={handleMediaClick}
+              onLike={onLike}
+              onComment={onComment}
+              onRepost={onRepost}
+              onShare={onShare}
+              onMediaClick={onMediaClick}
             />
           ))
         ) : (

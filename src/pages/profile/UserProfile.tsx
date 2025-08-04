@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProfileHeader } from '@/components/account/ProfileHeader';
 import { ProfileTabs } from '@/components/account/ProfileTabs';
-import { mockUserProfile } from '@/data/mockData';
+import { mockUserProfile, mockPosts } from '@/data/mockData';
 import { UserProfile as UserProfileType } from '@/types/global';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Button } from '@/components/ui/button';
@@ -16,17 +16,62 @@ const UserProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching user data based on userId
-    // In a real app, this would be an API call
     const fetchUserProfile = async () => {
       setIsLoading(true);
-      // For now, using mock data
-      setUser(mockUserProfile);
+      
+      // Find the user from mock posts data based on userId
+      const foundPost = mockPosts.find(post => post.author.id === userId);
+      if (foundPost) {
+        // Create user profile from found user
+        const userProfile: UserProfileType = {
+          ...foundPost.author,
+          posts: mockPosts.filter(post => post.author.id === userId),
+          joinedGroups: [],
+          tutoringRequests: []
+        };
+        setUser(userProfile);
+      } else {
+        // Fallback to mock profile if user not found in posts
+        setUser(mockUserProfile);
+      }
+      
       setIsLoading(false);
     };
 
     fetchUserProfile();
   }, [userId]);
+
+  const handleLike = (postId: string) => {
+    if (!user) return;
+    const updatedPosts = user.posts.map(post => 
+      post.id === postId 
+        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
+        : post
+    );
+    setUser({ ...user, posts: updatedPosts });
+  };
+
+  const handleComment = (postId: string) => {
+    navigate(`/post/${postId}`);
+  };
+
+  const handleRepost = (postId: string) => {
+    if (!user) return;
+    const updatedPosts = user.posts.map(post => 
+      post.id === postId 
+        ? { ...post, isReposted: !post.isReposted, reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1 }
+        : post
+    );
+    setUser({ ...user, posts: updatedPosts });
+  };
+
+  const handleShare = (postId: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
+  };
+
+  const handleMediaClick = (post: any) => {
+    console.log('Media clicked:', post);
+  };
 
   if (isLoading) {
     return (
@@ -66,7 +111,15 @@ const UserProfile = () => {
           <h1 className="text-xl font-semibold">{user.displayName}</h1>
         </div>
         <ProfileHeader user={user} onUserUpdate={handleUserUpdate} isOwnProfile={false} />
-        <ProfileTabs user={user} isOwnProfile={false} />
+        <ProfileTabs 
+          user={user} 
+          isOwnProfile={false} 
+          onLike={handleLike}
+          onComment={handleComment}
+          onRepost={handleRepost}
+          onShare={handleShare}
+          onMediaClick={handleMediaClick}
+        />
       </div>
     </AppLayout>
   );
