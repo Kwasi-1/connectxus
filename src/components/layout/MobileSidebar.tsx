@@ -11,7 +11,7 @@ const navigationItems = [
   { icon: Search, label: 'Explore', path: '/search', id: 'search' },
   { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
   { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
-  { icon: Users, label: 'Groups', path: '/groups', id: 'groups' },
+  { icon: Users, label: 'Communities', path: '/hub', id: 'communities' },
   { icon: BookOpen, label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: GraduationCap, label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: User, label: 'Account', path: '/account', id: 'account' },
@@ -32,6 +32,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   };
 
   const isActiveRoute = (path: string) => {
+    if (path === '/hub') {
+      return location.pathname === '/hub' || 
+             location.pathname === '/communities' || 
+             location.pathname === '/groups' ||
+             location.pathname.startsWith('/communities/') ||
+             location.pathname.startsWith('/groups/');
+    }
     return location.pathname === path;
   };
 
