@@ -6,7 +6,7 @@ import { Icon } from '@iconify/react';
 
 const navigationItems = [
   { icon: 'hugeicons:home-04', label: 'Home', path: '/', id: 'home' },
-  { icon: 'uil:users-alt', label: 'Groups', path: '/groups', id: 'groups' },
+  { icon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
   { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: 'line-md:account', label: 'Account', path: '/account', id: 'account' },

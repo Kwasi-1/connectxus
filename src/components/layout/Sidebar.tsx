@@ -13,7 +13,7 @@ const navigationItems = [
   { icon: Search, label: 'Explore', path: '/search', id: 'explore' },
   { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
   { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
-  { icon: Users, label: 'Groups', path: '/groups', id: 'groups' },
+  { icon: Users, label: 'Groups', path: '/hub', id: 'groups' },
   { icon: BookOpen, label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: GraduationCap, label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: User, label: 'Account', path: '/account', id: 'account' },
