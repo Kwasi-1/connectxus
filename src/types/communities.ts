@@ -12,6 +12,8 @@ export interface Community {
   createdAt: Date;
   level?: string;
   department?: string;
+  admins: string[];
+  moderators: string[];
 }
 
 export interface Group {
@@ -26,6 +28,8 @@ export interface Group {
   createdAt: Date;
   createdBy: string;
   avatar?: string;
+  admins: string[];
+  moderators: string[];
 }
 
 export interface CommunityPost {
@@ -42,8 +46,22 @@ export interface CommunityPost {
   createdAt: Date;
 }
 
+export interface Announcement {
+  id: string;
+  communityId: string;
+  title: string;
+  content: string;
+  author: User;
+  createdAt: Date;
+  isPinned: boolean;
+}
+
 export type CommunityCategory = 'Academic' | 'Level' | 'Hostel' | 'Department' | 'Faculty';
 
 export type GroupCategory = 'Study Group' | 'Sports' | 'Arts' | 'Professional' | 'Academic' | 'Social' | 'Other';
 
 export type HubTab = 'my' | 'explore';
+
+export type CommunityTab = 'posts' | 'announcements' | 'members' | 'settings';
+
+export type GroupTab = 'members' | 'resources' | 'settings';

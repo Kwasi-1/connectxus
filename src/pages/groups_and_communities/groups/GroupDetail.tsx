@@ -7,25 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Users, Lock, Calendar, Settings } from 'lucide-react';
-import { mockGroups } from '@/data/mockCommunitiesData';
+import { ArrowLeft, Users, Lock, Calendar, Settings, MessageCircle, Share, UserMinus, Files } from 'lucide-react';
+import { mockGroups, mockUsers } from '@/data/mockCommunitiesData';
 import { Group } from '@/types/communities';
+import { User } from '@/types/global';
 
-type GroupTab = 'chat' | 'members' | 'resources';
+type GroupTab = 'members' | 'resources' | 'settings';
 
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<GroupTab>('chat');
+  const [activeTab, setActiveTab] = useState<GroupTab>('members');
   const [isLoading, setIsLoading] = useState(true);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
   const [group, setGroup] = useState<Group | null>(null);
+  const [members, setMembers] = useState<User[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  
   const currentUserId = 'user-1'; // Mock current user ID
 
   useEffect(() => {
     const fetchGroup = async () => {
       setIsLoading(true);
       try {
-        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const foundGroup = mockGroups.find(g => g.id === id);
@@ -44,6 +49,44 @@ const GroupDetail = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (activeTab === 'members' && group) {
+      fetchMembers();
+    } else if (activeTab === 'resources' && group) {
+      fetchResources();
+    }
+  }, [activeTab, group]);
+
+  const fetchMembers = async () => {
+    setMembersLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      // Mock members - in real app, this would be an API call
+      setMembers(mockUsers.slice(0, 3));
+    } catch (error) {
+      console.error('Error fetching members:', error);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    setResourcesLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      // Mock resources
+      setResources([
+        { id: '1', name: 'Study Guide - Data Structures', type: 'PDF', uploadedBy: 'John Doe', uploadedAt: new Date() },
+        { id: '2', name: 'Algorithms Cheat Sheet', type: 'PDF', uploadedBy: 'Sarah Johnson', uploadedAt: new Date() },
+        { id: '3', name: 'Practice Problems', type: 'Link', uploadedBy: 'Mike Wilson', uploadedAt: new Date() }
+      ]);
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+    } finally {
+      setResourcesLoading(false);
+    }
+  };
+
   const handleJoinGroup = () => {
     if (group) {
       setGroup({
@@ -54,7 +97,26 @@ const GroupDetail = () => {
     }
   };
 
-  const isCreator = group?.createdBy === currentUserId;
+  const handleChatClick = () => {
+    navigate('/messages', { state: { groupId: id, groupName: group?.name } });
+  };
+
+  const handleShareGroup = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: group?.name,
+        text: group?.description,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      // You could add a toast notification here
+    }
+  };
+
+  const isAdmin = group?.admins.includes(currentUserId);
+  const isModerator = group?.moderators.includes(currentUserId);
+  const canManage = isAdmin || isModerator;
 
   if (isLoading) {
     return (
@@ -106,11 +168,21 @@ const GroupDetail = () => {
                   </p>
                 </div>
               </div>
-              {isCreator && (
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                {group.isJoined && (
+                  <Button variant="ghost" size="sm" onClick={handleChatClick}>
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleShareGroup}>
+                  <Share className="h-4 w-4" />
                 </Button>
-              )}
+                {canManage && (
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('settings')}>
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -153,19 +225,28 @@ const GroupDetail = () => {
                   </Badge>
                 ))}
               </div>
-              {!isCreator && (
-                <Button
-                  onClick={handleJoinGroup}
-                  variant={group.isJoined ? 'outline' : 'default'}
-                >
-                  {group.isJoined ? 'Leave Group' : (group.isPrivate ? 'Request Access' : 'Join Group')}
-                </Button>
-              )}
-              {isCreator && (
-                <Button variant="outline">
-                  Manage Group
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {!canManage && (
+                  <Button
+                    onClick={handleJoinGroup}
+                    variant={group.isJoined ? 'outline' : 'default'}
+                  >
+                    {group.isJoined ? (
+                      <>
+                        <UserMinus className="h-4 w-4 mr-2" />
+                        Leave Group
+                      </>
+                    ) : (
+                      group.isPrivate ? 'Request Access' : 'Join Group'
+                    )}
+                  </Button>
+                )}
+                {canManage && (
+                  <Button variant="outline" onClick={() => setActiveTab('settings')}>
+                    Manage Group
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -173,12 +254,6 @@ const GroupDetail = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as GroupTab)}>
           <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
-            <TabsTrigger 
-              value="chat" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Chat
-            </TabsTrigger>
             <TabsTrigger 
               value="members" 
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -191,25 +266,126 @@ const GroupDetail = () => {
             >
               Resources
             </TabsTrigger>
+            {canManage && (
+              <TabsTrigger 
+                value="settings" 
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Settings
+              </TabsTrigger>
+            )}
           </TabsList>
           
-          <TabsContent value="chat" className="mt-0">
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Group chat will be available soon</p>
-            </div>
-          </TabsContent>
-          
           <TabsContent value="members" className="mt-0">
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Members list will be displayed here</p>
-            </div>
+            {membersLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <div className="divide-y divide-border">
+                {members.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">No members to display</p>
+                  </div>
+                ) : (
+                  members.map((member) => (
+                    <div key={member.id} className="p-4 hover:bg-muted/5">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={member.avatar} alt={member.displayName} />
+                          <AvatarFallback>
+                            {member.displayName.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{member.displayName}</h3>
+                            {member.verified && (
+                              <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                <span className="text-primary-foreground text-xs">✓</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">@{member.username}</p>
+                        </div>
+                        {group.admins.includes(member.id) && (
+                          <Badge variant="secondary" className="text-xs">Admin</Badge>
+                        )}
+                        {group.moderators.includes(member.id) && (
+                          <Badge variant="outline" className="text-xs">Moderator</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="resources" className="mt-0">
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Shared resources will appear here</p>
-            </div>
+            {resourcesLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <div className="divide-y divide-border">
+                {resources.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-muted-foreground">No resources shared yet</p>
+                  </div>
+                ) : (
+                  resources.map((resource) => (
+                    <div key={resource.id} className="p-4 hover:bg-muted/5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-muted rounded-lg">
+                          <Files className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium">{resource.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {resource.type} • Shared by {resource.uploadedBy} • {resource.uploadedAt.toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </TabsContent>
+
+          {canManage && (
+            <TabsContent value="settings" className="mt-0">
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Group Settings</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Group Description</label>
+                      <p className="text-sm text-muted-foreground mt-1">Update your group description</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Privacy Settings</label>
+                      <p className="text-sm text-muted-foreground mt-1">Change group visibility and access</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Member Management</label>
+                      <p className="text-sm text-muted-foreground mt-1">Manage member roles and permissions</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Group Tags</label>
+                      <p className="text-sm text-muted-foreground mt-1">Edit tags to help others discover your group</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <h4 className="text-sm font-medium text-red-600 mb-2">Danger Zone</h4>
+                  <Button variant="destructive" size="sm">
+                    Delete Group
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>
