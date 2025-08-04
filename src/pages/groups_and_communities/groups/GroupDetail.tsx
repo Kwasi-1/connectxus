@@ -120,7 +120,7 @@ const GroupDetail = () => {
 
   if (isLoading) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="border-r border-border">
           <LoadingSpinner />
         </div>
@@ -130,7 +130,7 @@ const GroupDetail = () => {
 
   if (!group) {
     return (
-      <AppLayout showRightSidebar={false}>
+      <AppLayout>
         <div className="border-r border-border p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">Group not found</h2>
           <p className="text-muted-foreground mb-4">The group you're looking for doesn't exist.</p>
@@ -143,7 +143,7 @@ const GroupDetail = () => {
   }
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <AppLayout>
       <div className="border-r border-border">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
