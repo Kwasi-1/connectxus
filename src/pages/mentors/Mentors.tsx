@@ -124,7 +124,7 @@ const Mentors = () => {
             
             <TabsContent value="mentors" className="space-y-4">
               {/* Search and Filters */}
-              <div className="space-y-4 sticky top-16 bg-background z-40 -mt-2 pt-2 pb-4">
+              <div className="space-y-4 sticky top-16 lg:top-0 bg-background z-40 -mt-2 pt-2 pb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
