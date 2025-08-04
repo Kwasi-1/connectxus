@@ -6,7 +6,7 @@ import { Icon } from '@iconify/react';
 
 const navigationItems = [
   { icon: 'hugeicons:home-04', label: 'Home', path: '/', id: 'home' },
-  { icon: 'uil:users-alt', label: 'Communities', path: '/hub', id: 'communities' },
+  { icon: 'uil:users-alt', label: 'Groups', path: '/groups', id: 'groups' },
   { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
   { icon: 'line-md:account', label: 'Account', path: '/account', id: 'account' },
@@ -21,13 +21,6 @@ export function MobileBottomNav() {
   };
 
   const isActiveRoute = (path: string) => {
-    if (path === '/hub') {
-      return location.pathname === '/hub' || 
-             location.pathname === '/communities' || 
-             location.pathname === '/groups' ||
-             location.pathname.startsWith('/communities/') ||
-             location.pathname.startsWith('/groups/');
-    }
     return location.pathname === path;
   };
 

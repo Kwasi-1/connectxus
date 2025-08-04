@@ -11,11 +11,7 @@ import PostView from "./pages/feed/PostView";
 import Explore from "./pages/explore/Explore";
 import Notifications from "./pages/notifications/Notifications";
 import Messages from "./pages/messages/Messages";
-import Hub from "./pages/hub/Hub";
-import Communities from "./pages/communities/Communities";
-import CommunityDetail from "./pages/communities/CommunityDetail";
-import GroupsNew from "./pages/groups/GroupsNew";
-import GroupDetail from "./pages/groups/GroupDetail";
+import Groups from "./pages/groups/Groups";
 import Tutoring from "./pages/tutoring/Tutoring";
 import Mentors from "./pages/mentors/Mentors";
 import Account from "./pages/account/Account";
@@ -45,11 +41,7 @@ const App = () => (
               <Route path="/explore" element={<Explore />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/messages" element={<Messages />} />
-              <Route path="/hub" element={<Hub />} />
-              <Route path="/communities" element={<Communities />} />
-              <Route path="/communities/:id" element={<CommunityDetail />} />
-              <Route path="/groups" element={<GroupsNew />} />
-              <Route path="/groups/:id" element={<GroupDetail />} />
+              <Route path="/groups" element={<Groups />} />
               <Route path="/tutoring" element={<Tutoring />} />
               <Route path="/tutoring/become-tutor" element={<BecomeTutor />} />
               <Route path="/mentors" element={<Mentors />} />
