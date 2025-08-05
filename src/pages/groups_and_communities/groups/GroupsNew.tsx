@@ -147,7 +147,7 @@ const GroupsNew = () => {
     <AppLayout>
       <div className="border-r border-border h-full">
         {/* Header */}
-        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
