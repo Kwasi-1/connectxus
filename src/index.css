@@ -6,9 +6,9 @@
 /* Campus Vibe Net Design System - University Social Media Platform */
 
 @font-face {
-  font-family: 'Orpheus Pro';
-  src: url('./assets/fonts/Orpheus Pro.woff2') format('woff2'),
-  url('./assets/fonts/Orpheus Pro.woff') format('woff');
+  font-family: 'HelveticaNeue';
+  src: url('./assets/fonts/HelveticaNeueLight.otf') format('opentype');
+  /* url('./assets/fonts/Orpheus Pro.woff') format('woff'); */
   font-weight: 400;
   font-style: normal;
 }
@@ -168,7 +168,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground tracking-wide;
+    font-family: 'HelveticaNeue', sans-serif;
   }
 }
 
@@ -188,7 +189,7 @@
       @apply tracking-wide font-[600];
     }
     h1 {
-      @apply tracking-wider 2xl:text-4xl;
+      @apply tracking-wider 2xl:text-3xl;
     }
   }
   .custom-font {
