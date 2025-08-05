@@ -181,7 +181,7 @@ const GroupsNew = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="explore" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
               >
                 Explore
               </TabsTrigger>
