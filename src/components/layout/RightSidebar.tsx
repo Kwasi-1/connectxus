@@ -158,7 +158,7 @@ export function RightSidebar() {
                   size="sm" 
                   variant={followedUsers.has(user.handle) ? "outline" : "default"}
                   className={followedUsers.has(user.handle) 
-                    ? "border-foreground text-foreground hover:bg-muted rounded-full px-4" 
+                    ? "border-border text-foreground hover:bg-muted rounded-full px-4" 
                     : "bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
                   }
                   onClick={() => handleFollow(user.handle, user.name)}
