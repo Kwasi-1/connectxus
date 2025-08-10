@@ -1,19 +1,24 @@
-import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Play } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Play, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Post } from '@/types/global';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { PostActionsDropdown } from './PostActionsDropdown';
+import { QuotedPostCard } from './QuotedPostCard';
 
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
+  onQuote: (postId: string) => void;
   onShare: (postId: string) => void;
   onMediaClick?: (post: Post) => void;
+  onDelete?: (postId: string) => void;
   detailed?: boolean;
+  currentUserId?: string;
 }
 
 export function PostCard({ 
@@ -21,9 +26,12 @@ export function PostCard({
   onLike, 
   onComment, 
   onRepost, 
+  onQuote,
   onShare, 
   onMediaClick,
-  detailed = false 
+  onDelete,
+  detailed = false,
+  currentUserId = "1" // Default for demo purposes
 }: PostCardProps) {
   const navigate = useNavigate();
 
@@ -62,6 +70,12 @@ export function PostCard({
       onMediaClick(post);
     }
   };
+
+  const handleQuotedPostClick = (quotedPost: Post) => {
+    navigate(`/post/${quotedPost.id}`);
+  };
+
+  const isOwnPost = post.author.id === currentUserId;
 
   const renderMedia = () => {
     if (post.video) {
@@ -199,15 +213,12 @@ export function PostCard({
                 {detailed ? new Date(post.createdAt).toLocaleDateString() : formatTimeAgo(post.createdAt)}
               </span>
             </div>
-            <div className="ml-auto">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 hover:bg-muted/80"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-4 w-4 rotate-90 md:rotate-0" />
-              </Button>
+            <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+              <PostActionsDropdown 
+                post={post} 
+                isOwnPost={isOwnPost}
+                onDelete={onDelete}
+              />
             </div>
           </div>
 
@@ -223,6 +234,14 @@ export function PostCard({
           
           {/* Media */}
           {renderMedia()}
+
+          {/* Quoted Post */}
+          {post.quotedPost && (
+            <QuotedPostCard 
+              post={post.quotedPost} 
+              onQuotedPostClick={handleQuotedPostClick}
+            />
+          )}
           
           {/* Interaction Buttons */}
           <div className={cn(
@@ -252,6 +271,16 @@ export function PostCard({
             >
               <Repeat2 className="h-5 w-5 group-hover:scale-110 transition-transform" />
               <span className="text-sm">{post.reposts || 0}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleInteractionClick(e, () => onQuote(post.id))}
+              className="flex items-center space-x-2 text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-full group"
+            >
+              <Quote className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="text-sm">{post.quotes || 0}</span>
             </Button>
             
             <Button

@@ -35,8 +35,10 @@ export interface Post {
   likes: number;
   comments: number;
   reposts: number;
+  quotes: number;
   isLiked: boolean;
   isReposted: boolean;
+  quotedPost?: Post;
   createdAt: Date;
   updatedAt?: Date;
 }
