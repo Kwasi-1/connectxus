@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -65,11 +66,6 @@ const UserProfile = () => {
     setUser({ ...user, posts: updatedPosts });
   };
 
-  const handleQuote = (postId: string) => {
-    // Navigate to compose page with quote context or open quote modal
-    console.log('Quote post:', postId);
-  };
-
   const handleShare = (postId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
   };
@@ -122,7 +118,6 @@ const UserProfile = () => {
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
-          onQuote={handleQuote}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
         />

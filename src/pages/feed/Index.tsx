@@ -33,38 +33,11 @@ const Index = () => {
       likes: 0,
       comments: 0,
       reposts: 0,
-      quotes: 0,
       isLiked: false,
       isReposted: false,
       createdAt: new Date(),
     };
     setPosts([newPost, ...posts]);
-  };
-
-  const handleQuotePost = (content: string, quotedPost: Post) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      author: mockUsers[0],
-      content,
-      quotedPost,
-      likes: 0,
-      comments: 0,
-      reposts: 0,
-      quotes: 0,
-      isLiked: false,
-      isReposted: false,
-      createdAt: new Date(),
-    };
-    
-    // Update the quoted post's quote count
-    setPosts(prevPosts => [
-      newPost,
-      ...prevPosts.map(post => 
-        post.id === quotedPost.id 
-          ? { ...post, quotes: (post.quotes || 0) + 1 }
-          : post
-      )
-    ]);
   };
 
   const handleLike = (postId: string) => {
@@ -99,10 +72,6 @@ const Index = () => {
     console.log('Share post:', postId);
   };
 
-  const handleDeletePost = (postId: string) => {
-    setPosts(posts.filter(post => post.id !== postId));
-  };
-
   const handleMediaClick = (post: Post) => {
     setSelectedPost(post);
     setIsModalOpen(true);
@@ -117,10 +86,8 @@ const Index = () => {
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
-          onQuote={handleQuotePost}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
-          onDeletePost={handleDeletePost}
           loading={loading}
         />
       </AppLayout>

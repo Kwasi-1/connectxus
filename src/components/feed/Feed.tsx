@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
 import { FeedHeader } from './FeedHeader';
-import { QuotePostModal } from './QuotePostModal';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { Post } from '@/types/global';
@@ -14,46 +14,17 @@ interface FeedProps {
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
-  onQuote: (content: string, quotedPost: Post) => void;
   onShare: (postId: string) => void;
   onMediaClick: (post: Post) => void;
-  onDeletePost?: (postId: string) => void;
   loading?: boolean;
 }
 
-export function Feed({ 
-  posts, 
-  onCreatePost, 
-  onLike, 
-  onComment, 
-  onRepost, 
-  onQuote,
-  onShare, 
-  onMediaClick, 
-  onDeletePost,
-  loading = false 
-}: FeedProps) {
+export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onShare, onMediaClick, loading = false }: FeedProps) {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<'for-you' | 'following' | 'university'>('for-you');
-  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
-  const [selectedPostForQuote, setSelectedPostForQuote] = useState<Post | null>(null);
 
   const handleMobilePostClick = () => {
     navigate('/compose');
-  };
-
-  const handleQuoteClick = (postId: string) => {
-    const postToQuote = posts.find(p => p.id === postId);
-    if (postToQuote) {
-      setSelectedPostForQuote(postToQuote);
-      setQuoteModalOpen(true);
-    }
-  };
-
-  const handleQuotePost = (content: string, quotedPost: Post) => {
-    onQuote(content, quotedPost);
-    setQuoteModalOpen(false);
-    setSelectedPostForQuote(null);
   };
 
   const filteredPosts = posts.filter(post => {
@@ -81,54 +52,37 @@ export function Feed({
   }
 
   return (
-    <>
-      <div className="flex-1">
-        <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+    <div className="flex-1">
+      <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
-        <div className='min-h-screen border-l xl:border-l-0 border-r border-border'>     
-        {/* Post Composer */}
-        <PostComposer onPost={onCreatePost} />
-        
-        {/* Posts */}
-        <div className="divide-y divide-border">
-          {filteredPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={onLike}
-              onComment={onComment}
-              onRepost={onRepost}
-              onQuote={handleQuoteClick}
-              onShare={onShare}
-              onMediaClick={onMediaClick}
-              onDelete={onDeletePost}
-            />
-          ))}
-          {filteredPosts.length === 0 && (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">No posts found for this filter.</p>
-            </div>
-          )}
-        </div>
-
-        </div>
-
-        {/* Mobile Floating Action Button */}
-        <FloatingActionButton onClick={handleMobilePostClick} />
+      <div className='min-h-screen border-l xl:border-l-0 border-r border-border'>     
+      {/* Post Composer */}
+      <PostComposer onPost={onCreatePost} />
+      
+      {/* Posts */}
+      <div className="divide-y divide-border">
+        {filteredPosts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onLike={onLike}
+            onComment={onComment}
+            onRepost={onRepost}
+            onShare={onShare}
+            onMediaClick={onMediaClick}
+          />
+        ))}
+        {filteredPosts.length === 0 && (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No posts found for this filter.</p>
+          </div>
+        )}
       </div>
 
-      {/* Quote Post Modal */}
-      {selectedPostForQuote && (
-        <QuotePostModal
-          isOpen={quoteModalOpen}
-          onClose={() => {
-            setQuoteModalOpen(false);
-            setSelectedPostForQuote(null);
-          }}
-          onQuote={handleQuotePost}
-          quotedPost={selectedPostForQuote}
-        />
-      )}
-    </>
+      </div>
+
+      {/* Mobile Floating Action Button */}
+      <FloatingActionButton onClick={handleMobilePostClick} />
+    </div>
   );
 }
