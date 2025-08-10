@@ -11,6 +11,7 @@ import { SignUpFormData } from '@/types/auth';
 import { RoleSelector } from './RoleSelector';
 import { StudentFields } from './StudentFields';
 import { StaffFields } from './StaffFields';
+import { InterestsSelector } from './InterestsSelector';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -23,6 +24,7 @@ const signUpSchema = z.object({
   university: z.string().optional(),
   department: z.string().optional(),
   level: z.string().optional(),
+  interests: z.array(z.string()).min(1, 'Please select at least one interest'),
   wantsToBeTutor: z.boolean().optional(),
   wantsToBeMapMentor: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -37,7 +39,7 @@ interface MultiStepSignUpProps {
 export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({ onToggleMode }) => {
   const { signUp, isLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
   
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
@@ -50,6 +52,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({ onToggleMode }
       university: 'University of Technology',
       department: '',
       level: '',
+      interests: [],
       wantsToBeTutor: false,
       wantsToBeMapMentor: false,
     },
@@ -146,6 +149,18 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({ onToggleMode }
         );
       
       case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-semibold">Your Interests</h2>
+              <p className="text-muted-foreground">Help us personalize your experience</p>
+            </div>
+            
+            <InterestsSelector control={form.control} name="interests" />
+          </div>
+        );
+      
+      case 5:
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">

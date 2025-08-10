@@ -3,6 +3,8 @@ export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'adm
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
+export type UserInterest = 'technology' | 'design' | 'business' | 'marketing' | 'finance' | 'healthcare' | 'education' | 'research' | 'engineering' | 'arts' | 'sports' | 'music' | 'photography' | 'writing' | 'gaming' | 'travel' | 'cooking' | 'fitness';
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -11,6 +13,7 @@ export interface AuthUser {
   university?: string;
   department?: string;
   level?: string;
+  interests?: UserInterest[];
   mentorStatus?: ApprovalStatus;
   tutorStatus?: ApprovalStatus;
   createdAt: Date;
@@ -25,6 +28,7 @@ export interface SignUpFormData {
   university?: string;
   department?: string;
   level?: string;
+  interests?: UserInterest[];
   wantsToBeTutor?: boolean;
   wantsToBeMapMentor?: boolean;
 }

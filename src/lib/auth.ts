@@ -11,6 +11,7 @@ const MOCK_USERS: AuthUser[] = [
     university: 'University of Technology',
     department: 'Computer Science',
     level: '300',
+    interests: ['technology', 'gaming', 'music'],
     createdAt: new Date(),
   },
   {
@@ -21,6 +22,7 @@ const MOCK_USERS: AuthUser[] = [
     university: 'University of Technology',
     department: 'Mathematics',
     level: '400',
+    interests: ['education', 'research', 'fitness'],
     tutorStatus: 'approved',
     createdAt: new Date(),
   },
@@ -72,6 +74,7 @@ export const signUp = async (data: SignUpFormData): Promise<AuthUser> => {
     university: data.university,
     department: data.department,
     level: data.level,
+    interests: data.interests || [],
     mentorStatus: roles.includes('mentor') ? 'pending' : undefined,
     tutorStatus: roles.includes('tutor') ? 'approved' : undefined,
     createdAt: new Date(),
