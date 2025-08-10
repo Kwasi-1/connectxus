@@ -16,8 +16,8 @@ export interface TutoringRequest {
   studentId: string;
   tutorId: string;
   subject: string;
-  preferredTimes: string[];
   message: string;
+  preferredTimes: string;
   status: 'pending' | 'accepted' | 'declined';
   createdAt: Date;
 }

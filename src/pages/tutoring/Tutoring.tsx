@@ -11,10 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TutoringRequestModal } from '@/components/tutoring/TutoringRequestModal';
 import { MessageModal } from '@/components/messages/MessageModal';
 import { TutorApplicationCard } from '@/components/tutoring/TutorApplicationCard';
+import { TutoringRequestCard } from '@/components/tutoring/TutoringRequestCard';
+import { EditTutorApplicationModal } from '@/components/tutoring/EditTutorApplicationModal';
 import { mockTutors } from '@/data/mockData';
 import { mockTutorApplications } from '@/data/mockApplications';
+import { mockTutoringRequests } from '@/data/mockTutoringData';
 import { TutorProfile } from '@/types/global';
 import { TutorApplication } from '@/types/applications';
+import { TutoringRequest } from '@/types/tutoring';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,12 +29,16 @@ const Tutoring = () => {
   const { toast } = useToast();
   const [tutors, setTutors] = useState<TutorProfile[]>([]);
   const [applications, setApplications] = useState<TutorApplication[]>([]);
+  const [requests, setRequests] = useState<TutoringRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requestsLoading, setRequestsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [selectedTutor, setSelectedTutor] = useState<TutorProfile | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<TutorApplication | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Simulate current user ID (in real app, this would come from auth)
   const currentUserId = '1';
@@ -50,6 +58,20 @@ const Tutoring = () => {
     fetchData();
   }, []);
 
+  const fetchRequests = async () => {
+    setRequestsLoading(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRequests(mockTutoringRequests);
+    setRequestsLoading(false);
+  };
+
+  useEffect(() => {
+    if (isApprovedTutor) {
+      fetchRequests();
+    }
+  }, [isApprovedTutor]);
+
   const filteredTutors = tutors.filter(tutor => {
     const matchesSearch = tutor.user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          tutor.subjects.some(subject => subject.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -58,6 +80,7 @@ const Tutoring = () => {
   });
 
   const userApplications = applications.filter(app => app.applicantId === currentUserId);
+  const userRequests = requests.filter(req => req.tutorId === currentUserId);
 
   const handleRequestTutoring = (tutor: TutorProfile) => {
     setSelectedTutor(tutor);
@@ -73,16 +96,25 @@ const Tutoring = () => {
     navigate('/tutoring/become-tutor');
   };
 
-  const handleEditApplication = (application: TutorApplication) => {
-    console.log('Edit application:', application.id);
+  const handleFollowTutor = (tutor: TutorProfile) => {
     toast({
-      title: "Edit Application",
-      description: "This feature will be implemented soon.",
+      title: "Following",
+      description: `You are now following ${tutor.user.displayName}`,
     });
   };
 
+  const handleEditApplication = (application: TutorApplication) => {
+    setSelectedApplication(application);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveApplication = (updatedApplication: TutorApplication) => {
+    setApplications(prev => prev.map(app => 
+      app.id === updatedApplication.id ? updatedApplication : app
+    ));
+  };
+
   const handleDeleteApplication = async (applicationId: string) => {
-    console.log('Delete application:', applicationId);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -93,11 +125,16 @@ const Tutoring = () => {
     });
   };
 
-  const handleFollowTutor = (tutor: TutorProfile) => {
-    toast({
-      title: "Following",
-      description: `You are now following ${tutor.user.displayName}`,
-    });
+  const handleAcceptRequest = (requestId: string) => {
+    setRequests(prev => prev.map(req => 
+      req.id === requestId ? { ...req, status: 'accepted' as const } : req
+    ));
+  };
+
+  const handleDeclineRequest = (requestId: string) => {
+    setRequests(prev => prev.map(req => 
+      req.id === requestId ? { ...req, status: 'declined' as const } : req
+    ));
   };
 
   return (
@@ -117,14 +154,14 @@ const Tutoring = () => {
 
         {isApprovedTutor ? (
           <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="available">Available Tutors</TabsTrigger>
               <TabsTrigger value="services">My Services</TabsTrigger>
-              <TabsTrigger value="requests">Requests</TabsTrigger>
+              <TabsTrigger value="requests">Requests ({userRequests.length})</TabsTrigger>
+              <TabsTrigger value="sessions">Sessions</TabsTrigger>
             </TabsList>
             
             <TabsContent value="available" className="space-y-4">
-              {/* Search and Filters */}
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -151,18 +188,15 @@ const Tutoring = () => {
                 </div>
               </div>
 
-              {/* Loading State */}
               {loading ? (
                 <LoadingSpinner size='md' />
               ) : (
                 <>
-                  {/* Tutors List */}
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => (
                       <Card key={tutor.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex flex-col lg:flex-row gap-6">
-                            {/* Tutor Info */}
                             <div className="flex items-start space-x-4 flex-1">
                               <Avatar className="h-16 w-16">
                                 <AvatarImage src={tutor.user.avatar} alt={tutor.user.displayName} />
@@ -178,7 +212,6 @@ const Tutoring = () => {
                                 <p className="text-muted-foreground mb-4 lg:mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
                                 <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">{tutor.description}</p>
                                 
-                                {/* Subjects */}
                                 <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
                                   {tutor.subjects.map((subject, index) => (
                                     <Badge key={index} variant="secondary" className="text-xs">
@@ -187,7 +220,6 @@ const Tutoring = () => {
                                   ))}
                                 </div>
 
-                                {/* Stats */}
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
                                   <div className="flex items-center">
                                     <Star className="h-4 w-4 text-yellow-500 mr-1" />
@@ -203,7 +235,6 @@ const Tutoring = () => {
                               </div>
                             </div>
 
-                            {/* Availability & Actions */}
                             <div className="lg:w-64 space-y-4">
                               <div>
                                 <h4 className="font-medium mb-2 flex items-center">
@@ -248,7 +279,6 @@ const Tutoring = () => {
                     ))}
                   </div>
 
-                  {/* No Results */}
                   {filteredTutors.length === 0 && (
                     <div className="text-center py-12">
                       <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -272,10 +302,37 @@ const Tutoring = () => {
             </TabsContent>
             
             <TabsContent value="requests" className="space-y-4">
+              {requestsLoading ? (
+                <LoadingSpinner size="md" />
+              ) : (
+                <>
+                  {userRequests.length > 0 ? (
+                    <div className="space-y-4">
+                      {userRequests.map((request) => (
+                        <TutoringRequestCard
+                          key={request.id}
+                          request={request}
+                          onAccept={handleAcceptRequest}
+                          onDecline={handleDeclineRequest}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No tutoring requests</h3>
+                      <p className="text-muted-foreground">Requests from students will appear here</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="sessions" className="space-y-4">
               <div className="text-center py-12">
                 <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tutoring requests</h3>
-                <p className="text-muted-foreground">Requests from students will appear here</p>
+                <h3 className="text-lg font-medium mb-2">No sessions yet</h3>
+                <p className="text-muted-foreground">Your confirmed tutoring sessions will appear here</p>
               </div>
             </TabsContent>
           </Tabs>
@@ -287,8 +344,6 @@ const Tutoring = () => {
             </TabsList>
             
             <TabsContent value="available">
-              {/* Same content as the regular tutoring page */}
-              {/* Search and Filters */}
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -315,18 +370,15 @@ const Tutoring = () => {
                 </div>
               </div>
 
-              {/* Loading State */}
               {loading ? (
                 <LoadingSpinner />
               ) : (
                 <>
-                  {/* Tutors List */}
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => (
                       <Card key={tutor.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex flex-col lg:flex-row gap-6">
-                            {/* Tutor Info */}
                             <div className="flex items-start space-x-4 flex-1">
                               <Avatar className="h-16 w-16">
                                 <AvatarImage src={tutor.user.avatar} alt={tutor.user.displayName} />
@@ -342,7 +394,6 @@ const Tutoring = () => {
                                 <p className="text-muted-foreground mb-4 lg:mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
                                 <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">{tutor.description}</p>
                                 
-                                {/* Subjects */}
                                 <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
                                   {tutor.subjects.map((subject, index) => (
                                     <Badge key={index} variant="secondary" className="text-xs">
@@ -351,7 +402,6 @@ const Tutoring = () => {
                                   ))}
                                 </div>
 
-                                {/* Stats */}
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
                                   <div className="flex items-center">
                                     <Star className="h-4 w-4 text-yellow-500 mr-1" />
@@ -367,7 +417,6 @@ const Tutoring = () => {
                               </div>
                             </div>
 
-                            {/* Availability & Actions */}
                             <div className="lg:w-64 space-y-4">
                               <div>
                                 <h4 className="font-medium mb-2 flex items-center">
@@ -412,7 +461,6 @@ const Tutoring = () => {
                     ))}
                   </div>
 
-                  {/* No Results */}
                   {filteredTutors.length === 0 && (
                     <div className="text-center py-12">
                       <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -437,8 +485,6 @@ const Tutoring = () => {
           </Tabs>
         ) : (
           <>
-            {/* Regular tutoring page content */}
-            {/* Search and Filters */}
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -465,18 +511,15 @@ const Tutoring = () => {
               </div>
             </div>
 
-            {/* Loading State */}
             {loading ? (
               <LoadingSpinner />
             ) : (
               <>
-                {/* Tutors List */}
                 <div className="space-y-4">
                   {filteredTutors.map((tutor) => (
                     <Card key={tutor.id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-6">
                         <div className="flex flex-col lg:flex-row gap-6">
-                          {/* Tutor Info */}
                           <div className="flex items-start space-x-4 flex-1">
                             <Avatar className="h-16 w-16">
                               <AvatarImage src={tutor.user.avatar} alt={tutor.user.displayName} />
@@ -492,7 +535,6 @@ const Tutoring = () => {
                               <p className="text-muted-foreground mb-4 lg:mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
                               <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">{tutor.description}</p>
                               
-                              {/* Subjects */}
                               <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
                                 {tutor.subjects.map((subject, index) => (
                                   <Badge key={index} variant="secondary" className="text-xs">
@@ -501,7 +543,6 @@ const Tutoring = () => {
                                 ))}
                               </div>
 
-                              {/* Stats */}
                               <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
                                 <div className="flex items-center">
                                   <Star className="h-4 w-4 text-yellow-500 mr-1" />
@@ -517,7 +558,6 @@ const Tutoring = () => {
                             </div>
                           </div>
 
-                          {/* Availability & Actions */}
                           <div className="lg:w-64 space-y-4">
                             <div>
                               <h4 className="font-medium mb-2 flex items-center">
@@ -550,7 +590,6 @@ const Tutoring = () => {
                   ))}
                 </div>
 
-                {/* No Results */}
                 {filteredTutors.length === 0 && (
                   <div className="text-center py-12">
                     <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -585,6 +624,19 @@ const Tutoring = () => {
             setSelectedTutor(null);
           }}
           recipient={selectedTutor.user}
+        />
+      )}
+
+      {/* Edit Application Modal */}
+      {selectedApplication && (
+        <EditTutorApplicationModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedApplication(null);
+          }}
+          application={selectedApplication}
+          onSave={handleSaveApplication}
         />
       )}
     </AppLayout>
