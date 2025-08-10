@@ -1,348 +1,182 @@
-
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { PostCard } from '@/components/feed/PostCard';
+import { mockPosts, mockUsers } from '@/data/mockData';
+import { Post, User } from '@/types/global';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { PostCard } from '@/components/feed/PostCard';
-import { ArrowLeft, Users, Calendar, Settings, Pin } from 'lucide-react';
-import { mockCommunities, mockCommunityPosts, mockAnnouncements } from '@/data/mockCommunitiesData';
-import { Community, CommunityPost, Announcement } from '@/types/communities';
-import { Post } from '@/types/global';
+import { Input } from '@/components/ui/input';
+import { CalendarDays, Link, Lock, LockOpen, Users } from 'lucide-react';
 
-type CommunityTab = 'posts' | 'announcements' | 'members' | 'settings';
+interface Community {
+  id: string;
+  name: string;
+  description: string;
+  avatar: string;
+  isPrivate: boolean;
+  memberCount: number;
+}
 
 const CommunityDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<CommunityTab>('posts');
-  const [isLoading, setIsLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(false);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const { communityId } = useParams<{ communityId: string }>();
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-
-  const currentUserId = 'user-1'; // Mock current user ID
+  const [newPostContent, setNewPostContent] = useState('');
 
   useEffect(() => {
-    const fetchCommunity = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const foundCommunity = mockCommunities.find(c => c.id === id);
-        if (foundCommunity) {
-          setCommunity(foundCommunity);
-        }
-      } catch (error) {
-        console.error('Error fetching community:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    // Mock community data
+    const mockCommunity: Community = {
+      id: communityId || '1',
+      name: 'Tech Enthusiasts',
+      description: 'A community for tech lovers to share ideas and projects.',
+      avatar: '/api/placeholder/100/100',
+      isPrivate: false,
+      memberCount: 1234,
     };
+    setCommunity(mockCommunity);
 
-    if (id) {
-      fetchCommunity();
-    }
-  }, [id]);
+    // Mock posts data (filter posts for this community)
+    const mockCommunityPosts = mockPosts.map(post => ({
+      ...post,
+      communityId: communityId || '1',
+    })).slice(0, 5); // Limit to 5 posts for the example
+    setPosts(mockCommunityPosts as Post[]);
+  }, [communityId]);
 
-  useEffect(() => {
-    if (activeTab === 'posts' && id) {
-      fetchPosts();
-    } else if (activeTab === 'announcements' && id) {
-      fetchAnnouncements();
-    }
-  }, [activeTab, id]);
+  const createPost = (content: string): Post => {
+    return {
+      id: Date.now().toString(),
+      author: mockUsers[0],
+      content,
+      images: content.includes('image') ? ['/api/placeholder/400/300'] : undefined,
+      video: undefined,
+      updatedAt: undefined,
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+      quotes: 0,
+      isLiked: false,
+      isReposted: false,
+      createdAt: new Date(),
+    };
+  };
 
-  const fetchPosts = async () => {
-    setPostsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const communityPosts = mockCommunityPosts
-        .filter(p => p.communityId === id)
-        .map(p => ({
-          ...p,
-          images: p.images || [],
-          video: undefined,
-          updatedAt: undefined
-        } as Post));
-      
-      setPosts(communityPosts);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
-      setPostsLoading(false);
+  const handlePostSubmit = () => {
+    if (newPostContent.trim()) {
+      const newPost = createPost(newPostContent);
+      setPosts([newPost, ...posts]);
+      setNewPostContent('');
     }
   };
 
-  const fetchAnnouncements = async () => {
-    setAnnouncementsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const communityAnnouncements = mockAnnouncements.filter(a => a.communityId === id);
-      setAnnouncements(communityAnnouncements);
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
-    } finally {
-      setAnnouncementsLoading(false);
-    }
+  const handleLike = (postId: string) => {
+    setPosts(posts.map(post =>
+      post.id === postId
+        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
+        : post
+    ));
   };
 
-  const handleJoinCommunity = () => {
-    if (community) {
-      setCommunity({
-        ...community,
-        isJoined: !community.isJoined,
-        memberCount: community.isJoined ? community.memberCount - 1 : community.memberCount + 1
-      });
-    }
+  const handleRepost = (postId: string) => {
+    setPosts(posts.map(post =>
+      post.id === postId
+        ? { ...post, isReposted: !post.isReposted, reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1 }
+        : post
+    ));
   };
 
-  const handlePostAction = (postId: string, action: 'like' | 'repost' | 'comment') => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        switch (action) {
-          case 'like':
-            return {
-              ...post,
-              isLiked: !post.isLiked,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1
-            };
-          case 'repost':
-            return {
-              ...post,
-              isReposted: !post.isReposted,
-              reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1
-            };
-          default:
-            return post;
-        }
-      }
-      return post;
-    }));
+  const handleComment = (postId: string) => {
+    console.log('Comment on post:', postId);
   };
 
-  const isAdmin = community?.admins.includes(currentUserId);
-  const isModerator = community?.moderators.includes(currentUserId);
-  const canManage = isAdmin || isModerator;
+  const handleShare = (postId: string) => {
+    console.log('Share post:', postId);
+  };
 
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <div className="border-r border-border h-full">
-          <LoadingSpinner />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  if (!community) {
-    return (
-      <AppLayout>
-        <div className="border-r border-border h-full p-8 text-center">
-          <h2 className="text-2xl font-bold mb-2">Community not found</h2>
-          <p className="text-muted-foreground mb-4">The community you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/communities')}>
-            Back to Communities
-          </Button>
-        </div>
-      </AppLayout>
-    );
-  }
+  const handleQuote = () => {
+    console.log('Quote post');
+  };
 
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
         {/* Header */}
-        <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate('/communities')}
-                  className="p-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">{community.name}</h1>
-                  <p className="text-sm text-muted-foreground">
-                    {community.memberCount.toLocaleString()} members
-                  </p>
-                </div>
+        <div className="bg-background/80 backdrop-blur-md border-b border-border p-6">
+          <div className="flex items-center space-x-4">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={community?.avatar} alt={community?.name} />
+              <AvatarFallback>{community?.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold">{community?.name}</h1>
+              <p className="text-muted-foreground">{community?.description}</p>
+              <div className="flex items-center space-x-2 mt-2">
+                <span className="text-sm text-muted-foreground">
+                  <Users className="h-4 w-4 inline-block mr-1" />
+                  {community?.memberCount} Members
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {community?.isPrivate ? (
+                    <>
+                      <Lock className="h-4 w-4 inline-block mr-1" />
+                      Private
+                    </>
+                  ) : (
+                    <>
+                      <LockOpen className="h-4 w-4 inline-block mr-1" />
+                      Public
+                    </>
+                  )}
+                </span>
               </div>
-              {canManage && (
-                <Button variant="ghost" size="sm" onClick={() => setActiveTab('settings')}>
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Community Info */}
+        {/* Post Composer */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-start space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={community.coverImage} alt={community.name} />
-              <AvatarFallback className="text-lg">
-                {community.name.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
+          <div className="flex space-x-3">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={mockUsers[0].avatar} alt={mockUsers[0].displayName} />
+              <AvatarFallback>{mockUsers[0].displayName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold">{community.name}</h2>
-              <p className="text-muted-foreground mt-1">{community.description}</p>
-              <div className="flex items-center gap-3 mt-3">
-                <Badge variant="secondary">{community.category}</Badge>
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  {community.memberCount.toLocaleString()} members
-                </span>
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Created {community.createdAt.toLocaleDateString()}
-                </span>
+              <Input
+                type="text"
+                placeholder="Share something with this community..."
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                className="bg-muted/40 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-transparent"
+              />
+              <div className="flex justify-end mt-2">
+                <Button onClick={handlePostSubmit} disabled={!newPostContent.trim()}>
+                  Post
+                </Button>
               </div>
-              <Button
-                onClick={handleJoinCommunity}
-                variant={community.isJoined ? 'outline' : 'default'}
-                className="mt-4"
-              >
-                {community.isJoined ? 'Leave Community' : 'Join Community'}
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CommunityTab)}>
-          <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
-            <TabsTrigger 
-              value="posts" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Posts
-            </TabsTrigger>
-            <TabsTrigger 
-              value="announcements" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Announcements
-            </TabsTrigger>
-            {canManage && (
-              <>
-                <TabsTrigger 
-                  value="members" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-                >
-                  Members
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="settings" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-                >
-                  Settings
-                </TabsTrigger>
-              </>
-            )}
-          </TabsList>
-          
-          <TabsContent value="posts" className="mt-0">
-            {postsLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <div className="divide-y divide-border">
-                {posts.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">No posts yet in this community</p>
-                  </div>
-                ) : (
-                  posts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onLike={() => handlePostAction(post.id, 'like')}
-                      onRepost={() => handlePostAction(post.id, 'repost')}
-                      onComment={() => handlePostAction(post.id, 'comment')}
-                      onShare={() => {}}
-                    />
-                  ))
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="announcements" className="mt-0">
-            {announcementsLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <div className="divide-y divide-border">
-                {announcements.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">No announcements yet</p>
-                  </div>
-                ) : (
-                  announcements.map((announcement) => (
-                    <div key={announcement.id} className="p-4 hover:bg-muted/5">
-                      <div className="flex items-start gap-3">
-                        {announcement.isPinned && (
-                          <Pin className="h-4 w-4 text-primary mt-1" />
-                        )}
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg">{announcement.title}</h3>
-                          <p className="text-muted-foreground mt-1">{announcement.content}</p>
-                          <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                            <span>By {announcement.author.displayName}</span>
-                            <span>•</span>
-                            <span>{announcement.createdAt.toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          {canManage && (
-            <>
-              <TabsContent value="members" className="mt-0">
-                <div className="p-8 text-center">
-                  <p className="text-muted-foreground">Member management will be displayed here</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="settings" className="mt-0">
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Community Settings</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Community Description</label>
-                        <p className="text-sm text-muted-foreground mt-1">Update your community description</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Privacy Settings</label>
-                        <p className="text-sm text-muted-foreground mt-1">Manage who can join and post</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Moderation</label>
-                        <p className="text-sm text-muted-foreground mt-1">Set up community rules and moderation</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </>
+        {/* Posts */}
+        <div className="divide-y divide-border">
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              onLike={() => handleLike(post.id)}
+              onRepost={() => handleRepost(post.id)}
+              onComment={() => handleComment(post.id)}
+              onQuote={handleQuote}
+              onShare={() => handleShare(post.id)}
+            />
+          ))}
+          {posts.length === 0 && (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+            </div>
           )}
-        </Tabs>
+        </div>
       </div>
     </AppLayout>
   );
