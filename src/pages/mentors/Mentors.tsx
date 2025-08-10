@@ -207,7 +207,7 @@ const Mentors = () => {
                                   )}
                                 </div>
                                 <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                                <p className="text-sm mb-3">{mentor.bio}</p>
+                                <p className="text-sm mb-3">{mentor.description}</p>
                                 
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {mentor.specialties.map((specialty, index) => (
@@ -373,7 +373,7 @@ const Mentors = () => {
                                   )}
                                 </div>
                                 <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                                <p className="text-sm mb-3">{mentor.bio}</p>
+                                <p className="text-sm mb-3">{mentor.description}</p>
                                 
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {mentor.specialties.map((specialty, index) => (
@@ -498,7 +498,7 @@ const Mentors = () => {
                                 )}
                               </div>
                               <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                              <p className="text-sm mb-3">{mentor.bio}</p>
+                              <p className="text-sm mb-3">{mentor.description}</p>
                               
                               <div className="flex flex-wrap gap-1 mb-3">
                                 {mentor.specialties.map((specialty, index) => (
