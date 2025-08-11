@@ -22,8 +22,8 @@ const Compose = () => {
       createdAt: new Date(),
     };
 
-    // In a real app, you would save this post to your backend
-    console.log('New post created:', newPost);
+    // Store the new post in sessionStorage so the feed can pick it up
+    sessionStorage.setItem('newPost', JSON.stringify(newPost));
     
     // Navigate back to the feed
     navigate('/', { replace: true });

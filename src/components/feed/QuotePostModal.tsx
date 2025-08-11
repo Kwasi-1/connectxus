@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { QuotedPostCard } from './QuotedPostCard';
 import { Post } from '@/types/global';
 import { mockUsers } from '@/data/mockData';
+import { useNavigate } from 'react-router-dom';
 
 interface QuotePostModalProps {
   isOpen: boolean;
@@ -18,10 +19,31 @@ interface QuotePostModalProps {
 
 export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModalProps) {
   const [content, setContent] = useState('');
+  const navigate = useNavigate();
   const maxChars = 280;
 
   const handleQuote = () => {
     if (content.trim()) {
+      const newPost: Post = {
+        id: Date.now().toString(),
+        author: mockUsers[0],
+        content,
+        quotedPost: post,
+        likes: 0,
+        comments: 0,
+        reposts: 0,
+        quotes: 0,
+        isLiked: false,
+        isReposted: false,
+        createdAt: new Date(),
+      };
+
+      // Store the quote data for the main feed to pick up
+      sessionStorage.setItem('newQuote', JSON.stringify({
+        newPost,
+        quotedPostId: post.id
+      }));
+
       onQuote(content, post);
       setContent('');
       onClose();

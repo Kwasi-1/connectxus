@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Feed } from '@/components/feed/Feed';
@@ -21,6 +20,30 @@ const Index = () => {
     };
 
     fetchPosts();
+  }, []);
+
+  // Check for new posts from sessionStorage (from Compose page)
+  useEffect(() => {
+    const newPostData = sessionStorage.getItem('newPost');
+    if (newPostData) {
+      const newPost = JSON.parse(newPostData);
+      setPosts(prevPosts => [newPost, ...prevPosts]);
+      sessionStorage.removeItem('newPost');
+    }
+
+    const newQuoteData = sessionStorage.getItem('newQuote');
+    if (newQuoteData) {
+      const { newPost: quotePost, quotedPostId } = JSON.parse(newQuoteData);
+      setPosts(prevPosts => [
+        quotePost,
+        ...prevPosts.map(post => 
+          post.id === quotedPostId 
+            ? { ...post, quotes: post.quotes + 1 }
+            : post
+        )
+      ]);
+      sessionStorage.removeItem('newQuote');
+    }
   }, []);
 
   const handleCreatePost = (content: string, audience?: string) => {
@@ -54,7 +77,7 @@ const Index = () => {
       createdAt: new Date(),
     };
     
-    // Update the quoted post's quote count
+    // Update the quoted post's quote count and add new post to top
     setPosts(prevPosts => [
       newPost,
       ...prevPosts.map(post => 
