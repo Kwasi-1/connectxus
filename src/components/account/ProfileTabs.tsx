@@ -16,6 +16,7 @@ interface ProfileTabsProps {
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onRepost?: (postId: string) => void;
+  onQuote?: (postId: string) => void;
   onShare?: (postId: string) => void;
   onMediaClick?: (post: Post) => void;
 }
@@ -26,6 +27,7 @@ export const ProfileTabs = ({
   onLike = () => {},
   onComment = () => {},
   onRepost = () => {},
+  onQuote = () => {},
   onShare = () => {},
   onMediaClick = () => {}
 }: ProfileTabsProps) => {
@@ -90,6 +92,7 @@ export const ProfileTabs = ({
               onLike={onLike}
               onComment={onComment}
               onRepost={onRepost}
+              onQuote={onQuote}
               onShare={onShare}
               onMediaClick={onMediaClick}
             />

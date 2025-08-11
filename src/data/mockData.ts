@@ -271,3 +271,62 @@ export const mockUserProfile: UserProfile = {
   joinedGroups: [],
   tutoringRequests: [],
 };
+
+export const mockTrendingTopics = [
+  { id: "1", name: "#StudyTips", posts: 1234 },
+  { id: "2", name: "#CampusLife", posts: 892 },
+  { id: "3", name: "#TechCareer", posts: 567 },
+  { id: "4", name: "#MathHelp", posts: 445 },
+  { id: "5", name: "#GroupProject", posts: 332 },
+];
+
+export const mockCampusHighlights = [
+  {
+    id: "1",
+    title: "Fall Festival 2024",
+    description: "Join us for music, food, and fun!",
+    image: "/api/placeholder/300/200",
+    date: "October 15, 2024"
+  },
+  {
+    id: "2",
+    title: "Career Fair",
+    description: "Meet top employers and land your dream job",
+    image: "/api/placeholder/300/201",
+    date: "November 5, 2024"
+  }
+];
+
+export const mockMentors = [
+  {
+    id: "mentor1",
+    ...mockUsers[0],
+    specialties: ["Software Engineering", "Data Structures", "Algorithms"],
+    rating: 4.8,
+    sessionsCompleted: 42
+  },
+  {
+    id: "mentor2",
+    ...mockUsers[2],
+    specialties: ["Web Development", "React", "Node.js"],
+    rating: 4.9,
+    sessionsCompleted: 38
+  }
+];
+
+export const mockTutors = [
+  {
+    id: "tutor1",
+    ...mockUsers[1],
+    subjects: ["Mathematics", "Calculus", "Linear Algebra"],
+    rating: 4.7,
+    sessionsCompleted: 65
+  },
+  {
+    id: "tutor2",
+    ...mockUsers[4],
+    subjects: ["Chemistry", "Organic Chemistry", "Biology"],
+    rating: 4.6,
+    sessionsCompleted: 29
+  }
+];
