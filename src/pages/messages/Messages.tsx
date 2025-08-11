@@ -50,8 +50,16 @@ const Messages = () => {
         </Button>
       </div>
 
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="mb-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="all">All Messages</TabsTrigger>
+          <TabsTrigger value="groups">Group Chats</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           placeholder={activeTab === 'all' ? "Search conversations..." : "Search groups..."}
@@ -60,14 +68,6 @@ const Messages = () => {
           className="pl-10 py-3 border rounded-full"
         />
       </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="-mb-4 -mx-4">
-        <TabsList className="grid w-full grid-cols-2  rounded-none">
-          <TabsTrigger value="all">All Messages</TabsTrigger>
-          <TabsTrigger value="groups">Group Chats</TabsTrigger>
-        </TabsList>
-      </Tabs>      
     </div>
   );
 
