@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Calendar, MapPin, ExternalLink, Plus, MoreVertical } from 'lucide-react';
@@ -10,8 +11,8 @@ import { PostComposer } from '@/components/feed/PostComposer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockCommunities, mockCommunityPosts, mockEvents } from '@/data/mockCommunitiesData';
-import { Community, CommunityEvent, CommunityPost } from '@/types/communities';
+import { mockCommunities, mockCommunityPosts } from '@/data/mockCommunitiesData';
+import { Community, CommunityPost } from '@/types/communities';
 import { Post } from '@/types/global';
 
 const CommunityDetail = () => {
@@ -19,7 +20,6 @@ const CommunityDetail = () => {
   const navigate = useNavigate();
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
-  const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
 
@@ -34,10 +34,6 @@ const CommunityDetail = () => {
       // Filter posts for this community
       const communityPosts = mockCommunityPosts.filter(p => p.communityId === communityId);
       setPosts(communityPosts);
-      
-      // Filter events for this community
-      const communityEvents = mockEvents.filter(e => e.communityId === communityId);
-      setEvents(communityEvents);
       
       setIsLoading(false);
     };
@@ -65,8 +61,8 @@ const CommunityDetail = () => {
       ...communityPost,
       quotes: 0,
       images: communityPost.images || undefined,
-      video: communityPost.video || undefined,
-      updatedAt: communityPost.updatedAt || undefined,
+      video: undefined,
+      updatedAt: undefined,
       isLiked: communityPost.isLiked,
       isReposted: communityPost.isReposted,
       likes: communityPost.likes,
@@ -140,7 +136,7 @@ const CommunityDetail = () => {
           
           <div className="mt-4 flex items-center gap-4">
             <Avatar className="w-16 h-16">
-              <AvatarImage src={community.avatar} alt={community.name} />
+              <AvatarImage src="/api/placeholder/64/64" alt={community.name} />
               <AvatarFallback>{community.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
             <div>
@@ -165,16 +161,8 @@ const CommunityDetail = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Location: {community.location || 'N/A'}</span>
+                  <span className="text-sm text-muted-foreground">Location: Online</span>
                 </div>
-                {community.website && (
-                  <div className="flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    <a href={community.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline">
-                      Website
-                    </a>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -189,12 +177,6 @@ const CommunityDetail = () => {
               Posts
             </TabsTrigger>
             <TabsTrigger 
-              value="events" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Events <Badge variant="secondary">{events.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger 
               value="about" 
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
             >
@@ -204,7 +186,7 @@ const CommunityDetail = () => {
           
           <TabsContent value="posts" className="mt-0">
             <div className="border-b border-border p-4">
-              <PostComposer onPost={handleCreatePost} placeholder={`What's happening in ${community?.name}?`} />
+              <PostComposer onPost={handleCreatePost} />
             </div>
             
             <div className="divide-y divide-border">
@@ -227,54 +209,10 @@ const CommunityDetail = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="events" className="mt-0">
-            <div className="grid gap-4 p-4">
-              {events.map((event) => (
-                <Card key={event.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {event.title}
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{new Date(event.date).toLocaleDateString()}</span>
-                      <span className="text-sm text-muted-foreground">{event.time}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{event.description}</p>
-                    <div className="mt-4 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Location: {event.location}</span>
-                      </div>
-                      {event.link && (
-                        <div className="flex items-center gap-2">
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          <a href={event.link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline">
-                            Learn More
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {events.length === 0 && (
-                <div className="p-8 text-center">
-                  <p className="text-muted-foreground">No events scheduled yet. Stay tuned!</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
           <TabsContent value="about" className="mt-0">
             <div className="p-4">
               <h3 className="text-lg font-semibold mb-2">About {community.name}</h3>
-              <p className="text-sm text-muted-foreground">{community.longDescription || community.description}</p>
+              <p className="text-sm text-muted-foreground">{community.description}</p>
               <div className="mt-4">
                 <h4 className="text-md font-semibold mb-1">Contact</h4>
                 <p className="text-sm text-muted-foreground">
