@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
 import { FeedHeader } from './FeedHeader';
-import { QuotePostModal } from './QuotePostModal';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { QuotePostModal } from './QuotePostModal';
 import { Post } from '@/types/global';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,22 +18,10 @@ interface FeedProps {
   onQuote: (content: string, quotedPost: Post) => void;
   onShare: (postId: string) => void;
   onMediaClick: (post: Post) => void;
-  onDeletePost?: (postId: string) => void;
   loading?: boolean;
 }
 
-export function Feed({ 
-  posts, 
-  onCreatePost, 
-  onLike, 
-  onComment, 
-  onRepost, 
-  onQuote,
-  onShare, 
-  onMediaClick, 
-  onDeletePost,
-  loading = false 
-}: FeedProps) {
+export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onQuote, onShare, onMediaClick, loading = false }: FeedProps) {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<'for-you' | 'following' | 'university'>('for-you');
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
@@ -43,14 +32,14 @@ export function Feed({
   };
 
   const handleQuoteClick = (postId: string) => {
-    const postToQuote = posts.find(p => p.id === postId);
-    if (postToQuote) {
-      setSelectedPostForQuote(postToQuote);
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      setSelectedPostForQuote(post);
       setQuoteModalOpen(true);
     }
   };
 
-  const handleQuotePost = (content: string, quotedPost: Post) => {
+  const handleQuoteSubmit = (content: string, quotedPost: Post) => {
     onQuote(content, quotedPost);
     setQuoteModalOpen(false);
     setSelectedPostForQuote(null);
@@ -58,11 +47,9 @@ export function Feed({
 
   const filteredPosts = posts.filter(post => {
     if (activeFilter === 'following') {
-      // In a real app, this would filter based on followed users
-      return true; // For now, show all posts
+      return true;
     }
     if (activeFilter === 'university') {
-      // Filter for university-related posts
       return post.content.toLowerCase().includes('university') || 
              post.content.toLowerCase().includes('campus') ||
              post.content.toLowerCase().includes('tech university');
@@ -86,10 +73,8 @@ export function Feed({
         <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
         <div className='min-h-screen border-l xl:border-l-0 border-r border-border'>     
-        {/* Post Composer */}
         <PostComposer onPost={onCreatePost} />
         
-        {/* Posts */}
         <div className="divide-y divide-border">
           {filteredPosts.map((post) => (
             <PostCard
@@ -101,7 +86,6 @@ export function Feed({
               onQuote={handleQuoteClick}
               onShare={onShare}
               onMediaClick={onMediaClick}
-              onDelete={onDeletePost}
             />
           ))}
           {filteredPosts.length === 0 && (
@@ -110,14 +94,11 @@ export function Feed({
             </div>
           )}
         </div>
-
         </div>
 
-        {/* Mobile Floating Action Button */}
         <FloatingActionButton onClick={handleMobilePostClick} />
       </div>
 
-      {/* Quote Post Modal */}
       {selectedPostForQuote && (
         <QuotePostModal
           isOpen={quoteModalOpen}
@@ -125,8 +106,8 @@ export function Feed({
             setQuoteModalOpen(false);
             setSelectedPostForQuote(null);
           }}
-          onQuote={handleQuotePost}
-          quotedPost={selectedPostForQuote}
+          post={selectedPostForQuote}
+          onQuote={handleQuoteSubmit}
         />
       )}
     </>

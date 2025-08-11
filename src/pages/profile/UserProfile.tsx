@@ -66,7 +66,6 @@ const UserProfile = () => {
   };
 
   const handleQuote = (postId: string) => {
-    // Navigate to compose page with quote context or open quote modal
     console.log('Quote post:', postId);
   };
 
@@ -113,11 +112,11 @@ const UserProfile = () => {
           <Button variant="ghost" onClick={() => window.history.back()}>
             <Icon icon="line-md:arrow-left" className="h-6 w-6" />
           </Button>
-          <h1 className="text-xl font-semibold">{user.displayName}</h1>
+          <h1 className="text-xl font-semibold">{user?.displayName}</h1>
         </div>
-        <ProfileHeader user={user} onUserUpdate={handleUserUpdate} isOwnProfile={false} />
+        <ProfileHeader user={user!} onUserUpdate={handleUserUpdate} isOwnProfile={false} />
         <ProfileTabs 
-          user={user} 
+          user={user!} 
           isOwnProfile={false} 
           onLike={handleLike}
           onComment={handleComment}
