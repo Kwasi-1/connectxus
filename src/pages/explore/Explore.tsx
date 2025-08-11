@@ -137,7 +137,7 @@ const Explore = () => {
     <AppLayout>
       <div className="border-r border-border h-full">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           {/* Search Bar */}
           <div className="flex items-center gap-4 px-4 py-3">
             <button 
@@ -163,28 +163,28 @@ const Explore = () => {
           {/* Search Tabs */}
           {searchQuery && (
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SearchTab)}>
-              <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-none">
+              <TabsList className="w-full justify-evenly rounded-none pb-0 h-auto bg-transparent border-none">
                 <TabsTrigger 
                   value="top" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                  className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Top
                 </TabsTrigger>
                 <TabsTrigger 
                   value="latest" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                  className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Latest
                 </TabsTrigger>
                 <TabsTrigger 
                   value="people" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                  className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   People
                 </TabsTrigger>
                 <TabsTrigger 
                   value="media" 
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                  className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Media
                 </TabsTrigger>

@@ -46,7 +46,7 @@ const Search = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border h-full">
+      <div className="border-r border-border h-full tracking-wider">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 md:px-6 py-3">
@@ -114,7 +114,7 @@ const Search = () => {
                       <p className="text-sm text-muted-foreground mb-1">
                         {index + 1} · Trending in {topic.category}
                       </p>
-                      <p className="font-semibold text-foreground text-base mb-1">{topic.name}</p>
+                      <p className="font-semibold text-foreground text-base mb-1 tracking-wider">{topic.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {topic.posts.toLocaleString()} posts
                       </p>
