@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -125,7 +126,7 @@ const CommunityDetail = () => {
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="p-4">
             <h1 className="text-xl font-bold text-foreground">{community.name}</h1>
-            <p className="text-sm text-muted-foreground">{community.members.toLocaleString()} members</p>
+            <p className="text-sm text-muted-foreground">{community.memberCount.toLocaleString()} members</p>
           </div>
         </div>
 
@@ -140,13 +141,12 @@ const CommunityDetail = () => {
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>{community.members.toLocaleString()} members</span>
+                <span>{community.memberCount.toLocaleString()} members</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{community.category}</Badge>
-              {community.isPrivate && <Badge variant="outline">Private</Badge>}
             </div>
 
             <Button className="w-full sm:w-auto">
