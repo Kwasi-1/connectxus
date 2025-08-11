@@ -7,6 +7,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { UserProfile } from './UserProfile';
+import Logo from '../shared/Logo';
 
 const navigationItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
@@ -51,11 +52,14 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
     <>
       <div className="flex flex-col h-full w-full p-6 pb-4 bg-background border-r border-border">
         {/* Logo */}
-        <div className="flex items-center space-x-3 mb-8 mx-auto xl:mx-3">
-          <div className="w-8 h-8 bg-foreground rounded-full xl:rounded-lg flex items-center justify-center px-2">
+        <div className="flex items-center mb-4 mx-auto xl:mx-3">
+          {/* <div className="w-8 h-8 bg-foreground rounded-full xl:rounded-lg flex items-center justify-center px-2">
             <span className="text-background font-bold text-sm">CV</span>
           </div>
-          <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span>
+          <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span> */}
+          <Logo className="w-auto h-14"/>
+          {/* <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-14 hidden xl:block" />
+          <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-12 xl:hidden block" /> */}
         </div>
 
         {/* Navigation */}

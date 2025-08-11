@@ -2,8 +2,8 @@
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import logo from '@/assets/logo.png';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
+import Logo from '../shared/Logo';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -32,7 +32,8 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <img src={logo} alt="Campus Vibe Logo" className="h-9 w-auto rounded-lg" />
+            {/* <img src={logo} alt="Campus Vibe Logo" className="h-12 w-auto rounded-lg" /> */}
+            <Logo className="h-12 w-auto rounded-lg" />
           </div>
 
           {/* Search Button */}
