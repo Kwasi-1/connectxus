@@ -12,11 +12,9 @@ const Index = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Simulate API call with useEffect
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setPosts(mockPosts);
       setLoading(false);
@@ -33,11 +31,38 @@ const Index = () => {
       likes: 0,
       comments: 0,
       reposts: 0,
+      quotes: 0,
       isLiked: false,
       isReposted: false,
       createdAt: new Date(),
     };
     setPosts([newPost, ...posts]);
+  };
+
+  const handleQuote = (content: string, quotedPost: Post) => {
+    const newPost: Post = {
+      id: Date.now().toString(),
+      author: mockUsers[0],
+      content,
+      quotedPost,
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+      quotes: 0,
+      isLiked: false,
+      isReposted: false,
+      createdAt: new Date(),
+    };
+    
+    // Update the quoted post's quote count
+    setPosts(prevPosts => [
+      newPost,
+      ...prevPosts.map(post => 
+        post.id === quotedPost.id 
+          ? { ...post, quotes: post.quotes + 1 }
+          : post
+      )
+    ]);
   };
 
   const handleLike = (postId: string) => {
@@ -86,6 +111,7 @@ const Index = () => {
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
+          onQuote={handleQuote}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
           loading={loading}

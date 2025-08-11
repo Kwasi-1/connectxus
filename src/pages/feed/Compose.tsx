@@ -16,6 +16,7 @@ const Compose = () => {
       likes: 0,
       comments: 0,
       reposts: 0,
+      quotes: 0,
       isLiked: false,
       isReposted: false,
       createdAt: new Date(),
