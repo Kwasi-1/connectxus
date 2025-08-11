@@ -1,23 +1,19 @@
-import { Heart, MessageCircle, Repeat2, Share, Play, Quote } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Post } from '@/types/global';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { PostActionsDropdown } from './PostActionsDropdown';
-import { QuotedPostCard } from './QuotedPostCard';
 
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onRepost: (postId: string) => void;
-  onQuote: (postId: string) => void;
   onShare: (postId: string) => void;
   onMediaClick?: (post: Post) => void;
   detailed?: boolean;
-  currentUserId?: string;
 }
 
 export function PostCard({ 
@@ -25,11 +21,9 @@ export function PostCard({
   onLike, 
   onComment, 
   onRepost, 
-  onQuote,
   onShare, 
   onMediaClick,
-  detailed = false,
-  currentUserId = '1'
+  detailed = false 
 }: PostCardProps) {
   const navigate = useNavigate();
 
@@ -69,30 +63,6 @@ export function PostCard({
     }
   };
 
-  const handleQuotedPostClick = () => {
-    if (post.quotedPost) {
-      navigate(`/post/${post.quotedPost.id}`);
-    }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
-  };
-
-  const handleMuteUser = () => {
-    console.log('Mute user:', post.author.username);
-  };
-
-  const handleReportPost = () => {
-    console.log('Report post:', post.id);
-  };
-
-  const handleDeletePost = () => {
-    console.log('Delete post:', post.id);
-  };
-
-  const isOwnPost = post.author.id === currentUserId;
-
   const renderMedia = () => {
     if (post.video) {
       return (
@@ -110,6 +80,7 @@ export function PostCard({
               <Play className="h-6 w-6 text-black fill-current" />
             </div>
           </div>
+          {/* Video duration overlay */}
           <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
             0:59
           </div>
@@ -185,7 +156,7 @@ export function PostCard({
   return (
     <Card 
       className={cn(
-        "border-b border-border rounded-none border-0 p-4 transition-colors cursor-pointer",
+        "border-b  border-border rounded-none border-0 p-4 transition-colors cursor-pointer",
         detailed ? "hover:bg-transparent" : "hover:bg-muted/5"
       )}
       onClick={handlePostClick}
@@ -199,6 +170,7 @@ export function PostCard({
         </Avatar>
         
         <div className="flex-1 min-w-0">
+          {/* Header */}
           <div className="flex items-start md:items-center justify-between space-x-2 flex-wrap">
             <div className='flex items-start justify-center space-x-2 flex-wrap'>
               <div className='flex flex-col md:flex-row items-start md:items-center gap-x-2'>
@@ -228,19 +200,20 @@ export function PostCard({
               </span>
             </div>
             <div className="ml-auto">
-              <PostActionsDropdown
-                post={post}
-                isOwnPost={isOwnPost}
-                onCopyLink={handleCopyLink}
-                onMuteUser={handleMuteUser}
-                onReportPost={handleReportPost}
-                onDeletePost={isOwnPost ? handleDeletePost : undefined}
-              />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 hover:bg-muted/80"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4 rotate-90 md:rotate-0" />
+              </Button>
             </div>
           </div>
 
           <div className={detailed ? '-ml-12 mt-3 md:mt-6' : ''}>
           
+          {/* Content */}
           <div className={cn(
             "text-foreground whitespace-pre-wrap mt-1",
             detailed ? "text-base md:text-lg leading-relaxed" : "text-base"
@@ -248,15 +221,10 @@ export function PostCard({
             {post.content}
           </div>
           
+          {/* Media */}
           {renderMedia()}
           
-          {post.quotedPost && (
-            <QuotedPostCard 
-              post={post.quotedPost} 
-              onClick={handleQuotedPostClick}
-            />
-          )}
-          
+          {/* Interaction Buttons */}
           <div className={cn(
             "flex items-center justify-between pt-3",
             detailed ? "max-w-lg border-t border-border mt-4 pt-4" : "max-w-md"
@@ -302,16 +270,6 @@ export function PostCard({
                 post.isLiked && "fill-current"
               )} />
               <span className="text-sm">{post.likes || 0}</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => handleInteractionClick(e, () => onQuote(post.id))}
-              className="flex items-center space-x-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 p-2 rounded-full group"
-            >
-              <Quote className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              <span className="text-sm">{post.quotes || 0}</span>
             </Button>
             
             <Button

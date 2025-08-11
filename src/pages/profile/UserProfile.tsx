@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -65,10 +66,6 @@ const UserProfile = () => {
     setUser({ ...user, posts: updatedPosts });
   };
 
-  const handleQuote = (postId: string) => {
-    console.log('Quote post:', postId);
-  };
-
   const handleShare = (postId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
   };
@@ -112,16 +109,15 @@ const UserProfile = () => {
           <Button variant="ghost" onClick={() => window.history.back()}>
             <Icon icon="line-md:arrow-left" className="h-6 w-6" />
           </Button>
-          <h1 className="text-xl font-semibold">{user?.displayName}</h1>
+          <h1 className="text-xl font-semibold">{user.displayName}</h1>
         </div>
-        <ProfileHeader user={user!} onUserUpdate={handleUserUpdate} isOwnProfile={false} />
+        <ProfileHeader user={user} onUserUpdate={handleUserUpdate} isOwnProfile={false} />
         <ProfileTabs 
-          user={user!} 
+          user={user} 
           isOwnProfile={false} 
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
-          onQuote={handleQuote}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
         />

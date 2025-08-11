@@ -1,3 +1,4 @@
+
 // Global types for Campus Vibe Net
 
 export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
@@ -34,12 +35,10 @@ export interface Post {
   likes: number;
   comments: number;
   reposts: number;
-  quotes: number;
   isLiked: boolean;
   isReposted: boolean;
   createdAt: Date;
   updatedAt?: Date;
-  quotedPost?: Post;
 }
 
 export interface Comment {

@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PostCard } from '@/components/feed/PostCard';
 import { Comment } from '@/components/feed/Comment';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { QuotePostModal } from '@/components/feed/QuotePostModal';
 import { mockPosts, mockComments, mockUsers } from '@/data/mockData';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,6 @@ const PostView = () => {
   const [loading, setLoading] = useState(true);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
-  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
 
   // Fetch post data
   useEffect(() => {
@@ -76,23 +75,6 @@ const PostView = () => {
         reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1
       });
     }
-  };
-
-  const handleQuote = (postId: string) => {
-    if (post && post.id === postId) {
-      setQuoteModalOpen(true);
-    }
-  };
-
-  const handleQuoteSubmit = (content: string, quotedPost: Post) => {
-    if (post) {
-      setPost({
-        ...post,
-        quotes: post.quotes + 1
-      });
-    }
-    setQuoteModalOpen(false);
-    navigate('/');
   };
 
   const handleShare = (postId: string) => {
@@ -156,100 +138,88 @@ const PostView = () => {
   }
 
   return (
-    <>
-      <AppLayout>
-        <div className="min-h-screen border-r border-border">
-          {/* Header */}
-          <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b-none border-border">
-            <div className="flex items-center px-4 py-3">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate(-1)}
-                className="mr-8 p-2 hover:bg-muted rounded-full"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex flex-col">
-                <h1 className="text-xl font-bold text-foreground">Post</h1>
-              </div>
+    <AppLayout>
+      <div className="min-h-screen border-r border-border">
+        {/* Header */}
+        <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b-none border-border">
+          <div className="flex items-center px-4 py-3">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="mr-8 p-2 hover:bg-muted rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-foreground">Post</h1>
             </div>
-          </div>
-
-          {/* Main Post */}
-          <div className="border-b border-border">
-            <PostCard
-              post={post}
-              onLike={handleLike}
-              onComment={handleComment}
-              onRepost={handleRepost}
-              onQuote={handleQuote}
-              onShare={handleShare}
-              detailed={true}
-            />
-          </div>
-          
-          {/* Reply Composer */}
-          <div className="border-b border-border p-4">
-            <div className="flex space-x-3">
-              <Avatar className="w-11 h-11">
-                <AvatarImage src={mockUsers[0].avatar} />
-                <AvatarFallback>
-                  {mockUsers[0].displayName.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <textarea
-                  placeholder="Post your reply"
-                  className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
-                  rows={3}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <div className="flex justify-end mt-2">
-                  <Button 
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50"
-                  >
-                    Reply
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Comments */}
-          <div>
-            {commentsLoading ? (
-              <LoadingSpinner size="md" />
-            ) : comments.length > 0 ? (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  onLike={handleCommentLike}
-                  onReply={(commentId) => console.log('Reply to comment:', commentId)}
-                />
-              ))
-            ) : (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No replies yet</p>
-              </div>
-            )}
           </div>
         </div>
-      </AppLayout>
 
-      {post && (
-        <QuotePostModal
-          isOpen={quoteModalOpen}
-          onClose={() => setQuoteModalOpen(false)}
-          post={post}
-          onQuote={handleQuoteSubmit}
-        />
-      )}
-    </>
+        {/* Main Post */}
+        <div className="border-b border-border">
+          <PostCard
+            post={post}
+            onLike={handleLike}
+            onComment={handleComment}
+            onRepost={handleRepost}
+            onShare={handleShare}
+            detailed={true}
+          />
+        </div>
+        
+        {/* Reply Composer */}
+        <div className="border-b border-border p-4">
+          <div className="flex space-x-3">
+            <Avatar className="w-11 h-11">
+              <AvatarImage src={mockUsers[0].avatar} />
+              <AvatarFallback>
+                {mockUsers[0].displayName.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <textarea
+                placeholder="Post your reply"
+                className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
+                rows={3}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+              <div className="flex justify-end mt-2">
+                <Button 
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50"
+                >
+                  Reply
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Comments */}
+        <div>
+          {commentsLoading ? (
+            <LoadingSpinner size="md" />
+          ) : comments.length > 0 ? (
+            comments.map((comment) => (
+              <Comment
+                key={comment.id}
+                comment={comment}
+                onLike={handleCommentLike}
+                onReply={(commentId) => console.log('Reply to comment:', commentId)}
+              />
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No replies yet</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </AppLayout>
   );
 };
 
