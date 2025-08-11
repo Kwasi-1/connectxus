@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, 
   Search, 
@@ -38,6 +39,12 @@ export const GroupChatHeader = ({
   onAddMembers,
   onViewMembers
 }: GroupChatHeaderProps) => {
+  const navigate = useNavigate();
+
+  const handleGroupProfileClick = () => {
+    navigate(`/groups/${groupChat.id}`);
+  };
+
   return (
     <div className="p-4 border-b border-border flex items-center justify-between">
       <div className="flex items-center space-x-3">
@@ -51,8 +58,8 @@ export const GroupChatHeader = ({
           <X className="h-5 w-5" />
         </Button>
         
-        <div className="relative">
-          <Avatar className="w-10 h-10">
+        <div className="relative cursor-pointer" onClick={handleGroupProfileClick}>
+          <Avatar className="w-10 h-10 hover:ring-2 hover:ring-primary/20 transition-all">
             <AvatarImage src={groupChat.avatar} alt={groupChat.name} />
             <AvatarFallback>{groupChat.name.charAt(0)}</AvatarFallback>
           </Avatar>
@@ -60,8 +67,8 @@ export const GroupChatHeader = ({
             <Users className="h-2 w-2 text-primary-foreground" />
           </div>
         </div>
-        <div>
-          <div className="flex items-center space-x-2">
+        <div className="cursor-pointer" onClick={handleGroupProfileClick}>
+          <div className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <h3 className="font-semibold text-foreground">{groupChat.name}</h3>
             {groupChat.isAdmin && (
               <Badge variant="secondary" className="text-xs">Admin</Badge>
