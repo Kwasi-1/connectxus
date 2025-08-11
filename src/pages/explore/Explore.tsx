@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
@@ -126,6 +125,10 @@ const Explore = () => {
     console.log('Share post:', postId);
   };
 
+  const handleQuote = (postId: string) => {
+    console.log('Quote post:', postId);
+  };
+
   const handleUserClick = (username: string) => {
     navigate(`/profile/${username}`);
   };
@@ -211,6 +214,7 @@ const Explore = () => {
                           onLike={handleLike}
                           onComment={handleComment}
                           onRepost={handleRepost}
+                          onQuote={handleQuote}
                           onShare={handleShare}
                         />
                       ))
@@ -236,6 +240,7 @@ const Explore = () => {
                           onLike={handleLike}
                           onComment={handleComment}
                           onRepost={handleRepost}
+                          onQuote={handleQuote}
                           onShare={handleShare}
                         />
                       ))
@@ -310,6 +315,7 @@ const Explore = () => {
                           onLike={handleLike}
                           onComment={handleComment}
                           onRepost={handleRepost}
+                          onQuote={handleQuote}
                           onShare={handleShare}
                         />
                       ))
