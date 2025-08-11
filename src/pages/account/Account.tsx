@@ -39,10 +39,6 @@ const Account = () => {
     setUser({ ...user, posts: updatedPosts });
   };
 
-  const handleQuote = (postId: string) => {
-    console.log('Quote post:', postId);
-  };
-
   const handleShare = (postId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
   };
@@ -63,11 +59,9 @@ const Account = () => {
         <ProfileHeader user={user} onUserUpdate={handleUserUpdate} />
         <ProfileTabs 
           user={user} 
-          isOwnProfile={true}
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
-          onQuote={handleQuote}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
         />

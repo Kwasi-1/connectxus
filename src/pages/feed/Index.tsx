@@ -12,9 +12,11 @@ const Index = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Simulate API call with useEffect
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
+      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setPosts(mockPosts);
       setLoading(false);
@@ -39,7 +41,7 @@ const Index = () => {
     setPosts([newPost, ...posts]);
   };
 
-  const handleQuote = (content: string, quotedPost: Post) => {
+  const handleQuotePost = (content: string, quotedPost: Post) => {
     const newPost: Post = {
       id: Date.now().toString(),
       author: mockUsers[0],
@@ -59,7 +61,7 @@ const Index = () => {
       newPost,
       ...prevPosts.map(post => 
         post.id === quotedPost.id 
-          ? { ...post, quotes: post.quotes + 1 }
+          ? { ...post, quotes: (post.quotes || 0) + 1 }
           : post
       )
     ]);
@@ -97,6 +99,10 @@ const Index = () => {
     console.log('Share post:', postId);
   };
 
+  const handleDeletePost = (postId: string) => {
+    setPosts(posts.filter(post => post.id !== postId));
+  };
+
   const handleMediaClick = (post: Post) => {
     setSelectedPost(post);
     setIsModalOpen(true);
@@ -111,9 +117,10 @@ const Index = () => {
           onLike={handleLike}
           onComment={handleComment}
           onRepost={handleRepost}
-          onQuote={handleQuote}
+          onQuote={handleQuotePost}
           onShare={handleShare}
           onMediaClick={handleMediaClick}
+          onDeletePost={handleDeletePost}
           loading={loading}
         />
       </AppLayout>

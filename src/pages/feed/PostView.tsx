@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PostCard } from '@/components/feed/PostCard';
 import { Comment } from '@/components/feed/Comment';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { QuotePostModal } from '@/components/feed/QuotePostModal';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { mockPosts, mockComments, mockUsers } from '@/data/mockData';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,14 +84,21 @@ const PostView = () => {
     }
   };
 
-  const handleQuoteSubmit = (content: string, quotedPost: Post) => {
+  const handleQuotePost = (content: string, quotedPost: Post) => {
+    // In a real app, you would send this to your backend
+    console.log('Quote post created:', { content, quotedPost });
+    
+    // Update the post's quote count
     if (post) {
       setPost({
         ...post,
-        quotes: post.quotes + 1
+        quotes: (post.quotes || 0) + 1
       });
     }
+    
     setQuoteModalOpen(false);
+    
+    // Navigate back to feed to show the new quote post
     navigate('/');
   };
 
@@ -241,12 +248,13 @@ const PostView = () => {
         </div>
       </AppLayout>
 
+      {/* Quote Post Modal */}
       {post && (
         <QuotePostModal
           isOpen={quoteModalOpen}
           onClose={() => setQuoteModalOpen(false)}
-          post={post}
-          onQuote={handleQuoteSubmit}
+          onQuote={handleQuotePost}
+          quotedPost={post}
         />
       )}
     </>
