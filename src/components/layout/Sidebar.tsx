@@ -57,7 +57,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
             <span className="text-background font-bold text-sm">CV</span>
           </div>
           <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span> */}
-          <Logo className="w-auto h-14"/>
+          <Logo className="w-auto h-12 xl:h-14"/>
           {/* <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-14 hidden xl:block" />
           <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-12 xl:hidden block" /> */}
         </div>
