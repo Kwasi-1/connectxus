@@ -57,7 +57,7 @@ export const InterestsSelector: React.FC<InterestsSelectorProps> = ({ control, n
         return (
           <FormItem>
             <FormLabel>Select topics you're interested in (choose at least one)</FormLabel>
-            <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="flex flex-wrap -mx-3 sm:mx-auto gap-3 pt-4">
               {INTERESTS.map((interest) => {
                 const isSelected = selectedInterests.includes(interest.value);
                 return (
@@ -67,7 +67,7 @@ export const InterestsSelector: React.FC<InterestsSelectorProps> = ({ control, n
                     variant="outline"
                     onClick={() => toggleInterest(interest.value)}
                     className={cn(
-                      "h-12 text-sm font-medium transition-all duration-200",
+                      "h-10 text-sm w-fit rounded-full font-medium transition-all duration-200",
                       isSelected
                         ? "bg-primary text-primary-foreground border-primary"
                         : "hover:bg-muted"
