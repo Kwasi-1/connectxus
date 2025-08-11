@@ -141,7 +141,7 @@ const Mentors = () => {
         <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Mentors</h1>
-            <p className="text-muted-foreground mt-1">Connect with industry professionals</p>
+            <p className="text-muted-foreground mt-1">Connect with experienced professionals and alumni</p>
           </div>
           <Button variant="outline" onClick={handleBecomeMentor}>
             <Briefcase className="h-4 w-4" />
@@ -151,11 +151,11 @@ const Mentors = () => {
 
         {isApprovedMentor ? (
           <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="available">Available Mentors</TabsTrigger>
-              <TabsTrigger value="services">My Services</TabsTrigger>
-              <TabsTrigger value="requests">Requests ({userRequests.length})</TabsTrigger>
-              <TabsTrigger value="sessions">Sessions</TabsTrigger>
+              <TabsTrigger value="services">My Application</TabsTrigger>
+              {/* <TabsTrigger value="requests">Requests ({userRequests.length})</TabsTrigger> */}
+              {/* <TabsTrigger value="sessions">Sessions</TabsTrigger> */}
             </TabsList>
             
             <TabsContent value="available" className="space-y-4">
@@ -189,61 +189,62 @@ const Mentors = () => {
                 <LoadingSpinner size='md' />
               ) : (
                 <>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
                     {filteredMentors.map((mentor) => (
                       <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
-                          <div className="flex flex-col lg:flex-row gap-6">
-                            <div className="flex items-start space-x-4 flex-1">
+                          <div className="space-y-4">
+                            {/* Mentor Header */}
+                            <div className="flex items-start space-x-4">
                               <Avatar className="h-16 w-16">
                                 <AvatarImage src={mentor.user.avatar} alt={mentor.user.displayName} />
                                 <AvatarFallback>{mentor.user.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
                               </Avatar>
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
+                                <div className="flex items-center gap-2 mb-1">
                                   <h3 className="text-xl font-semibold">{mentor.user.displayName}</h3>
                                   {mentor.verified && (
                                     <Badge variant="default" className="text-xs">Verified</Badge>
                                   )}
                                 </div>
-                                <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                                <p className="text-sm mb-3">{mentor.description}</p>
-                                
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {mentor.specialties.map((specialty, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                      {specialty}
-                                    </Badge>
-                                  ))}
-                                </div>
-
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <div className="flex items-center">
-                                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                                    {mentor.rating} ({mentor.reviewCount} reviews)
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Users className="h-4 w-4 mr-1" />
-                                    {mentor.experience} years experience
-                                  </div>
+                                {mentor.position && mentor.company && (
+                                  <p className="text-muted-foreground mb-2">
+                                    {mentor.position} at {mentor.company}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Briefcase className="h-4 w-4" />
+                                  {mentor.industry} • {mentor.experience} years experience
                                 </div>
                               </div>
                             </div>
 
-                            <div className="lg:w-64 space-y-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Industry</h4>
-                                <Badge variant="outline">{mentor.industry}</Badge>
+                            {/* Description */}
+                            <p className="text-sm text-muted-foreground">{mentor.description}</p>
+
+                            {/* Specialties */}
+                            <div className="flex flex-wrap gap-1">
+                              {mentor.specialties.map((specialty, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {specialty}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {/* Rating and Actions */}
+                            <div className="flex items-center justify-between pt-2">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                                {mentor.rating} ({mentor.reviewCount} reviews)
                               </div>
                               <div className="flex space-x-2">
                                 <Button 
                                   onClick={() => handleContactMentor(mentor)}
                                   size="sm"
                                   variant="outline"
-                                  className="flex-1"
                                 >
                                   <MessageCircle className="h-4 w-4" />
-                                  <span className="ml-2">Contact</span>
+                                  <span className="hidden md:inline ml-2">Contact</span>
                                 </Button>
                                 <Button 
                                   onClick={() => handleFollowMentor(mentor)}
@@ -251,6 +252,7 @@ const Mentors = () => {
                                   variant="outline"
                                 >
                                   <UserCheck className="h-4 w-4" />
+                                  <span className="hidden md:inline ml-2">Follow</span>
                                 </Button>
                               </div>
                             </div>

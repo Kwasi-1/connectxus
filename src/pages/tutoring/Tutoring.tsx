@@ -154,14 +154,14 @@ const Tutoring = () => {
 
         {isApprovedTutor ? (
           <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="available">Available Tutors</TabsTrigger>
               <TabsTrigger value="services">My Services</TabsTrigger>
               <TabsTrigger value="requests">Requests ({userRequests.length})</TabsTrigger>
-              <TabsTrigger value="sessions">Sessions</TabsTrigger>
             </TabsList>
             
             <TabsContent value="available" className="space-y-4">
+              {/* Search and Filters */}
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -188,15 +188,18 @@ const Tutoring = () => {
                 </div>
               </div>
 
+              {/* Loading State */}
               {loading ? (
                 <LoadingSpinner size='md' />
               ) : (
                 <>
+                  {/* Tutors List */}
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => (
                       <Card key={tutor.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex flex-col lg:flex-row gap-6">
+                            {/* Tutor Info */}
                             <div className="flex items-start space-x-4 flex-1">
                               <Avatar className="h-16 w-16">
                                 <AvatarImage src={tutor.user.avatar} alt={tutor.user.displayName} />
@@ -212,6 +215,7 @@ const Tutoring = () => {
                                 <p className="text-muted-foreground mb-4 lg:mb-2">{tutor.user.major} • Year {tutor.user.year}</p>
                                 <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">{tutor.description}</p>
                                 
+                                {/* Subjects */}
                                 <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
                                   {tutor.subjects.map((subject, index) => (
                                     <Badge key={index} variant="secondary" className="text-xs">
@@ -220,6 +224,7 @@ const Tutoring = () => {
                                   ))}
                                 </div>
 
+                                {/* Stats */}
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
                                   <div className="flex items-center">
                                     <Star className="h-4 w-4 text-yellow-500 mr-1" />
@@ -235,6 +240,7 @@ const Tutoring = () => {
                               </div>
                             </div>
 
+                            {/* Availability & Actions */}
                             <div className="lg:w-64 space-y-4">
                               <div>
                                 <h4 className="font-medium mb-2 flex items-center">
@@ -279,6 +285,7 @@ const Tutoring = () => {
                     ))}
                   </div>
 
+                  {/* No Results */}
                   {filteredTutors.length === 0 && (
                     <div className="text-center py-12">
                       <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -327,14 +334,6 @@ const Tutoring = () => {
                 </>
               )}
             </TabsContent>
-            
-            <TabsContent value="sessions" className="space-y-4">
-              <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No sessions yet</h3>
-                <p className="text-muted-foreground">Your confirmed tutoring sessions will appear here</p>
-              </div>
-            </TabsContent>
           </Tabs>
         ) : hasApplication ? (
           <Tabs defaultValue="available" className="w-full">
@@ -344,6 +343,8 @@ const Tutoring = () => {
             </TabsList>
             
             <TabsContent value="available">
+              {/* Same content as the regular tutoring page */}
+              {/* Search and Filters */}
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -370,15 +371,18 @@ const Tutoring = () => {
                 </div>
               </div>
 
+              {/* Loading State */}
               {loading ? (
                 <LoadingSpinner />
               ) : (
                 <>
+                  {/* Tutors List */}
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => (
                       <Card key={tutor.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex flex-col lg:flex-row gap-6">
+                            {/* Tutor Info */}
                             <div className="flex items-start space-x-4 flex-1">
                               <Avatar className="h-16 w-16">
                                 <AvatarImage src={tutor.user.avatar} alt={tutor.user.displayName} />
