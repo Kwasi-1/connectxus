@@ -32,9 +32,9 @@ export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-0">
+      <DialogContent className="sm:max-w-[500px] lg:max-w-xl p-0">
         <DialogHeader className="flex flex-row items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Quote Post</h2>
+          <h2 className="text-lg font-semibold tracking-wider">Quote Post</h2>
           <Button
             variant="ghost"
             size="sm"
