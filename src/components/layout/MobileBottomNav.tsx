@@ -9,7 +9,7 @@ const navigationItems = [
   { icon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
   { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
-  { icon: 'line-md:account', label: 'Account', path: '/account', id: 'account' },
+  { icon: 'streamline-ultimate:messages-bubble-square-typing', label: 'Messages', path: '/messages', id: 'messages' },
 ];
 
 export function MobileBottomNav() {
