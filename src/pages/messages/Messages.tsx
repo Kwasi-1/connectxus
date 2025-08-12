@@ -444,7 +444,7 @@ const Messages = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="flex max-h-full h-[calc(100vh-128px)] lg:h-screen">
+      <div className="flex h-full">
         {/* Chat List Sidebar */}
         <div className={`${(selectedChat || selectedGroupChat) && isMobileView ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
           {/* Header */}
@@ -517,7 +517,7 @@ const Messages = () => {
         </div>
 
         {/* Chat Window */}
-        <div className={`${selectedChat || selectedGroupChat ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
+        <div className={`${selectedChat || selectedGroupChat ? 'flex' : 'hidden lg:flex'} h-[calc(100vh-128px)] sm:h-[calc(100vh-138px)] lg:h-screen flex-1 flex-col`}>
           {selectedChat ? (
             <>
               {/* Individual Chat Header */}
@@ -670,7 +670,7 @@ const Messages = () => {
 
               {/* Message Search */}
               {isSearching && (
-                <div className="pt-16 pr-2 w-full max-w-xs ml-auto">
+                <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
