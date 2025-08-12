@@ -196,10 +196,10 @@ const Messages = () => {
   };
 
   return (
-    <AppLayout>
+    <AppLayout showRightSidebar={false}>
       <div className="flex h-full">
         {/* Chat List Sidebar */}
-        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 border-r border-border flex-col`}>
+        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} lg:min-w-[450px] lg:max-w-md border-r border-border flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -225,10 +225,12 @@ const Messages = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="groups">Groups</TabsTrigger>
-            </TabsList>
+            <div className='px-4'>
+              <TabsList className="grid w-full grid-cols-2 mt-2">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="groups">Groups</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="flex-1 mt-0">
               <ScrollArea className="h-full">
