@@ -1,5 +1,5 @@
 
-import { GroupChat, GroupMessage, GroupMember } from '@/types/messages';
+import { GroupChat, GroupMessage, GroupMember, Chat, Message } from '@/types/messages';
 
 export const mockGroupMembers: GroupMember[] = [
   {
@@ -33,6 +33,81 @@ export const mockGroupMembers: GroupMember[] = [
     role: 'member',
     isOnline: false,
     joinedAt: new Date('2024-01-04')
+  }
+];
+
+export const mockChats: Chat[] = [
+  {
+    id: 'chat-1',
+    name: 'Alice Johnson',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+    lastMessage: 'Hey, how are you doing?',
+    timestamp: '2 min ago',
+    unreadCount: 2,
+    isOnline: true,
+    isPinned: false,
+    phone: '+1234567890',
+    lastMessageTime: Date.now() - 120000,
+    messages: [
+      {
+        id: '1',
+        content: 'Hey there!',
+        timestamp: '10:00 AM',
+        senderId: 'chat-1',
+        senderName: 'Alice Johnson',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+        isOwn: false
+      },
+      {
+        id: '2',
+        content: 'Hi Alice! How are you?',
+        timestamp: '10:01 AM',
+        senderId: 'current-user',
+        senderName: 'You',
+        isOwn: true
+      },
+      {
+        id: '3',
+        content: 'Hey, how are you doing?',
+        timestamp: '10:05 AM',
+        senderId: 'chat-1',
+        senderName: 'Alice Johnson',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+        isOwn: false
+      }
+    ]
+  },
+  {
+    id: 'chat-2',
+    name: 'Bob Smith',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    lastMessage: 'Thanks for the help!',
+    timestamp: '1 hour ago',
+    unreadCount: 0,
+    isOnline: false,
+    isPinned: true,
+    phone: '+1987654321',
+    lastMessageTime: Date.now() - 3600000,
+    messages: [
+      {
+        id: '1',
+        content: 'Can you help me with this project?',
+        timestamp: 'Yesterday',
+        senderId: 'chat-2',
+        senderName: 'Bob Smith',
+        senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+        isOwn: false
+      },
+      {
+        id: '2',
+        content: 'Thanks for the help!',
+        timestamp: '1 hour ago',
+        senderId: 'chat-2',
+        senderName: 'Bob Smith',
+        senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+        isOwn: false
+      }
+    ]
   }
 ];
 

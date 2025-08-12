@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { mockChats, mockGroupChats } from '@/data/mockGroupChats';
 import { Chat, GroupChat, Message, GroupMessage, MessageTab } from '@/types/messages';
+import { User } from '@/types/global';
 
 const Messages = () => {
   const location = useLocation();
@@ -40,6 +41,14 @@ const Messages = () => {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+
+  // Mock recipient for message modal
+  const mockRecipient: User = {
+    id: 'user-1',
+    displayName: 'John Doe',
+    email: 'john@example.com',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'
+  };
 
   // Handle navigation from group details page
   useEffect(() => {
@@ -469,15 +478,20 @@ const Messages = () => {
         </div>
 
         {/* Modals */}
-        <GroupMembersModal
-          isOpen={showMembersModal}
-          onClose={() => setShowMembersModal(false)}
-          groupChat={selectedGroupChat}
-        />
+        {selectedGroupChat && (
+          <GroupMembersModal
+            isOpen={showMembersModal}
+            onClose={() => setShowMembersModal(false)}
+            members={selectedGroupChat.members}
+            isAdmin={selectedGroupChat.isAdmin}
+            isModerator={selectedGroupChat.isModerator}
+          />
+        )}
 
         <MessageModal
           isOpen={showMessageModal}
           onClose={() => setShowMessageModal(false)}
+          recipient={mockRecipient}
         />
       </div>
     </AppLayout>
