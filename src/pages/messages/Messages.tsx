@@ -199,7 +199,7 @@ const Messages = () => {
     <AppLayout showRightSidebar={false}>
       <div className="flex h-full">
         {/* Chat List Sidebar */}
-        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} lg:min-w-[450px] lg:max-w-md border-r border-border flex-col`}>
+        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md border-r border-border flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -216,7 +216,7 @@ const Messages = () => {
                 placeholder="Search messages..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 rounded-full"
                 onFocus={() => setIsSearchActive(true)}
                 onBlur={() => setIsSearchActive(false)}
               />
