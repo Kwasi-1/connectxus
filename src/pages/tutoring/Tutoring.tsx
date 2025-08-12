@@ -139,7 +139,7 @@ const Tutoring = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="p-6 space-y-6 custom-fonts">
+      <div className="px-4 py-6 md:p-6 space-y-6 custom-fonts">
         {/* Header */}
         <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
