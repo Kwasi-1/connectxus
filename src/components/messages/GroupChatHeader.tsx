@@ -71,10 +71,10 @@ export const GroupChatHeader = ({
           <div className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <h3 className="font-semibold text-foreground">{groupChat.name}</h3>
             {groupChat.isAdmin && (
-              <Badge variant="secondary" className="text-xs">Admin</Badge>
+              <Badge variant="secondary" className="text-xs hidden md:block">Admin</Badge>
             )}
             {groupChat.isModerator && !groupChat.isAdmin && (
-              <Badge variant="outline" className="text-xs">Moderator</Badge>
+              <Badge variant="outline" className="text-xs hidden md:block">Moderator</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
