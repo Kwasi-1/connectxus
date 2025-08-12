@@ -238,7 +238,7 @@ const Messages = () => {
                   {filteredChats.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`p-4 rounded-lg cursor-pointer transition-colors mb-[2px] ${
+                      className={`p-4 rounded-md cursor-pointer transition-colors mb-[2px] ${
                         selectedChat?.id === chat.id
                           ? 'bg-muted/50 border border-muted/60'
                           : 'hover:bg-muted/40'
@@ -285,7 +285,7 @@ const Messages = () => {
                   {filteredGroupChats.map((groupChat) => (
                     <div
                       key={groupChat.id}
-                      className={`p-3 py-4 rounded-lg cursor-pointer transition-colors border mb-[2px] ${
+                      className={`p-3 py-4 rounded-md cursor-pointer transition-colors border mb-[2px] ${
                         selectedGroupChat?.id === groupChat.id
                           ? 'bg-muted/50 border-muted/50'
                           : 'hover:bg-muted/50 border-transparent'
