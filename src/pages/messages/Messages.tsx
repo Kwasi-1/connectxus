@@ -226,9 +226,9 @@ const Messages = () => {
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col">
             <div className='px-4'>
-              <TabsList className="grid w-full grid-cols-2 mt-2">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="groups">Groups</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
+                <TabsTrigger className="rounded-full" value="all">All</TabsTrigger>
+                <TabsTrigger className="rounded-full" value="groups">Groups</TabsTrigger>
               </TabsList>
             </div>
 
