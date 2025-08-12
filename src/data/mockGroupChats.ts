@@ -79,7 +79,7 @@ export const mockChats: Chat[] = [
   },
   {
     id: 'chat-2',
-    name: 'Bob Smith',
+    name: 'Sarah Chen',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
     lastMessage: 'Thanks for the help!',
     timestamp: '1 hour ago',
@@ -107,6 +107,75 @@ export const mockChats: Chat[] = [
         senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
         isOwn: false
       }
+    ]
+  },
+  {
+    id: 'chat-3',
+    name: 'Bob Smith',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+    lastMessage: 'Hey! How\'s the project going?',
+    timestamp: '2 min ago',
+    unreadCount: 2,
+    isOnline: true,
+    isPinned: false,
+    phone: '+233667788801',
+    lastMessageTime: Date.now() - 120000,
+    messages: [
+      { id: '1', content: 'Hey! How are you?', timestamp: '10:00 AM', isOwn: false, senderId: '1' },
+      { id: '2', content: 'I\'m good! How about you?', timestamp: '10:01 AM', isOwn: true, senderId: 'current-user' },
+      { id: '3', content: 'Great! Working on the new project', timestamp: '10:02 AM', isOwn: false, senderId: '1' },
+      { id: '4', content: 'Hey! How\'s the project going?', timestamp: '10:05 AM', isOwn: false, senderId: '1' }
+    ]
+  },
+  {
+    id: 'chat-4',
+    name: 'John Doe',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    lastMessage: 'Thanks for the help!',
+    timestamp: '1 hour ago',
+    unreadCount: 0,
+    isOnline: false,
+    isPinned: true,
+    phone: '+233667788802',
+    lastMessageTime: Date.now() - 3600000,
+    messages: [
+      { id: '1', content: 'Can you help me with this?', timestamp: '9:00 AM', isOwn: false, senderId: '2' },
+      { id: '2', content: 'Sure! What do you need?', timestamp: '9:01 AM', isOwn: true, senderId: 'current-user' },
+      { id: '3', content: 'Thanks for the help!', timestamp: '9:30 AM', isOwn: false, senderId: '2' }
+    ]
+  },
+  {
+    id: 'chat-5',
+    name: 'Emma Wilson',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+    lastMessage: 'See you tomorrow!',
+    timestamp: '3 hours ago',
+    unreadCount: 1,
+    isOnline: true,
+    isPinned: false,
+    phone: '+233667788803',
+    lastMessageTime: Date.now() - 10800000,
+    messages: [
+      { id: '1', content: 'Are we still meeting tomorrow?', timestamp: '8:00 AM', isOwn: false, senderId: '3' },
+      { id: '2', content: 'Yes! 2 PM at the coffee shop', timestamp: '8:01 AM', isOwn: true, senderId: 'current-user' },
+      { id: '3', content: 'See you tomorrow!', timestamp: '8:02 AM', isOwn: false, senderId: '3' }
+    ]
+  },
+  {
+    id: 'chat-6',
+    name: 'Mike Johnson',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+    lastMessage: 'Good luck with the presentation!',
+    timestamp: '1 day ago',
+    unreadCount: 0,
+    isOnline: false,
+    isPinned: true,
+    phone: '+233667788804',
+    lastMessageTime: Date.now() - 86400000,
+    messages: [
+      { id: '1', content: 'How did the presentation go?', timestamp: 'Yesterday', isOwn: false, senderId: '4' },
+      { id: '2', content: 'It went really well, thanks!', timestamp: 'Yesterday', isOwn: true, senderId: 'current-user' },
+      { id: '3', content: 'Good luck with the presentation!', timestamp: 'Yesterday', isOwn: false, senderId: '4' }
     ]
   }
 ];
