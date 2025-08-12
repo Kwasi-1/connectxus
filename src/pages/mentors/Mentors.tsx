@@ -137,7 +137,7 @@ const Mentors = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="px-4 py-6 md:p-6 space-y-6 custom-fonts">
+      <div className="px-5 py-6 md:p-6 space-y-6 custom-fonts">
         <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Mentors</h1>
