@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Users, Lock, Calendar, Settings, MessageCircle, Share, UserMinus, Files } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Users, Lock, Calendar, Settings, MessageCircle, Share, UserMinus, Files, Copy, ExternalLink } from 'lucide-react';
 import { mockGroups, mockUsers } from '@/data/mockCommunitiesData';
 import { Group } from '@/types/communities';
 import { User } from '@/types/global';
@@ -17,6 +18,7 @@ type GroupTab = 'members' | 'resources' | 'settings';
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<GroupTab>('members');
   const [isLoading, setIsLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -89,28 +91,78 @@ const GroupDetail = () => {
 
   const handleJoinGroup = () => {
     if (group) {
+      const isJoining = !group.isJoined;
       setGroup({
         ...group,
-        isJoined: !group.isJoined,
-        memberCount: group.isJoined ? group.memberCount - 1 : group.memberCount + 1
+        isJoined: isJoining,
+        memberCount: isJoining ? group.memberCount + 1 : group.memberCount - 1
+      });
+      
+      toast({
+        title: isJoining ? "Joined group!" : "Left group",
+        description: isJoining 
+          ? `You've successfully joined ${group.name}` 
+          : `You've left ${group.name}`,
       });
     }
   };
 
   const handleChatClick = () => {
-    navigate('/messages', { state: { groupId: id, groupName: group?.name } });
-  };
-
-  const handleShareGroup = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: group?.name,
-        text: group?.description,
-        url: window.location.href,
+    if (group && group.isJoined) {
+      // Navigate to messages page with the group chat selected
+      navigate('/messages', { 
+        state: { 
+          selectedGroupId: id,
+          selectedGroupName: group.name,
+          selectedGroupAvatar: group.avatar 
+        } 
       });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      // You could add a toast notification here
+      toast({
+        title: "Join group first",
+        description: "You need to join the group to access the chat",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShareGroup = async () => {
+    const groupUrl = `${window.location.origin}/groups/${id}`;
+    
+    if (navigator.share && navigator.canShare) {
+      try {
+        await navigator.share({
+          title: group?.name,
+          text: `Check out this group: ${group?.description}`,
+          url: groupUrl,
+        });
+        toast({
+          title: "Shared successfully!",
+          description: "Group link has been shared"
+        });
+      } catch (error) {
+        // If sharing fails, fall back to copying
+        await copyToClipboard(groupUrl);
+      }
+    } else {
+      // Fall back to copying to clipboard
+      await copyToClipboard(groupUrl);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Link copied!",
+        description: "Group link has been copied to clipboard"
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link to clipboard",
+        variant: "destructive"
+      });
     }
   };
 
@@ -170,11 +222,21 @@ const GroupDetail = () => {
               </div>
               <div className="flex items-center gap-2">
                 {group.isJoined && (
-                  <Button variant="ghost" size="sm" onClick={handleChatClick}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleChatClick}
+                    className="hover:bg-primary/10"
+                  >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={handleShareGroup}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleShareGroup}
+                  className="hover:bg-primary/10"
+                >
                   <Share className="h-4 w-4" />
                 </Button>
                 {canManage && (
