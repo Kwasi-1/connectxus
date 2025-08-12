@@ -199,7 +199,7 @@ const Messages = () => {
     <AppLayout showRightSidebar={false}>
       <div className="flex h-full">
         {/* Chat List Sidebar */}
-        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md border-r border-border flex-col`}>
+        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -227,8 +227,8 @@ const Messages = () => {
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col">
             <div className='px-4'>
               <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
-                <TabsTrigger className="rounded-full" value="all">All</TabsTrigger>
-                <TabsTrigger className="rounded-full" value="groups">Groups</TabsTrigger>
+                <TabsTrigger className=" rounded-full" value="all">All</TabsTrigger>
+                <TabsTrigger className=" rounded-full" value="groups">Groups</TabsTrigger>
               </TabsList>
             </div>
 
@@ -238,10 +238,10 @@ const Messages = () => {
                   {filteredChats.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-4 rounded-lg cursor-pointer transition-colors mb-[2px] ${
                         selectedChat?.id === chat.id
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted/50'
+                          ? 'bg-muted/50 border border-muted/60'
+                          : 'hover:bg-muted/40'
                       }`}
                       onClick={() => handleChatSelect(chat)}
                     >
@@ -257,7 +257,7 @@ const Messages = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-sm truncate">{chat.name}</h3>
+                            <h3 className="font-semibold text-foreground truncate">{chat.name}</h3>
                             <div className="flex items-center space-x-2">
                               {chat.isPinned && <Pin className="h-3 w-3 text-primary" />}
                               <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
@@ -285,10 +285,10 @@ const Messages = () => {
                   {filteredGroupChats.map((groupChat) => (
                     <div
                       key={groupChat.id}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-3 py-4 rounded-lg cursor-pointer transition-colors border mb-[2px] ${
                         selectedGroupChat?.id === groupChat.id
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted/50'
+                          ? 'bg-muted/50 border-muted/50'
+                          : 'hover:bg-muted/50 border-transparent'
                       }`}
                       onClick={() => handleGroupChatSelect(groupChat)}
                     >
@@ -304,7 +304,7 @@ const Messages = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-sm truncate">{groupChat.name}</h3>
+                            <h3 className="font-semibold text-foreground truncate">{groupChat.name}</h3>
                             <div className="flex items-center space-x-2">
                               {groupChat.isPinned && <Pin className="h-3 w-3 text-primary" />}
                               <span className="text-xs text-muted-foreground">{groupChat.timestamp}</span>
@@ -414,29 +414,32 @@ const Messages = () => {
                       <div className="flex items-start space-x-2 max-w-xs lg:max-w-md">
                         {!message.isOwn && (
                           <Avatar 
-                            className="w-8 h-8 cursor-pointer" 
+                            className="w-8 h-8 cursor-pointer mt-1" 
                             onClick={handleGroupProfileClick}
                           >
                             <AvatarImage src={message.senderAvatar} alt={message.senderName} />
                             <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
                           </Avatar>
                         )}
+                        <div>
+                        {!message.isOwn && (
+                            <p className="text-xs mb-1 px-1 text-muted-foreground cursor-pointer" onClick={handleGroupProfileClick}>
+                              {message.senderName}
+                            </p>
+                          )}
                         <div className={`px-3 py-2 rounded-lg ${
                           message.isOwn
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted text-foreground'
                         }`}>
-                          {!message.isOwn && (
-                            <p className="text-xs font-medium mb-1 text-primary cursor-pointer" onClick={handleGroupProfileClick}>
-                              {message.senderName}
-                            </p>
-                          )}
+                          
                           <p className="text-sm">{message.content}</p>
                           <p className={`text-xs mt-1 ${
                             message.isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
                           }`}>
                             {message.timestamp}
                           </p>
+                          </div>
                         </div>
                       </div>
                     </div>
