@@ -33,7 +33,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             {/* <img src={logo} alt="Campus Vibe Logo" className="h-12 w-auto rounded-lg" /> */}
-            <Logo className="h-12 w-auto rounded-lg" />
+            <Logo className="h-11 w-auto rounded-lg" />
           </div>
 
           {/* Search Button */}
