@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { GroupChatHeader } from '@/components/messages/GroupChatHeader';
 import { GroupMembersModal } from '@/components/messages/GroupMembersModal';
 import { MessageModal } from '@/components/messages/MessageModal';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { GroupChatCard } from '@/components/messages/GroupChatCard';
 import { 
   Search, 
   Plus, 
@@ -40,12 +43,15 @@ const Messages = () => {
   const [activeTab, setActiveTab] = useState<MessageTab>('all');
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [selectedGroupChat, setSelectedGroupChat] = useState<GroupChat | null>(null);
-  const [chats, setChats] = useState<Chat[]>(mockChats);
-  const [groupChats, setGroupChats] = useState<GroupChat[]>(mockGroupChats);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -95,18 +101,52 @@ const Messages = () => {
       setSelectedGroupChat(groupChat);
       setActiveTab('groups');
       setSelectedChat(null);
+      setIsMobileView(true);
       
       // Clear the navigation state
       navigate('/messages', { replace: true });
     }
   }, [location.state, groupChats, navigate]);
 
-  const filteredChats = chats.filter(chat =>
+  useEffect(() => {
+    const fetchChats = async () => {
+      setIsLoading(true);
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setChats(mockChats);
+        setGroupChats(mockGroupChats);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
+
+  // Sort chats: pinned first (by last message time), then unpinned by latest activity
+  const sortedChats = [...chats].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.lastMessageTime - a.lastMessageTime;
+  });
+
+  const filteredChats = sortedChats.filter(chat =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredGroupChats = groupChats.filter(groupChat =>
+  // Sort and filter group chats
+  const sortedGroupChats = [...groupChats].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.lastMessageTime - a.lastMessageTime;
+  });
+
+  const filteredGroupChats = sortedGroupChats.filter(groupChat =>
     groupChat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     groupChat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -114,11 +154,25 @@ const Messages = () => {
   const handleChatSelect = (chat: Chat) => {
     setSelectedChat(chat);
     setSelectedGroupChat(null);
+    setIsMobileView(true);
+    // Mark chat as read when clicked
+    setChats(prevChats =>
+      prevChats.map(c =>
+        c.id === chat.id ? { ...c, unreadCount: 0 } : c
+      )
+    );
   };
 
   const handleGroupChatSelect = (groupChat: GroupChat) => {
     setSelectedGroupChat(groupChat);
     setSelectedChat(null);
+    setIsMobileView(true);
+    // Mark group chat as read
+    setGroupChats(prevGroupChats =>
+      prevGroupChats.map(gc =>
+        gc.id === groupChat.id ? { ...gc, unreadCount: 0 } : gc
+      )
+    );
   };
 
   const handleSendMessage = () => {
@@ -165,21 +219,73 @@ const Messages = () => {
   };
 
   const handlePinChat = () => {
-    if (selectedGroupChat) {
+    if (selectedChat) {
+      const pinnedCount = chats.filter(chat => chat.isPinned).length;
+      
+      if (!selectedChat.isPinned && pinnedCount >= 4) {
+        toast({
+          title: "Pin limit reached",
+          description: "You can only pin up to 4 chats. Unpin a chat first.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const updatedChat = {
+        ...selectedChat,
+        isPinned: !selectedChat.isPinned
+      };
+      setSelectedChat(updatedChat);
+      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+
+      toast({
+        title: selectedChat.isPinned ? "Chat unpinned" : "Chat pinned",
+        description: selectedChat.isPinned 
+          ? `${selectedChat.name} has been unpinned` 
+          : `${selectedChat.name} has been pinned to the top`
+      });
+    } else if (selectedGroupChat) {
+      const pinnedCount = groupChats.filter(groupChat => groupChat.isPinned).length;
+      
+      if (!selectedGroupChat.isPinned && pinnedCount >= 4) {
+        toast({
+          title: "Pin limit reached",
+          description: "You can only pin up to 4 group chats. Unpin a chat first.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const updatedGroupChat = {
         ...selectedGroupChat,
         isPinned: !selectedGroupChat.isPinned
       };
       setSelectedGroupChat(updatedGroupChat);
       setGroupChats(groupChats.map(gc => gc.id === selectedGroupChat.id ? updatedGroupChat : gc));
+
+      toast({
+        title: selectedGroupChat.isPinned ? "Group unpinned" : "Group pinned",
+        description: selectedGroupChat.isPinned 
+          ? `${selectedGroupChat.name} has been unpinned` 
+          : `${selectedGroupChat.name} has been pinned to the top`
+      });
     }
   };
 
   const handleLeaveGroup = () => {
     if (selectedGroupChat) {
-      // Remove from group chats list
-      setGroupChats(groupChats.filter(gc => gc.id !== selectedGroupChat.id));
-      setSelectedGroupChat(null);
+      if (window.confirm('Are you sure you want to leave this group?')) {
+        // Remove from group chats list
+        setGroupChats(groupChats.filter(gc => gc.id !== selectedGroupChat.id));
+        setSelectedGroupChat(null);
+        setIsMobileView(false);
+        
+        toast({
+          title: "Left group",
+          description: "You have left the group chat",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -194,7 +300,6 @@ const Messages = () => {
     console.log('Add members functionality');
   };
 
-  
   const handleDeleteMessages = (chatId: string) => {
     if (window.confirm('Are you sure you want to delete all messages in this chat?')) {
       setChats(prevChats =>
@@ -218,7 +323,6 @@ const Messages = () => {
       });
     }
   };
-
 
   const handleWhatsAppChat = (chatId: string) => {
     const chat = chats.find(c => c.id === chatId);
@@ -246,13 +350,36 @@ const Messages = () => {
   const handleBackToChats = () => {
     setSelectedChat(null);
     setSelectedGroupChat(null);
+    setIsMobileView(false);
   };
+
+  // Determine which messages to display based on active chat
+  const displayMessages = selectedChat?.messages || selectedGroupChat?.messages || [];
+  const filteredMessages = displayMessages.filter((message: any) =>
+    message.content.toLowerCase().includes(messageSearchQuery.toLowerCase())
+  );
+  const messagesToShow = messageSearchQuery ? filteredMessages : displayMessages;
+
+  if (isLoading) {
+    return (
+      <AppLayout showRightSidebar={false}>
+        <div className="h-screen flex">
+          <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-x border-border flex-col bg-background">
+            <div className="p-4 border-b border-border">
+              <h1 className="text-2xl font-bold">Messages</h1>
+            </div>
+            <LoadingSpinner />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout showRightSidebar={false}>
       <div className="flex h-full">
         {/* Chat List Sidebar */}
-        <div className={`${selectedChat || selectedGroupChat ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
+        <div className={`${(selectedChat || selectedGroupChat) && isMobileView ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
@@ -336,44 +463,12 @@ const Messages = () => {
               <ScrollArea className="h-full">
                 <div className="p-2">
                   {filteredGroupChats.map((groupChat) => (
-                    <div
+                    <GroupChatCard
                       key={groupChat.id}
-                      className={`p-3 py-4 rounded-md cursor-pointer transition-colors border mb-[2px] ${
-                        selectedGroupChat?.id === groupChat.id
-                          ? 'bg-muted/50 border-muted/50'
-                          : 'hover:bg-muted/50 border-transparent'
-                      }`}
+                      groupChat={groupChat}
+                      isSelected={selectedGroupChat?.id === groupChat.id}
                       onClick={() => handleGroupChatSelect(groupChat)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage src={groupChat.avatar} alt={groupChat.name} />
-                            <AvatarFallback>{groupChat.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full border-2 border-background flex items-center justify-center">
-                            <Users className="h-2 w-2 text-primary-foreground" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-foreground truncate">{groupChat.name}</h3>
-                            <div className="flex items-center space-x-2">
-                              {groupChat.isPinned && <Pin className="h-3 w-3 text-primary" />}
-                              <span className="text-xs text-muted-foreground">{groupChat.timestamp}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground truncate">{groupChat.lastMessage}</p>
-                            {groupChat.unreadCount > 0 && (
-                              <Badge variant="default" className="ml-2 h-5 min-w-5 flex items-center justify-center text-xs">
-                                {groupChat.unreadCount}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    />
                   ))}
                 </div>
               </ScrollArea>
@@ -437,7 +532,7 @@ const Messages = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-background">
-                      <DropdownMenuItem onClick={() => handlePinChat}>
+                      <DropdownMenuItem onClick={handlePinChat}>
                         {selectedChat.isPinned ? (
                           <>
                             <PinOff className="h-4 w-4 mr-2" />
@@ -463,10 +558,41 @@ const Messages = () => {
                 </div>
               </div>
 
+              {/* Message Search */}
+              {isSearching && (
+                <div className="p-4 border-b border-border bg-muted/30">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search messages..."
+                      value={messageSearchQuery}
+                      onChange={(e) => setMessageSearchQuery(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                      onClick={() => {
+                        setIsSearching(false);
+                        setMessageSearchQuery('');
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {messageSearchQuery && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {selectedChat.messages.map((message) => (
+                  {messagesToShow.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
@@ -494,7 +620,7 @@ const Messages = () => {
               <GroupChatHeader
                 groupChat={selectedGroupChat}
                 onBack={handleBackToChats}
-                onToggleSearch={() => setIsSearchActive(!isSearchActive)}
+                onToggleSearch={() => setIsSearching(!isSearching)}
                 onPinChat={handlePinChat}
                 onLeaveGroup={handleLeaveGroup}
                 onManageGroup={handleManageGroup}
@@ -502,10 +628,41 @@ const Messages = () => {
                 onViewMembers={handleViewMembers}
               />
 
+              {/* Message Search */}
+              {isSearching && (
+                <div className="p-4 border-b border-border bg-muted/30">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search messages..."
+                      value={messageSearchQuery}
+                      onChange={(e) => setMessageSearchQuery(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                      onClick={() => {
+                        setIsSearching(false);
+                        setMessageSearchQuery('');
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {messageSearchQuery && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Group Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {selectedGroupChat.messages.map((message) => (
+                  {messagesToShow.map((message: any) => (
                     <div
                       key={message.id}
                       className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
@@ -517,7 +674,7 @@ const Messages = () => {
                             onClick={handleGroupProfileClick}
                           >
                             <AvatarImage src={message.senderAvatar} alt={message.senderName} />
-                            <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{message.senderName?.charAt(0)}</AvatarFallback>
                           </Avatar>
                         )}
                         <div>
