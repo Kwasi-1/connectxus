@@ -22,11 +22,17 @@ import {
   Users,
   MessageCircle,
   Pin,
-  Archive
+  Archive,
+  Phone,
+  PinOff,
+  Trash2,
+  MessageSquare
 } from 'lucide-react';
 import { mockChats, mockGroupChats } from '@/data/mockGroupChats';
 import { Chat, GroupChat, Message, GroupMessage, MessageTab } from '@/types/messages';
 import { User } from '@/types/global';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from '@/hooks/use-toast';
 
 const Messages = () => {
   const location = useLocation();
@@ -39,6 +45,8 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
 
@@ -184,6 +192,51 @@ const Messages = () => {
   const handleAddMembers = () => {
     // This would typically open a modal to add members
     console.log('Add members functionality');
+  };
+
+  
+  const handleDeleteMessages = (chatId: string) => {
+    if (window.confirm('Are you sure you want to delete all messages in this chat?')) {
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat.id === chatId 
+            ? { 
+                ...chat, 
+                messages: [], 
+                lastMessage: 'No messages yet',
+                timestamp: 'Just now',
+                unreadCount: 0 
+              } 
+            : chat
+        )
+      );
+      
+      toast({
+        title: "Messages deleted",
+        description: "All messages in this chat have been deleted",
+        variant: "destructive"
+      });
+    }
+  };
+
+
+  const handleWhatsAppChat = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat?.phone) {
+      const whatsappUrl = `https://wa.me/${chat.phone.replace(/[^0-9]/g, '')}`;
+      window.open(whatsappUrl, '_blank');
+      
+      toast({
+        title: "Opening WhatsApp",
+        description: `Starting WhatsApp chat with ${chat.name}`
+      });
+    }
+  };
+
+  const handlePhoneCall = (phone?: string) => {
+    if (phone) {
+      window.location.href = `tel:${phone}`;
+    }
   };
 
   const handleViewMembers = () => {
@@ -359,9 +412,55 @@ const Messages = () => {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
+
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsSearching(!isSearching)}
+                  >
+                    <Search className="h-5 w-5" />
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handlePhoneCall(selectedChat.phone)}
+                  >
+                    <Phone className="h-5 w-5" />
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background">
+                      <DropdownMenuItem onClick={() => handlePinChat}>
+                        {selectedChat.isPinned ? (
+                          <>
+                            <PinOff className="h-4 w-4 mr-2" />
+                            Unpin Chat
+                          </>
+                        ) : (
+                          <>
+                            <Pin className="h-4 w-4 mr-2" />
+                            Pin Chat
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteMessages(selectedChat.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Messages
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleWhatsAppChat(selectedChat.id)}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Chat on WhatsApp
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {/* Messages */}
