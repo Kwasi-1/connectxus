@@ -395,6 +395,40 @@ const Messages = () => {
   );
   const messagesToShow = messageSearchQuery ? filteredMessages : displayMessages;
 
+  const SearchBar = () => {
+    return (
+      <div>
+        <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search messages..."
+              value={messageSearchQuery}
+              onChange={(e) => setMessageSearchQuery(e.target.value)}
+              className="pl-10 pr-10 rounded-full bg-gray-50"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+              onClick={() => {
+                setIsSearching(false);
+                setMessageSearchQuery('');
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          {messageSearchQuery && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <AppLayout showRightSidebar={false}>
@@ -410,7 +444,7 @@ const Messages = () => {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="flex h-full">
+      <div className="flex max-h-full h-[calc(100vh-128px)] lg:h-screen">
         {/* Chat List Sidebar */}
         <div className={`${(selectedChat || selectedGroupChat) && isMobileView ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
           {/* Header */}
@@ -566,14 +600,14 @@ const Messages = () => {
 
               {/* Message Search */}
               {isSearching && (
-                <div className="p-4 border-b border-border bg-muted/30">
+                <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search messages..."
                       value={messageSearchQuery}
                       onChange={(e) => setMessageSearchQuery(e.target.value)}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 rounded-full bg-gray-50"
                     />
                     <Button
                       variant="ghost"
@@ -636,14 +670,14 @@ const Messages = () => {
 
               {/* Message Search */}
               {isSearching && (
-                <div className="p-4 border-b border-border bg-muted/30">
+                <div className="pt-16 pr-2 w-full max-w-xs ml-auto">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search messages..."
                       value={messageSearchQuery}
                       onChange={(e) => setMessageSearchQuery(e.target.value)}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 rounded-full bg-gray-50"
                     />
                     <Button
                       variant="ghost"

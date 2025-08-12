@@ -46,7 +46,7 @@ export const GroupChatHeader = ({
   };
 
   return (
-    <div className="p-4 border-b border-border flex items-center justify-between">
+    <div className="sticky top-16 lg:top-0 z-40 bg-background p-4 border-b border-border flex items-center justify-between">
       <div className="flex items-center space-x-3">
         {/* Back button for mobile */}
         <Button
