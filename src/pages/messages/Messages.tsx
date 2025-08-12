@@ -56,6 +56,41 @@ const Messages = () => {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
 
+  const Pageheader = () => (
+    <div className="sticky top-0 z-40 bg-background">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Messages</h1>
+          <Button size="icon" variant="ghost" onClick={() => setShowMessageModal(true)}>
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder={activeTab === 'all' ? "Search messages..." : "Search groups..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 rounded-full"
+            onFocus={() => setIsSearchActive(true)}
+            onBlur={() => setIsSearchActive(false)}
+          />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="mb-2 px-4">
+        <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
+          <TabsTrigger className=" rounded-full" value="all">All</TabsTrigger>
+          <TabsTrigger className=" rounded-full" value="groups">Groups</TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
+  );
+
+
   // Mock recipient for message modal
   const mockRecipient: User = {
     id: 'user-1',
@@ -365,9 +400,7 @@ const Messages = () => {
       <AppLayout showRightSidebar={false}>
         <div className="h-screen flex">
           <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-x border-border flex-col bg-background">
-            <div className="p-4 border-b border-border">
-              <h1 className="text-2xl font-bold">Messages</h1>
-            </div>
+            <Pageheader />
             <LoadingSpinner />
           </div>
         </div>
@@ -381,37 +414,10 @@ const Messages = () => {
         {/* Chat List Sidebar */}
         <div className={`${(selectedChat || selectedGroupChat) && isMobileView ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
           {/* Header */}
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">Messages</h1>
-              <Button size="icon" variant="ghost" onClick={() => setShowMessageModal(true)}>
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 rounded-full"
-                onFocus={() => setIsSearchActive(true)}
-                onBlur={() => setIsSearchActive(false)}
-              />
-            </div>
-          </div>
+          <Pageheader />
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col">
-            <div className='px-4'>
-              <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
-                <TabsTrigger className=" rounded-full" value="all">All</TabsTrigger>
-                <TabsTrigger className=" rounded-full" value="groups">Groups</TabsTrigger>
-              </TabsList>
-            </div>
-
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col -mt-2">      
             <TabsContent value="all" className="flex-1 mt-0">
               <ScrollArea className="h-full">
                 <div className="p-2">
