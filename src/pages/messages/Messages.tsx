@@ -45,9 +45,15 @@ const Messages = () => {
   // Mock recipient for message modal
   const mockRecipient: User = {
     id: 'user-1',
+    username: 'johndoe',
     displayName: 'John Doe',
     email: 'john@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    verified: false,
+    followers: 0,
+    following: 0,
+    createdAt: new Date(),
+    roles: ['student']
   };
 
   // Handle navigation from group details page
