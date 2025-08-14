@@ -69,10 +69,10 @@ export function Feed({ posts, onCreatePost, onLike, onComment, onRepost, onQuote
 
   return (
     <>
-      <div className="flex-1">
+      <div className="flex-1 border-l xl:border-l-0 border-r border-border">
         <FeedHeader activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
-        <div className='min-h-screen border-l xl:border-l-0 border-r border-border'>     
+        <div className='min-h-screen'>     
         <PostComposer onPost={onCreatePost} />
         
         <div className="divide-y divide-border">

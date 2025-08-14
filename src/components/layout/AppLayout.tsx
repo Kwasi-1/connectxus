@@ -56,7 +56,7 @@ export function AppLayout({ children, showRightSidebar = true, onCreatePost }: A
           {/* Right Sidebar - Scrolls with content until it reaches bottom, then sticks */}
           {shouldShowRightSidebar && (
             <div className="w-96 hidden lg:block z-30">
-              <div className="sticky top-0 self-start bg-background border-l border-border">
+              <div className="sticky top-0 self-start bg-background borderl border-border">
                 <RightSidebar />
               </div>
             </div>

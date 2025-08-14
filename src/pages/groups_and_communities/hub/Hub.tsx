@@ -45,7 +45,7 @@ const Hub = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="border-r border-border">
+        <div className="border-r border-border h-full">
           <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
               <h2 className="text-xl tracking-wider font-[600] custom-font text-foreground">Communities & Groups</h2>
@@ -131,7 +131,7 @@ const Hub = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border">
+      <div className="border-r border-border h-full">
         {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md borderb border-border">
           <div className="px-4 py-3">
