@@ -1,111 +1,149 @@
-
-import { Home, Search, Bell, Mail, Users, BookOpen, GraduationCap, User, MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PostModal } from '@/components/post/PostModal';
-import { cn } from '@/lib/utils';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import { UserProfile } from './UserProfile';
-import Logo from '../shared/Logo';
-
-const navigationItems = [
-  { icon: Home, label: 'Home', path: '/', id: 'home' },
-  { icon: Search, label: 'Explore', path: '/search', id: 'explore' },
-  { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
-  { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
-  { icon: Users, label: 'Groups', path: '/hub', id: 'groups' },
-  { icon: BookOpen, label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: GraduationCap, label: 'Mentors', path: '/mentors', id: 'mentors' },
-  { icon: User, label: 'Account', path: '/account', id: 'account' },
-];
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/shared/Logo';
+import {
+  Home,
+  Search,
+  Compass,
+  Bell,
+  MessageCircle,
+  Users,
+  GraduationCap,
+  User,
+  BookOpen,
+  Settings,
+  LogOut,
+  PlusCircle
+} from 'lucide-react';
 
 interface SidebarProps {
   onCreatePost?: (content: string, audience: string) => void;
 }
 
 export function Sidebar({ onCreatePost }: SidebarProps) {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const [showComposer, setShowComposer] = useState(false);
 
-  const handleNavigation = (path: string) => {
-    navigate(path);
+  const handleSignOut = () => {
+    signOut();
   };
 
-  const isActiveRoute = (path: string) => {
-    return location.pathname === path;
+  const handleCreatePostClick = () => {
+    navigate('/compose');
   };
 
-  const handlePostClick = () => {
-    setIsPostModalOpen(true);
-  };
+  const mainNavItems = [
+    { icon: Home, label: 'Home', href: '/feed' }, // Changed from '/' to '/feed'
+    { icon: Search, label: 'Search', href: '/search' },
+    { icon: Compass, label: 'Explore', href: '/explore' },
+    { icon: Bell, label: 'Notifications', href: '/notifications' },
+    { icon: MessageCircle, label: 'Messages', href: '/messages' },
+    { icon: Users, label: 'Hub', href: '/hub' },
+    { icon: GraduationCap, label: 'Tutoring', href: '/tutoring' },
+    { icon: BookOpen, label: 'Mentors', href: '/mentors' },
+    { icon: User, label: 'Profile', href: `/profile/${user?.id}` },
+  ];
 
-  const handleCreatePost = (content: string, audience: string) => {
-    if (onCreatePost) {
-      onCreatePost(content, audience);
-    }
-    setIsPostModalOpen(false);
-  };
+  const bottomNavItems = [
+    { icon: Settings, label: 'Settings', href: '/account' },
+  ];
 
   return (
-    <>
-      <div className="flex flex-col h-full w-full p-6 pb-4 bg-background border-r border-border">
-        {/* Logo */}
-        <div className="flex items-center mb-4 mx-auto xl:mx-3">
-          {/* <div className="w-8 h-8 bg-foreground rounded-full xl:rounded-lg flex items-center justify-center px-2">
-            <span className="text-background font-bold text-sm">CV</span>
-          </div>
-          <span className="font-bold text-xl hidden xl:block text-foreground">Campus Vibe</span> */}
-          <Logo className="w-auto h-12 xl:h-14"/>
-          {/* <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-14 hidden xl:block" />
-          <img src={smallLogo} alt="Campus Vibe Logo" className="w-auto h-12 xl:hidden block" /> */}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = isActiveRoute(item.path);
-            
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={cn(
-                  "w-fit xl:w-full justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
-                  "hover:bg-muted font-[300]",
-                  isActive && "font-bold"
-                )}
-              >
-                <Icon className="h-6 w-6 text-3xl xl:h-5 xl:w-5" />
-                <span className="ml-4 hidden xl:block">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Post Button */}
-        <Button 
-          onClick={handlePostClick}
-          className="mx-auto xl:mx-0 w-full xl:w-[90%] mb-4 bg-foreground hover:bg-foreground/90 text-background font-bold py-6 text-lg rounded-full"
-        >
-          <Icon icon="gridicons:create" className="h-6 w-6 block xl:hidden" />
-          <span className="hidden xl:block ml-2">Post</span>
-        </Button>
-
-        {/* User Profile */}
-        <div>
-          <UserProfile />
-        </div>
+    <div className="h-full w-full flex flex-col bg-background border-r border-border">
+      {/* Logo */}
+      <div className="p-4 xl:p-6">
+        <Link to="/feed" className="flex items-center space-x-2"> {/* Changed from '/' to '/feed' */}
+          <Logo className="w-8 h-8 xl:w-10 xl:h-10" />
+          <span className="hidden xl:block text-xl font-bold text-foreground">Campus Vibe</span>
+        </Link>
       </div>
 
-      {/* Post Modal */}
-      <PostModal
-        isOpen={isPostModalOpen}
-        onClose={() => setIsPostModalOpen(false)}
-        onPost={handleCreatePost}
-      />
-    </>
+      {/* Main Navigation */}
+      <nav className="flex-1 px-2 xl:px-4">
+        <ul className="space-y-1">
+          {mainNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+            
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors hover:bg-muted group ${
+                    isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className={`h-6 w-6 ${isActive ? 'text-foreground' : 'group-hover:text-foreground'}`} />
+                  <span className="hidden xl:block font-medium">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Create Post Button */}
+        <div className="mt-6">
+          <Button
+            onClick={handleCreatePostClick}
+            className="w-full xl:w-full bg-foreground hover:bg-foreground/90 text-background font-semibold py-3"
+          >
+            <PlusCircle className="h-5 w-5 xl:mr-2" />
+            <span className="hidden xl:block">Create</span>
+          </Button>
+        </div>
+      </nav>
+
+      {/* Bottom Navigation */}
+      <div className="px-2 xl:px-4 py-4 border-t border-border">
+        <ul className="space-y-1">
+          {bottomNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+            
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors hover:bg-muted group ${
+                    isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className={`h-6 w-6 ${isActive ? 'text-foreground' : 'group-hover:text-foreground'}`} />
+                  <span className="hidden xl:block font-medium">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* User Profile */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center space-x-3 px-3 py-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="" alt={user?.name} />
+              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="hidden xl:block flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            </div>
+          </div>
+          
+          <Button
+            variant="ghost"
+            onClick={handleSignOut}
+            className="w-full justify-start mt-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <LogOut className="h-4 w-4 xl:mr-2" />
+            <span className="hidden xl:block">Sign out</span>
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
