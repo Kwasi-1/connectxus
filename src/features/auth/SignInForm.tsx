@@ -109,7 +109,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
         </button>
       </div>
 
-      <div className="text-center text-xs text-muted-foreground space-y-1 p-4 bg-muted/50 rounded-lg">
+      <div className=" hidden text-center text-xs text-muted-foreground space-y-1 p-4 bg-muted/50 rounded-lg">
         <p className="font-medium">Demo credentials:</p>
         <p>Email: student@university.edu</p>
         <p>Password: password123</p>
