@@ -157,7 +157,7 @@ export function FullScreenPostModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 bg-black/45 lg:bg-background/55 backdrop-blur-md">
       <div className="h-full flex">
         {/* Media Section */}
         <div className="flex-1 flex flex-col">
