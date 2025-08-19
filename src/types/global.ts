@@ -184,3 +184,38 @@ export interface TutoringRequest {
   status: 'pending' | 'accepted' | 'completed';
   createdAt: Date;
 }
+
+// Public page types for footer links
+export interface PublicPageProps {
+  title: string;
+  description?: string;
+}
+
+export interface FooterLink {
+  name: string;
+  path: string;
+}
+
+export interface LandingPageState {
+  isSignUp: boolean;
+}
+
+export interface ContactMethod {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+}
+
+export interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface DownloadPlatform {
+  id: string;
+  name: string;
+  platforms: string[];
+  icon: string;
+}
