@@ -70,7 +70,7 @@ export function PostModal({ isOpen, onClose, onPost }: PostModalProps) {
             >
               <X className="h-4 w-4" />
             </Button>
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-lg font-semibold tracking-wider">
               Compose Post
             </DialogTitle>
           </div>
