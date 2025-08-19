@@ -114,13 +114,13 @@ const About: React.FC = () => {
       <main>
         {/* Hero Section */}
         <section className="py-20 bg-gradient-to-br from-background via-accent/5 to-background">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground mb-8 custom-font leading-tight">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-cente mb-16 h-[55vh] flex flex-col items-cente justify-center space-y-4">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5rem] leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
                 Connecting University
                 <span className="block text-primary">Communities</span>
               </h1>
-              <p className="text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+              <p className="text-xl lg:text-2xl text-muted-foreground max-w-4xl mxauto leading-relaxed">
                 Campus Connect is the premier social platform designed exclusively for university communities. 
                 We bring students, faculty, and staff together in one seamless, connected ecosystem where 
                 learning thrives and academic excellence flourishes.
@@ -129,8 +129,8 @@ const About: React.FC = () => {
 
             <div className="grid lg:grid-cols-3 gap-8 mb-16">
               <div className="lg:col-span-2">
-                <div className="bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 lg:p-12">
-                  <h2 className="text-3xl font-bold text-foreground mb-6 custom-font flex items-center">
+                <div className="bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 pl-0 lg:pl-0 lg:p-12">
+                  <h2 className="text-3xl font-semibold text-foreground mb-6 custom-font flex items-center">
                     <Target className="w-8 h-8 text-primary mr-3" />
                     Our Mission
                   </h2>
@@ -148,12 +148,12 @@ const About: React.FC = () => {
               <div className="space-y-6">
                 <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 text-center">
                   <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Growing Fast</h3>
+                  <h3 className="text-2xl font-semibold text-foreground mb-2">Growing Fast</h3>
                   <p className="text-muted-foreground">300% growth year over year</p>
                 </div>
                 <div className="bg-accent/10 border border-accent/20 rounded-xl p-6 text-center">
                   <Clock className="w-12 h-12 text-accent mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Always On</h3>
+                  <h3 className="text-2xl font-semibold text-foreground mb-2">Always On</h3>
                   <p className="text-muted-foreground">24/7 student support</p>
                 </div>
               </div>
@@ -163,9 +163,9 @@ const About: React.FC = () => {
 
         {/* Features Section */}
         <section className="py-20 bg-accent/5">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
                 What Makes Us Different
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -180,7 +180,7 @@ const About: React.FC = () => {
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors duration-300">
                       <feature.icon className="w-8 h-8 text-primary" />
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-4 custom-font">{feature.title}</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-4 custom-font">{feature.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
@@ -191,9 +191,9 @@ const About: React.FC = () => {
 
         {/* Values Section */}
         <section className="py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
                 Our Core Values
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -209,7 +209,7 @@ const About: React.FC = () => {
                       <value.icon className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-foreground mb-3 custom-font">{value.title}</h3>
+                      <h3 className="text-xl font-semibold text-foreground mb-3 custom-font">{value.title}</h3>
                       <p className="text-muted-foreground leading-relaxed">{value.description}</p>
                     </div>
                   </div>
@@ -221,9 +221,9 @@ const About: React.FC = () => {
 
         {/* Timeline Section */}
         <section className="py-20 bg-accent/5">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
                 Our Journey
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -238,8 +238,8 @@ const About: React.FC = () => {
                   <div key={index} className={`flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
                     <div className={`w-1/2 ${index % 2 === 0 ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
                       <div className="bg-background border border-border/20 rounded-xl p-6 shadow-lg">
-                        <div className="text-2xl font-bold text-primary mb-2">{item.year}</div>
-                        <h3 className="text-xl font-bold text-foreground mb-3 custom-font">{item.title}</h3>
+                        <div className="text-2xl font-semibold text-primary mb-2">{item.year}</div>
+                        <h3 className="text-xl font-semibold text-foreground mb-3 custom-font">{item.title}</h3>
                         <p className="text-muted-foreground">{item.description}</p>
                       </div>
                     </div>
@@ -254,9 +254,9 @@ const About: React.FC = () => {
 
         {/* Impact Stats Section */}
         <section className="py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
                 Our Impact
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -267,10 +267,10 @@ const About: React.FC = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {impactStats.map((stat, index) => (
                 <div key={index} className="bg-gradient-to-br from-primary/5 to-accent/5 border border-border/20 rounded-2xl p-8 text-center">
-                  <div className="text-4xl lg:text-5xl font-bold text-primary mb-3 custom-font">
+                  <div className="text-4xl lg:text-5xl font-semibold text-primary mb-3 custom-font">
                     {stat.number}
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{stat.label}</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">{stat.label}</h3>
                   <p className="text-sm text-muted-foreground">{stat.description}</p>
                 </div>
               ))}
@@ -281,7 +281,7 @@ const About: React.FC = () => {
         {/* CTA Section */}
         <section className="py-20 bg-gradient-to-r from-primary/10 to-accent/10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+            <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
               Ready to Connect?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
