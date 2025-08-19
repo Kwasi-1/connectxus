@@ -38,11 +38,11 @@ const Privacy: React.FC = () => {
         size="medium"
         heroContent={
           <div className="text-center">
-            <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
               Privacy & 
               <span className="block text-primary">Security</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
+            <p className="text-base md:text-lg xl:text-xl text-muted-foreground max-w-2xl lg:max-w-3xl mx-auto mb-6">
               We're committed to protecting the information you share with us. This policy explains how we collect, use, and protect your personal information on Campus Connect.
             </p>
             <div className="text-sm text-muted-foreground mb-8">

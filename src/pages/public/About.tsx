@@ -116,11 +116,11 @@ const About: React.FC = () => {
         backgroundVariant="gradient"
         heroContent={
           <div className="text-center flex flex-col items-center justify-center space-y-6">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5rem] leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
               Connecting University
               <span className="block text-primary">Communities</span>
             </h1>
-            <p className="text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
               Campus Connect is the premier social platform designed exclusively for university communities. 
               We bring students, faculty, and staff together in one seamless, connected ecosystem where 
               learning thrives and academic excellence flourishes.

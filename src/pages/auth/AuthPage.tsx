@@ -26,7 +26,7 @@ export const AuthPage: React.FC = () => {
               <SignUpForm onToggleMode={toggleMode} />
             ) : (
               <div>
-                <div className="space-y-2 text-center">
+                <div className="space-y-2 text-center mb-4 lg:mb-6">
                   <h2 className="text-3xl font-bold">Welcome Back</h2>
                   <p className="text-muted-foreground">Sign in to your Campus Vibe account</p>
                 </div>
