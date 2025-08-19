@@ -42,10 +42,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2 text-center">
-        <h2 className="text-3xl font-bold">Welcome Back</h2>
-        <p className="text-muted-foreground">Sign in to your Campus Vibe account</p>
-      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
