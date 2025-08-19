@@ -109,27 +109,33 @@ const About: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHero title="About Campus Connect" />
+      <PublicHero 
+        title="About Campus Connect" 
+        showVisualElements={true}
+        size="large"
+        backgroundVariant="gradient"
+        heroContent={
+          <div className="text-center flex flex-col items-center justify-center space-y-6">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5rem] leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
+              Connecting University
+              <span className="block text-primary">Communities</span>
+            </h1>
+            <p className="text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+              Campus Connect is the premier social platform designed exclusively for university communities. 
+              We bring students, faculty, and staff together in one seamless, connected ecosystem where 
+              learning thrives and academic excellence flourishes.
+            </p>
+          </div>
+        }
+      />
 
       <main>
-        {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-background via-accent/5 to-background">
+        {/* Features Section */}
+        <section className="py-20 bg-gradient-to-tr from-background via-background to-accent/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-cente mb-16 h-[55vh] flex flex-col items-cente justify-center space-y-4">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5rem] leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
-                Connecting University
-                <span className="block text-primary">Communities</span>
-              </h1>
-              <p className="text-xl lg:text-2xl text-muted-foreground max-w-4xl mxauto leading-relaxed">
-                Campus Connect is the premier social platform designed exclusively for university communities. 
-                We bring students, faculty, and staff together in one seamless, connected ecosystem where 
-                learning thrives and academic excellence flourishes.
-              </p>
-            </div>
-
             <div className="grid lg:grid-cols-3 gap-8 mb-16">
               <div className="lg:col-span-2">
-                <div className="bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 pl-0 lg:pl-0 lg:p-12">
+                <div className="bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 lg:p-12">
                   <h2 className="text-3xl font-semibold text-foreground mb-6 custom-font flex items-center">
                     <Target className="w-8 h-8 text-primary mr-3" />
                     Our Mission
@@ -162,6 +168,7 @@ const About: React.FC = () => {
         </section>
 
         {/* Features Section */}
+     
         <section className="py-20 bg-accent/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">

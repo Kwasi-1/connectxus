@@ -30,25 +30,40 @@ const Privacy: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHero title="Privacy Policy" />
+      <PublicHero 
+        title="Privacy Policy" 
+        subtitle="We're committed to protecting your information and maintaining transparency about how your data is used."
+        showVisualElements={true}
+        // backgroundVariant="gradient"
+        size="medium"
+        heroContent={
+          <div className="text-center">
+            <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
+              Privacy & 
+              <span className="block text-primary">Security</span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
+              We're committed to protecting the information you share with us. This policy explains how we collect, use, and protect your personal information on Campus Connect.
+            </p>
+            <div className="text-sm text-muted-foreground mb-8">
+              <span className="font-medium">Last Updated:</span> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div className="flex flex-wrap justify-center gap-4">
+              {privacyPrinciples.map((principle, index) => (
+                <div key={index} className="flex items-center space-x-2 px-4 py-2 bg-accent/20 rounded-full text-sm font-medium">
+                  <principle.icon className="w-4 h-4 text-primary" />
+                  <span>{principle.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        }
+      />
 
       <main>
-        {/* Header Section */}
-        <section className="py-16 bg-gradient-to-br from-background via-accent/5 to-background">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
-                Privacy & 
-                <span className="block text-primary">Security</span>
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
-                We're committed to protecting the information you share with us. This policy explains how we collect, use, and protect your personal information on Campus Connect.
-              </p>
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Last Updated:</span> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </div>
-            </div>
-
+        {/* Content sections */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Privacy Principles */}
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {privacyPrinciples.map((principle, index) => (
@@ -66,7 +81,7 @@ const Privacy: React.FC = () => {
 
         {/* Information Collection */}
         <section className="py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-0">
             <div className="bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 lg:p-12 mb-12">
               <div className="flex items-center space-x-4 mb-8">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -124,7 +139,7 @@ const Privacy: React.FC = () => {
 
         {/* How We Use Information */}
         <section className="py-16 bg-accent/5">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-foreground mb-4 custom-font">How We Use Your Information</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -168,7 +183,7 @@ const Privacy: React.FC = () => {
 
         {/* Data Sharing */}
         <section className="py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-border/20 rounded-2xl p-8 lg:p-12">
               <h2 className="text-3xl font-bold text-foreground mb-8 custom-font">Data Sharing & Protection</h2>
               
@@ -217,7 +232,7 @@ const Privacy: React.FC = () => {
 
         {/* Your Rights */}
         <section className="py-16 bg-accent/5">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-foreground mb-4 custom-font">Your Privacy Rights</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

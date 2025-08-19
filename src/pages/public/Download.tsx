@@ -55,21 +55,24 @@ const Download: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicHero title="Download Campus Connect" />
-
-      <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4 custom-font">
-              Take Your Campus Community Everywhere
-            </h2>
+      <PublicHero 
+        title="Download Campus Connect" 
+        subtitle="Take your campus community everywhere with our native apps for all devices."
+        showVisualElements={true}
+        backgroundVariant="gradient"
+        size="medium"
+        heroContent={
+          <div className="text-center">
+            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-6 custom-font">
+              Take Your Campus Community 
+              <span className="block text-primary">Everywhere</span>
+            </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
               Download Campus Connect for the best experience on all your devices. Available on mobile and desktop platforms.
             </p>
             
             {/* Download Stats */}
-            <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
+            <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground mb-8">
               <div className="flex items-center space-x-1">
                 <Star className="w-4 h-4 text-yellow-500" />
                 <span>4.8/5 Rating</span>
@@ -77,8 +80,24 @@ const Download: React.FC = () => {
               <div>50K+ Downloads</div>
               <div>200+ Universities</div>
             </div>
-          </div>
 
+            {/* Quick Download Buttons */}
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button size="lg" className="space-x-2">
+                <Apple className="w-5 h-5" />
+                <span>Download for iOS</span>
+              </Button>
+              <Button variant="outline" size="lg" className="space-x-2">
+                <Play className="w-5 h-5" />
+                <span>Download for Android</span>
+              </Button>
+            </div>
+          </div>
+        }
+      />
+
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Platform Cards */}
           <div className="grid lg:grid-cols-2 gap-8 mb-16">
             {platforms.map((platform, index) => (

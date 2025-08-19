@@ -31,11 +31,12 @@ const Cookies: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicHero title="Cookies Policy" />
-
-      <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Header */}
+      <PublicHero 
+        title="Cookies Policy" 
+        subtitle="Learn how we use cookies to provide and improve our services."
+        // backgroundVariant="minimal"
+        size="medium"
+        heroContent={
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-foreground mb-4 custom-font">Cookies Policy</h2>
             <p className="text-muted-foreground mb-2">Last Updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -43,6 +44,11 @@ const Cookies: React.FC = () => {
               This policy explains how Campus Connect uses cookies and similar technologies to provide, improve, and protect our services.
             </p>
           </div>
+        }
+      />
+
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">          
 
           {/* What are Cookies */}
           <div className="bg-card border border-border/40 rounded-xl p-8 mb-8">

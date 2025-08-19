@@ -131,38 +131,44 @@ const Contact: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHero title="Contact & Support" />
-
-      <main>
-        {/* Header Section */}
-        <section className="py-16 bg-gradient-to-br from-background via-accent/5 to-background">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
-                We're Here to 
-                <span className="block text-primary">Help</span>
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-                Get the support you need to make the most of your Campus Connect experience. 
-                Our team is dedicated to helping students, faculty, and staff succeed.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span>24/7 Support Available</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4 text-primary" />
-                  <span>200+ Universities Supported</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span>50K+ Students Helped</span>
-                </div>
+      <PublicHero 
+        title="Contact & Support" 
+        subtitle="Get the support you need to make the most of your Campus Connect experience."
+        showVisualElements={true}
+        backgroundVariant="minimal"
+        size="large"
+        heroContent={
+          <div className="text-center">
+            <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-6 custom-font">
+              We're Here to 
+              <span className="block text-primary">Help</span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+              Get the support you need to make the most of your Campus Connect experience. 
+              Our team is dedicated to helping students, faculty, and staff succeed.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-primary" />
+                <span>24/7 Support Available</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-primary" />
+                <span>200+ Universities Supported</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4 text-primary" />
+                <span>50K+ Students Helped</span>
               </div>
             </div>
+          </div>
+        }
+      />
 
-            {/* Contact Methods */}
+      <main>
+        {/* Contact Methods */}
+        <section className="py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-3 gap-8 mb-16">
               {contactMethods.map((method, index) => (
                 <div key={index} className="bg-background/50 backdrop-blur-sm border border-border/20 rounded-xl p-8 text-center hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
@@ -183,7 +189,7 @@ const Contact: React.FC = () => {
 
         {/* Support Categories */}
         <section className="py-16">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-foreground mb-4 custom-font">How Can We Help?</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
