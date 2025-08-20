@@ -120,7 +120,7 @@ const About: React.FC = () => {
               Connecting University
               <span className="block text-primary">Communities</span>
             </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
               Campus Connect is the premier social platform designed exclusively for university communities. 
               We bring students, faculty, and staff together in one seamless, connected ecosystem where 
               learning thrives and academic excellence flourishes.
@@ -243,7 +243,7 @@ const About: React.FC = () => {
               <div className="space-y-12">
                 {timeline.map((item, index) => (
                   <div key={index} className={`flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
-                    <div className={`w-1/2 ${index % 2 === 0 ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
+                    <div className={`w-1/2 ${index % 2 === 0 ? 'md:pr-8 text-right' : 'md:pl-8 text-left'}`}>
                       <div className="bg-background border border-border/20 rounded-xl p-6 shadow-lg">
                         <div className="text-2xl font-semibold text-primary mb-2">{item.year}</div>
                         <h3 className="text-xl font-semibold text-foreground mb-3 custom-font">{item.title}</h3>
