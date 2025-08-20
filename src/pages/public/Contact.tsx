@@ -135,7 +135,6 @@ const Contact: React.FC = () => {
         title="Contact & Support" 
         subtitle="Get the support you need to make the most of your Campus Connect experience."
         showVisualElements={true}
-        backgroundVariant="minimal"
         size="large"
         heroContent={
           <div className="text-center">
