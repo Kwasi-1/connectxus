@@ -5,10 +5,14 @@ import { SignUpForm } from '@/features/auth/SignUpForm';
 import { Card, CardContent } from '@/components/ui/card';
 import Logo from '@/components/shared/Logo';
 
-export const AuthPage: React.FC = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+interface AuthPageProps {
+  initialMode?: 'signIn' | 'signUp';
+}
 
-  const toggleMode = () => setIsSignUp(!isSignUp);
+export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'signIn' }) => {
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signUp');
+
+  const toggleMode = () => setIsSignUp((prev) => !prev);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 p-4">

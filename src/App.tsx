@@ -32,6 +32,7 @@ import Cookies from "./pages/public/Cookies";
 import Contact from "./pages/public/Contact";
 import Download from "./pages/public/Download";
 import NotFound from "./pages/NotFound";
+import { AuthPage } from "./pages/auth/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,8 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/download" element={<Download />} />
+            <Route path='auth/signup' element={<AuthPage initialMode='signUp' />} />
+            <Route path='auth/signin' element={<AuthPage initialMode='signIn' />} />
 
             {/* Protected Routes */}
             <Route
