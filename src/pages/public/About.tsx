@@ -286,7 +286,7 @@ const About: React.FC = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-primary/10 to-accent/10">
+        <section className="mb-4 mx-1 md:mx-10 rounded-3xl py-20 bg-gradient-to-r from-primary/10 to-accent/80">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
               Ready to Connect?
