@@ -36,7 +36,7 @@ const Terms: React.FC = () => {
         size="medium"
         heroContent={
           <div className="text-center mb-12">
-            <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-4 custom-font">Terms of Service</h2>
+            <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4 custom-font">Terms of Service</h2>
             <p className="text-muted-foreground mb-2">Effective Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <p className="text-sm lg:text-base xl:text-lg text-muted-foreground max-w-2xl mx-auto">
               Please read these Terms of Service carefully before using Campus Connect. These terms govern your use of our platform and services.
