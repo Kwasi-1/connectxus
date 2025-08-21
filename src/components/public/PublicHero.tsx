@@ -39,7 +39,7 @@ export const PublicHero: React.FC<PublicHeroProps> = ({
   const getBackgroundClasses = () => {
     switch (backgroundVariant) {
       case 'gradient':
-        return 'bg-gradient-to-br from-background via-background to-accent/50';
+        return 'bg-gradient-to-b from-background via-accent/30 to-accent/50';
       case 'minimal':
         return 'bg-background';
       default:

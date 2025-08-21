@@ -96,7 +96,7 @@ const Download: React.FC = () => {
         }
       />
 
-      <main className="flex-1">
+      <main className="flex-1 bg-gradient-to-t from-background via-background to-accent/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Platform Cards */}
           <div className="grid lg:grid-cols-2 gap-8 mb-16">
@@ -195,7 +195,7 @@ const Download: React.FC = () => {
           </div>
 
           {/* System Requirements */}
-          <div className="bg-muted/30 rounded-xl p-8">
+          <div className="bg-muted/30 rounded-3xl p-8">
             <h3 className="text-xl font-semibold text-foreground mb-6 text-center">System Requirements</h3>
             <div className="grid md:grid-cols-2 gap-8">
               <div>

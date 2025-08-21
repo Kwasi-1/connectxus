@@ -116,7 +116,7 @@ const About: React.FC = () => {
         backgroundVariant="gradient"
         heroContent={
           <div className="text-center flex flex-col items-center justify-center space-y-6">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl leading-tight font-semibold text-foreground mb-4 lg:mb-8 custom-font">
               Connecting University
               <span className="block text-primary">Communities</span>
             </h1>
@@ -131,7 +131,7 @@ const About: React.FC = () => {
 
       <main>
         {/* Features Section */}
-        <section className="py-20 bg-gradient-to-tr from-background via-background to-accent/50">
+        <section className="py-20 bg-gradient-to-t from-background via-background to-accent/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-3 gap-8 mb-16">
               <div className="lg:col-span-2">
@@ -244,7 +244,7 @@ const About: React.FC = () => {
                 {timeline.map((item, index) => (
                   <div key={index} className={`flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
                     <div className={`w-1/2 ${index % 2 === 0 ? 'md:pr-8 text-right' : 'md:pl-8 text-left'}`}>
-                      <div className="bg-background border border-border/20 rounded-xl p-6 shadow-lg">
+                      <div className="bg-background border border-border/20 rounded-xl p-6 hover:shadow-lg">
                         <div className="text-2xl font-semibold text-primary mb-2">{item.year}</div>
                         <h3 className="text-xl font-semibold text-foreground mb-3 custom-font">{item.title}</h3>
                         <p className="text-muted-foreground">{item.description}</p>
@@ -273,7 +273,7 @@ const About: React.FC = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {impactStats.map((stat, index) => (
-                <div key={index} className="bg-gradient-to-br from-primary/5 to-accent/5 border border-border/20 rounded-2xl p-8 text-center">
+                <div key={index} className="border border-border/20 rounded-2xl p-8 text-center">
                   <div className="text-4xl lg:text-5xl font-semibold text-primary mb-3 custom-font">
                     {stat.number}
                   </div>
