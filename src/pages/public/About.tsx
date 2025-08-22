@@ -3,8 +3,23 @@ import React from 'react';
 import { PublicHero } from '@/components/public/PublicHero';
 import { PublicFooter } from '@/components/public/PublicFooter';
 import { Users, BookOpen, MessageCircle, Shield, Globe, Zap, Target, Heart, Lightbulb, Award, TrendingUp, Clock } from 'lucide-react';
+import { useScrollAnimation, useStaggeredScrollAnimation } from '@/hooks/use-scroll-animation';
 
 const About: React.FC = () => {
+  // Scroll animation hooks
+  const missionSection = useScrollAnimation({ threshold: 0.2 });
+  const featuresSection = useScrollAnimation({ threshold: 0.1 });
+  const valuesSection = useScrollAnimation({ threshold: 0.1 });
+  const timelineSection = useScrollAnimation({ threshold: 0.1 });
+  const impactSection = useScrollAnimation({ threshold: 0.1 });
+  const ctaSection = useScrollAnimation({ threshold: 0.3 });
+  
+  // Staggered animations for grids
+  const featuresStagger = useStaggeredScrollAnimation(6, 150);
+  const valuesStagger = useStaggeredScrollAnimation(4, 200);
+  const timelineStagger = useStaggeredScrollAnimation(4, 250);
+  const impactStagger = useStaggeredScrollAnimation(4, 100);
+
   const features = [
     {
       icon: Users,
@@ -112,15 +127,15 @@ const About: React.FC = () => {
       <PublicHero 
         title="About Campus Connect" 
         showVisualElements={true}
-        size="large"
+        size="medium"
         backgroundVariant="gradient"
         heroContent={
-          <div className="text-center flex flex-col items-center justify-center space-y-6">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl leading-tight font-bold text-foreground mb-4 lg:mb-8 custom-font">
+          <div className="px-4 textcenter flex flex-col itemscenter justify-center space-y-6">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[5rem] xl:text-8xl leading-tight font-extrabold text-foreground mb-4 lg:mb-8 ">
               Connecting University
-              <span className="block text-primary">Communities</span>
+              <span className="block text-primary font-[500] custom-font">Communities</span>
             </h1>
-            <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mr-auto leading-relaxed">
               Campus Connect is the premier social platform designed exclusively for university communities. 
               We bring students, faculty, and staff together in one seamless, connected ecosystem where 
               learning thrives and academic excellence flourishes.
@@ -130,12 +145,23 @@ const About: React.FC = () => {
       />
 
       <main>
-        {/* Features Section */}
-        <section className="py-20 bg-gradient-to-t from-background via-accent/30 to-accent/50">
+        {/* Mission Section */}
+        <section 
+          ref={missionSection.ref as React.RefObject<HTMLElement>}
+          className={`py-20 bg-gradient-to-t from-background via-background to-accent/50 transition-all duration-1000 ${
+            missionSection.isInView 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-3 gap-8 mb-16">
               <div className="lg:col-span-2">
-                <div className="group bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 lg:p-12 hover:shadow-xl hover:border-primary/30 transition-all duration-500">
+                <div className={`group bg-card/50 backdrop-blur-sm border border-border/20 rounded-2xl p-8 lg:p-12 hover:shadow-xl hover:border-primary/30 transition-all duration-700 ${
+                  missionSection.isInView 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 -translate-x-8'
+                }`}>
                   <h2 className="text-3xl font-semibold text-foreground mb-6 custom-font flex items-center">
                     <Target className="w-8 h-8 text-primary mr-3 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
                     Our Mission
@@ -152,12 +178,20 @@ const About: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-6">
-                <div className="group bg-primary/10 border border-primary/20 rounded-xl p-6 text-center hover:bg-primary/20 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
+                <div className={`group bg-primary/10 border border-primary/20 rounded-xl p-6 text-center hover:bg-primary/20 hover:shadow-lg hover:scale-105 transition-all duration-500 cursor-pointer ${
+                  missionSection.isInView 
+                    ? 'opacity-100 translate-x-0 delay-300' 
+                    : 'opacity-0 translate-x-8'
+                }`}>
                   <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-300" />
                   <h3 className="text-2xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors duration-300">Growing Fast</h3>
                   <p className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">300% growth year over year</p>
                 </div>
-                <div className="group bg-accent/10 border border-accent/20 rounded-xl p-6 text-center hover:bg-accent/20 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
+                <div className={`group bg-accent/10 border border-accent/20 rounded-xl p-6 text-center hover:bg-accent/20 hover:shadow-lg hover:scale-105 transition-all duration-500 cursor-pointer ${
+                  missionSection.isInView 
+                    ? 'opacity-100 translate-x-0 delay-500' 
+                    : 'opacity-0 translate-x-8'
+                }`}>
                   <Clock className="w-12 h-12 text-accent mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
                   <h3 className="text-2xl font-semibold text-foreground mb-2 group-hover:text-accent transition-colors duration-300">Always On</h3>
                   <p className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">24/7 student support</p>
@@ -168,11 +202,20 @@ const About: React.FC = () => {
         </section>
 
         {/* Features Section */}
-     
-        <section className="py-20 bg-accent/5">
+        <section 
+          ref={featuresStagger.ref as React.RefObject<HTMLElement>}
+          className="py-20 bg-accent/5"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
+            <div className={`text-center mb-16 transition-all duration-1000 ${
+              featuresSection.isInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}>
+              <h2 
+                ref={featuresSection.ref as React.RefObject<HTMLHeadingElement>}
+                className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font"
+              >
                 What Makes Us Different
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -182,7 +225,14 @@ const About: React.FC = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <div key={index} className="group">
+                <div 
+                  key={index} 
+                  className={`group transition-all duration-700 ${
+                    featuresStagger.visibleItems[index]
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-8 scale-95'
+                  }`}
+                >
                   <div className="bg-background border border-border/20 rounded-2xl p-8 h-full transition-all duration-500 hover:border-primary/30 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] cursor-pointer">
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-400">
                       <feature.icon className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
@@ -200,10 +250,20 @@ const About: React.FC = () => {
         </section>
 
         {/* Values Section */}
-        <section className="py-20">
+        <section 
+          ref={valuesStagger.ref as React.RefObject<HTMLElement>}
+          className="py-20"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
+            <div className={`text-center mb-16 transition-all duration-1000 ${
+              valuesSection.isInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}>
+              <h2 
+                ref={valuesSection.ref as React.RefObject<HTMLHeadingElement>}
+                className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font"
+              >
                 Our Core Values
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -215,7 +275,11 @@ const About: React.FC = () => {
               {values.map((value, index) => (
                 <div 
                   key={index} 
-                  className="group bg-gradient-to-br from-card/50 to-accent/5 border border-border/20 rounded-2xl p-8 hover:shadow-xl hover:scale-[1.02] transition-all duration-500 hover:border-primary/30 cursor-pointer"
+                  className={`group bg-gradient-to-br from-card/50 to-accent/5 border border-border/20 rounded-2xl p-8 hover:shadow-xl hover:scale-[1.02] transition-all duration-700 hover:border-primary/30 cursor-pointer ${
+                    valuesStagger.visibleItems[index]
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-8 scale-95'
+                  }`}
                 >
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
@@ -233,10 +297,20 @@ const About: React.FC = () => {
         </section>
 
         {/* Timeline Section */}
-        <section className="py-20 bg-accent/5">
+        <section 
+          ref={timelineStagger.ref as React.RefObject<HTMLElement>}
+          className="py-20 bg-accent/5"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
+            <div className={`text-center mb-16 transition-all duration-1000 ${
+              timelineSection.isInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}>
+              <h2 
+                ref={timelineSection.ref as React.RefObject<HTMLHeadingElement>}
+                className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font"
+              >
                 Our Journey
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -253,6 +327,10 @@ const About: React.FC = () => {
                     key={index} 
                     className={`group flex items-center transition-all duration-700 hover:scale-105 ${
                       index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
+                    } ${
+                      timelineStagger.visibleItems[index]
+                        ? 'opacity-100 translate-y-0 scale-100'
+                        : 'opacity-0 translate-y-8 scale-95'
                     }`}
                   >
                     <div className={`w-1/2 ${
@@ -284,7 +362,14 @@ const About: React.FC = () => {
               <div className="relative pl-[22px]">
                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border/40"></div>
                 {timeline.map((item, index) => (
-                  <div key={index} className="relative mb-8 group">
+                  <div 
+                    key={index} 
+                    className={`relative mb-8 group transition-all duration-700 ${
+                      timelineStagger.visibleItems[index]
+                        ? 'opacity-100 translate-x-0 scale-100'
+                        : 'opacity-0 translate-x-8 scale-95'
+                    }`}
+                  >
                     <div className="absolute -left-[0.8rem] top-2 w-4 h-4 bg-primary rounded-full border-2 border-background group-hover:scale-125 transition-transform duration-300 shadow-lg">
                       <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-20"></div>
                     </div>
@@ -307,10 +392,20 @@ const About: React.FC = () => {
         </section>
 
         {/* Impact Stats Section */}
-        <section className="py-20">
+        <section 
+          ref={impactStagger.ref as React.RefObject<HTMLElement>}
+          className="py-20"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font">
+            <div className={`text-center mb-16 transition-all duration-1000 ${
+              impactSection.isInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}>
+              <h2 
+                ref={impactSection.ref as React.RefObject<HTMLHeadingElement>}
+                className="text-4xl lg:text-5xl font-semibold text-foreground mb-6 custom-font"
+              >
                 Our Impact
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -322,7 +417,11 @@ const About: React.FC = () => {
               {impactStats.map((stat, index) => (
                 <div 
                   key={index} 
-                  className="group border border-border/20 rounded-2xl p-8 text-center hover:shadow-2xl hover:scale-105 hover:border-primary/40 transition-all duration-500 cursor-pointer bg-gradient-to-br from-background to-accent/5 hover:from-primary/5 hover:to-accent/10"
+                  className={`group border border-border/20 rounded-2xl p-8 text-center hover:shadow-2xl hover:scale-105 hover:border-primary/40 transition-all duration-700 cursor-pointer bg-gradient-to-br from-background to-accent/5 hover:from-primary/5 hover:to-accent/10 ${
+                    impactStagger.visibleItems[index]
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-8 scale-95'
+                  }`}
                 >
                   <div className="text-4xl lg:text-5xl font-semibold text-primary mb-3 custom-font group-hover:scale-110 transition-transform duration-300">
                     {stat.number}
@@ -357,7 +456,7 @@ const About: React.FC = () => {
               </a>
               <a 
                 href="/contact" 
-                className="group inline-flex items-center justify-center px-8 py-4 border-2 border-border text-foreground rounded-full text-lg font-semibold hover:bg-accent/20 hover:border-primary transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 hover:scale-105"
+                className="group inline-flex items-center justify-center px-8 py-4 border-2 border-border text-foreground rounded-full text-lg font-semibold hover:bg-accent/20 hover:border-primary/20 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 hover:scale-105"
               >
                 <span className="group-hover:scale-110 transition-transform duration-200">Contact Us</span>
               </a>
