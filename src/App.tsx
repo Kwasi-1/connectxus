@@ -33,13 +33,20 @@ import Contact from "./pages/public/Contact";
 import Download from "./pages/public/Download";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/auth/AuthPage";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { ProtectedAdminRoute } from "@/components/admin/ProtectedAdminRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminDashboard } from "@/pages/admin/AdminDashboard";
+import { UserManagement } from "@/pages/admin/UserManagement";
+import { ContentManagement } from "@/pages/admin/ContentManagement";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
+      <AdminAuthProvider>
+        <AuthProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -208,11 +215,25 @@ const App = () => (
               }
             />
 
+            {/* Admin Routes */}
+            <Route path="/admin/*" element={
+              <ProtectedAdminRoute>
+                <AdminLayout>
+                  <Routes>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<ProtectedAdminRoute requiredPermission="user_management"><UserManagement /></ProtectedAdminRoute>} />
+                    <Route path="content" element={<ProtectedAdminRoute requiredPermission="content_management"><ContentManagement /></ProtectedAdminRoute>} />
+                  </Routes>
+                </AdminLayout>
+              </ProtectedAdminRoute>
+            } />
+
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </AdminAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
