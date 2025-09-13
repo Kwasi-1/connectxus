@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Icon } from '@iconify/react';
 
 const navigationItems = [
-  { icon: 'hugeicons:home-04', label: 'Home', path: '/', id: 'home' },
+  { icon: 'hugeicons:home-04', label: 'Home', path: '/feed', id: 'home' },
   { icon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
   { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
   { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
@@ -37,7 +37,7 @@ export function MobileBottomNav() {
               className={cn(
                 "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-0 flex-1",
                 "hover:bg-muted",
-                isActive ? "text-foreground" : "text-muted-foreground"
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
               <Icon icon={item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />

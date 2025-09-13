@@ -10,7 +10,7 @@ import { UserProfile } from './UserProfile';
 import Logo from '../shared/Logo';
 
 const navigationItems = [
-  { icon: Home, label: 'Home', path: '/', id: 'home' },
+  { icon: Home, label: 'Home', path: '/feed', id: 'home' },
   { icon: Search, label: 'Explore', path: '/search', id: 'explore' },
   { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
   { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
