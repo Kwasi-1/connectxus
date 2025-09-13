@@ -39,6 +39,13 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminDashboard } from "@/pages/admin/AdminDashboard";
 import { UserManagement } from "@/pages/admin/UserManagement";
 import { ContentManagement } from "@/pages/admin/ContentManagement";
+import { AdminManagement } from "./pages/admin/AdminManagement";
+import { Reports } from "./pages/admin/Reports";
+import { Analytics } from "./pages/admin/Analytics";
+import { TutoringMentorship } from "./pages/admin/TutoringMentorship";
+import { CommunitiesGroups } from "./pages/admin/CommunitiesGroups";
+import { SystemSettings } from "./pages/admin/SystemSettings";
+import {Notifications as AdminNotifications } from "./pages/admin/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -223,6 +230,13 @@ const App = () => (
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<ProtectedAdminRoute requiredPermission="user_management"><UserManagement /></ProtectedAdminRoute>} />
                     <Route path="content" element={<ProtectedAdminRoute requiredPermission="content_management"><ContentManagement /></ProtectedAdminRoute>} />
+                    <Route path="communities" element={<ProtectedAdminRoute requiredPermission="community_management"><CommunitiesGroups /></ProtectedAdminRoute>} />
+                    <Route path="tutoring" element={<ProtectedAdminRoute requiredPermission="tutoring_management"><TutoringMentorship /></ProtectedAdminRoute>} />
+                    <Route path="analytics" element={<ProtectedAdminRoute requiredPermission="analytics"><Analytics /></ProtectedAdminRoute>} />
+                    <Route path="reports" element={<ProtectedAdminRoute requiredPermission="reports"><Reports /></ProtectedAdminRoute>} />
+                    <Route path="notifications" element={<ProtectedAdminRoute requiredPermission="notifications"><AdminNotifications /></ProtectedAdminRoute>} />
+                    <Route path="admins" element={<ProtectedAdminRoute requiredPermission="admin_management"><AdminManagement /></ProtectedAdminRoute>} />
+                    <Route path="settings" element={<ProtectedAdminRoute requiredPermission="system_settings"><SystemSettings /></ProtectedAdminRoute>} />
                   </Routes>
                 </AdminLayout>
               </ProtectedAdminRoute>
