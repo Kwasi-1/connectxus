@@ -93,6 +93,13 @@ const superAdminItems = [
 export function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSidebarProps) {
   const { hasPermission, hasRole } = useAdminAuth();
 
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return location.pathname === '/admin';
+    }
+    return location.pathname.startsWith(path);
+  };
+
   const filteredNavItems = navItems.filter(item => 
     !item.permission || hasPermission(item.permission)
   );
@@ -103,7 +110,7 @@ export function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSidebarProps)
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-full max-w-72 p-0">
         <div className="flex flex-col h-full">
           {/* Header */}
           <SheetHeader className="flex flex-row items-center justify-between p-6 border-b border-border">
@@ -127,9 +134,9 @@ export function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSidebarProps)
                   key={item.name}
                   to={item.href}
                   onClick={onClose}
-                  className={({ isActive }) => cn(
+                  className={ cn(
                     "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                    isActive
+                    isActive(item.href)
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}

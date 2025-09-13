@@ -34,7 +34,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 lg:ml-64 min-h-screen">
+        <div className="flex-1 lg:ml-24 xl:ml-64 min-h-screen">
           {/* Header */}
           <AdminHeader onMenuClick={handleMobileMenuClick} />
           

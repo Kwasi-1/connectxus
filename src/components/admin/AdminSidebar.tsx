@@ -102,12 +102,12 @@ export function AdminSidebar() {
   );
 
   return (
-    <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border">
+    <div className="fixed inset-y-0 left-0 z-50 w-24 xl:w-64 bg-card border-r border-border">
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center h-16 px-6 border-b border-border">
-          <Logo className="h-8 w-auto mr-3" />
-          <div className="flex flex-col">
+        <div className="flex items-center justify-center xl:justify-start h-16 px-6 border-b border-border">
+          <Logo className="h-8 w-auto" />
+          <div className="flex-col ml-3 hidden xl:flex">
             <span className="text-lg font-semibold text-foreground custom-font">Connect</span>
             <span className="text-xs text-muted-foreground">Admin Portal</span>
           </div>
@@ -115,20 +115,20 @@ export function AdminSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6">
-          <div className="px-3 space-y-1">
+          <div className="px-3 space-y-3 xl:space-y-1">
             {filteredNavItems.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "flex items-center justify-center xl:justify-start px-3 py-2 text-sm font-medium rounded-lg transition-colors w-fit xl:w-full mx-auto",
                   isActive(item.href)
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                <item.icon className="h-5 w-5" />
+                <span className="ml-3 hidden xl:block">{item.name}</span>
               </NavLink>
             ))}
           </div>
@@ -137,27 +137,27 @@ export function AdminSidebar() {
           {filteredSuperAdminItems.length > 0 && (
             <>
               <div className="px-6 mt-8 mb-3">
-                <div className="flex items-center">
+                <div className="flex items-center justify-center xl:justify-start">
                   <Shield className="h-4 w-4 mr-2 text-campus-orange" />
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Super Admin
                   </h3>
                 </div>
               </div>
-              <div className="px-3 space-y-1">
+              <div className="px-3 space-y-3 xl:space-y-1">
                 {filteredSuperAdminItems.map((item) => (
                   <NavLink
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                      "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors w-fit xl:w-full mx-auto",
                       isActive(item.href)
                         ? "bg-campus-orange text-white"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                   >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
+                    <item.icon className="h-5 w-5" />
+                    <span className="ml-3 hidden xl:block">{item.name}</span>
                   </NavLink>
                 ))}
               </div>
