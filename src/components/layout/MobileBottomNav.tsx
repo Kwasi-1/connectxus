@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 import { Icon } from '@iconify/react';
 
 const navigationItems = [
-  { icon: 'hugeicons:home-04', label: 'Home', path: '/feed', id: 'home' },
-  { icon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
-  { icon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
-  { icon: 'streamline-ultimate:messages-bubble-square-typing', label: 'Messages', path: '/messages', id: 'messages' },
+  { icon: 'streamline-plump:home-1', activeIcon: 'streamline-plump:home-1-solid', label: 'Home', path: '/feed', id: 'home' },
+  { icon: 'uil:users-alt', activeIcon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
+  { icon: 'hugeicons:book-open-01', activeIcon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
+  { icon: 'ph:graduation-cap', activeIcon: 'ph:graduation-cap', label: 'Mentors', path: '/mentors', id: 'mentors' },
+  { icon: 'tabler:message', activeIcon: 'tabler:message', label: 'Messages', path: '/messages', id: 'messages' },
 ];
 
 export function MobileBottomNav() {
@@ -40,7 +40,7 @@ export function MobileBottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon icon={item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
+              <Icon icon={isActive ? item.activeIcon : item.icon} className={cn("h-7 w-7 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
               <span className={cn("text-xs hidden sm:block truncate", isActive && "font-semibold")}>
                 {item.label}
               </span>
