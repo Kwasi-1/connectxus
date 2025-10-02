@@ -162,8 +162,8 @@ const GroupsNew = () => {
                 <h1 className="text-xl font-bold text-foreground">Groups</h1>
               </div>
               <Button className="bg-foreground hover:bg-foreground/90 text-background">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Group
+                <Plus className="h-4 w-4" />
+                <span className="hidden md:block ml-2">Create Group</span>
               </Button>
             </div>
           </div>
