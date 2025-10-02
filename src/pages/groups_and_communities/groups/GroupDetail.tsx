@@ -8,12 +8,22 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Users, Lock, Calendar, Settings, MessageCircle, Share, UserMinus, Files, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Users, Lock, Calendar, Settings, MessageCircle, Share, UserMinus, Files, Briefcase, UserPlus, CheckCircle } from 'lucide-react';
 import { mockGroups, mockUsers } from '@/data/mockCommunitiesData';
-import { Group } from '@/types/communities';
+import { Group, ProjectRole, RoleApplication } from '@/types/communities';
 import { User } from '@/types/global';
+import { ProjectRoleApplicationsModal } from '@/components/groups/ProjectRoleApplicationsModal';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-type GroupTab = 'members' | 'resources' | 'settings';
+type GroupTab = 'members' | 'resources' | 'roles' | 'settings';
 
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +36,10 @@ const GroupDetail = () => {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<User[]>([]);
   const [resources, setResources] = useState<any[]>([]);
+  const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
+  const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [searchEmail, setSearchEmail] = useState('');
   
   const currentUserId = 'user-1'; // Mock current user ID
 
@@ -169,6 +183,65 @@ const GroupDetail = () => {
   const isAdmin = group?.admins.includes(currentUserId);
   const isModerator = group?.moderators.includes(currentUserId);
   const canManage = isAdmin || isModerator;
+
+  const handleViewApplications = (role: ProjectRole) => {
+    setSelectedRole(role);
+    setIsApplicationsModalOpen(true);
+  };
+
+  const handleAcceptApplication = (applicationId: string) => {
+    if (!group || !selectedRole) return;
+    
+    setGroup({
+      ...group,
+      projectRoles: group.projectRoles?.map(role =>
+        role.id === selectedRole.id
+          ? {
+              ...role,
+              slotsFilled: role.slotsFilled + 1,
+              applications: role.applications.map(app =>
+                app.id === applicationId ? { ...app, status: 'accepted' as const } : app
+              ),
+            }
+          : role
+      ),
+    });
+  };
+
+  const handleRejectApplication = (applicationId: string) => {
+    if (!group || !selectedRole) return;
+    
+    setGroup({
+      ...group,
+      projectRoles: group.projectRoles?.map(role =>
+        role.id === selectedRole.id
+          ? {
+              ...role,
+              applications: role.applications.map(app =>
+                app.id === applicationId ? { ...app, status: 'rejected' as const } : app
+              ),
+            }
+          : role
+      ),
+    });
+  };
+
+  const handleAddMember = () => {
+    toast({
+      title: "Invitation sent",
+      description: `An invitation has been sent to ${searchEmail}`,
+    });
+    setSearchEmail('');
+    setIsAddMemberModalOpen(false);
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    setMembers(members.filter(m => m.id !== userId));
+    toast({
+      title: "Member removed",
+      description: "The member has been removed from the group",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -322,6 +395,14 @@ const GroupDetail = () => {
             >
               Members
             </TabsTrigger>
+            {group.groupType === 'project' && (
+              <TabsTrigger 
+                value="roles" 
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Roles
+              </TabsTrigger>
+            )}
             <TabsTrigger 
               value="resources" 
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -339,6 +420,14 @@ const GroupDetail = () => {
           </TabsList>
           
           <TabsContent value="members" className="mt-0">
+            {canManage && (
+              <div className="p-4 border-b border-border">
+                <Button onClick={() => setIsAddMemberModalOpen(true)} size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+              </div>
+            )}
             {membersLoading ? (
               <LoadingSpinner />
             ) : (
@@ -374,6 +463,15 @@ const GroupDetail = () => {
                         {group.moderators.includes(member.id) && (
                           <Badge variant="outline" className="text-xs">Moderator</Badge>
                         )}
+                        {canManage && !group.admins.includes(member.id) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            Remove
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -381,6 +479,84 @@ const GroupDetail = () => {
               </div>
             )}
           </TabsContent>
+
+          {group.groupType === 'project' && (
+            <TabsContent value="roles" className="mt-0">
+              <div className="p-4 space-y-4">
+                {group.projectRoles?.map((role) => {
+                  const pendingCount = role.applications.filter(app => app.status === 'pending').length;
+                  const isFilled = role.slotsFilled >= role.slotsTotal;
+                  
+                  return (
+                    <div key={role.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold">{role.name}</h3>
+                            {isFilled && (
+                              <Badge variant="secondary" className="gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Filled
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{role.description}</p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                              {role.slotsFilled} / {role.slotsTotal} filled
+                            </span>
+                            {pendingCount > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {pendingCount} pending
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {canManage && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewApplications(role)}
+                          >
+                            {pendingCount > 0 ? `Review (${pendingCount})` : 'View'}
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Show accepted members for this role */}
+                      {role.applications.filter(app => app.status === 'accepted').length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Team Members:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {role.applications
+                              .filter(app => app.status === 'accepted')
+                              .map(app => (
+                                <div key={app.id} className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1">
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarImage src={app.userAvatar} />
+                                    <AvatarFallback className="text-xs">
+                                      {app.userName.substring(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm">{app.userName}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {(!group.projectRoles || group.projectRoles.length === 0) && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No roles defined yet
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
+
           
           <TabsContent value="resources" className="mt-0">
             {resourcesLoading ? (
@@ -450,6 +626,49 @@ const GroupDetail = () => {
           )}
         </Tabs>
       </div>
+
+      {/* Modals */}
+      {selectedRole && (
+        <ProjectRoleApplicationsModal
+          open={isApplicationsModalOpen}
+          onOpenChange={setIsApplicationsModalOpen}
+          role={selectedRole}
+          onAcceptApplication={handleAcceptApplication}
+          onRejectApplication={handleRejectApplication}
+        />
+      )}
+
+      <Dialog open={isAddMemberModalOpen} onOpenChange={setIsAddMemberModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member to Group</DialogTitle>
+            <DialogDescription>
+              {group.groupType === 'private' 
+                ? 'Invite someone to this private group by their email'
+                : 'Add a new member to the group'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Email Address</label>
+              <Input
+                type="email"
+                placeholder="student@university.edu"
+                value={searchEmail}
+                onChange={(e) => setSearchEmail(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setIsAddMemberModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddMember} disabled={!searchEmail}>
+                Send Invitation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

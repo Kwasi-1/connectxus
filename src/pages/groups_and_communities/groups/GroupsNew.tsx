@@ -56,7 +56,7 @@ const GroupsNew = () => {
   };
 
   const myGroups = groups.filter(g => g.isJoined);
-  const exploreGroups = groups.filter(g => !g.isJoined);
+  const exploreGroups = groups.filter(g => !g.isJoined && g.groupType !== 'private');
 
   const handleJoinGroup = (groupId: string) => {
     setGroups(groups.map(group =>

@@ -189,6 +189,170 @@ export const mockGroups: Group[] = [
     avatar: '/placeholder.svg',
     admins: ['user-3'],
     moderators: []
+  },
+  {
+    id: '6',
+    name: 'Campus Event Planning App',
+    description: 'Building a mobile app to help students discover and organize campus events.',
+    category: 'Academic',
+    memberCount: 5,
+    groupType: 'project',
+    isJoined: true,
+    tags: ['Project', 'Mobile Dev', 'Team'],
+    createdAt: new Date('2024-03-12'),
+    createdBy: 'user-1',
+    avatar: '/placeholder.svg',
+    admins: ['user-1'],
+    moderators: [],
+    projectDeadline: new Date('2024-06-15'),
+    isAcceptingApplications: true,
+    projectRoles: [
+      {
+        id: 'role-1',
+        name: 'Frontend Developer',
+        description: 'React Native development for iOS and Android',
+        slotsTotal: 2,
+        slotsFilled: 1,
+        applications: [
+          {
+            id: 'app-1',
+            userId: 'user-2',
+            userName: 'Sarah Johnson',
+            userAvatar: '/placeholder.svg',
+            roleId: 'role-1',
+            message: 'I have 2 years of React Native experience and built 3 apps.',
+            status: 'accepted',
+            appliedAt: new Date('2024-03-13')
+          },
+          {
+            id: 'app-2',
+            userId: 'user-4',
+            userName: 'Alex Chen',
+            userAvatar: '/placeholder.svg',
+            roleId: 'role-1',
+            message: 'Experienced with React and willing to learn React Native.',
+            status: 'pending',
+            appliedAt: new Date('2024-03-14')
+          }
+        ]
+      },
+      {
+        id: 'role-2',
+        name: 'UI/UX Designer',
+        description: 'Create wireframes, mockups, and user flows',
+        slotsTotal: 1,
+        slotsFilled: 0,
+        applications: [
+          {
+            id: 'app-3',
+            userId: 'user-5',
+            userName: 'Emma Davis',
+            userAvatar: '/placeholder.svg',
+            roleId: 'role-2',
+            message: 'Portfolio: behance.net/emmadavis - Specialized in mobile UI',
+            status: 'pending',
+            appliedAt: new Date('2024-03-15')
+          }
+        ]
+      },
+      {
+        id: 'role-3',
+        name: 'Backend Developer',
+        description: 'Node.js API and database management',
+        slotsTotal: 1,
+        slotsFilled: 1,
+        applications: [
+          {
+            id: 'app-4',
+            userId: 'user-1',
+            userName: 'John Doe',
+            userAvatar: '/placeholder.svg',
+            roleId: 'role-3',
+            message: 'Project creator - handling backend',
+            status: 'accepted',
+            appliedAt: new Date('2024-03-12')
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: '7',
+    name: 'AI Study Assistant Bot',
+    description: 'Developing an AI chatbot to help students with course materials and Q&A.',
+    category: 'Academic',
+    memberCount: 3,
+    groupType: 'project',
+    isJoined: false,
+    tags: ['AI', 'Chatbot', 'Python'],
+    createdAt: new Date('2024-03-08'),
+    createdBy: 'user-3',
+    avatar: '/placeholder.svg',
+    admins: ['user-3'],
+    moderators: [],
+    projectDeadline: new Date('2024-05-30'),
+    isAcceptingApplications: true,
+    projectRoles: [
+      {
+        id: 'role-4',
+        name: 'ML Engineer',
+        description: 'Train and fine-tune language models',
+        slotsTotal: 2,
+        slotsFilled: 1,
+        applications: []
+      },
+      {
+        id: 'role-5',
+        name: 'Full Stack Developer',
+        description: 'Build web interface and integrate API',
+        slotsTotal: 1,
+        slotsFilled: 0,
+        applications: []
+      }
+    ]
+  },
+  {
+    id: '8',
+    name: 'Campus Sustainability Project',
+    description: 'Research and implement eco-friendly initiatives across campus.',
+    category: 'Social',
+    memberCount: 8,
+    groupType: 'project',
+    isJoined: true,
+    tags: ['Sustainability', 'Research', 'Environment'],
+    createdAt: new Date('2024-02-28'),
+    createdBy: 'user-2',
+    avatar: '/placeholder.svg',
+    admins: ['user-2'],
+    moderators: ['user-1'],
+    projectDeadline: new Date('2024-12-01'),
+    isAcceptingApplications: false,
+    projectRoles: [
+      {
+        id: 'role-6',
+        name: 'Research Lead',
+        description: 'Conduct environmental impact studies',
+        slotsTotal: 2,
+        slotsFilled: 2,
+        applications: []
+      },
+      {
+        id: 'role-7',
+        name: 'Community Outreach',
+        description: 'Engage students and organize awareness campaigns',
+        slotsTotal: 3,
+        slotsFilled: 3,
+        applications: []
+      },
+      {
+        id: 'role-8',
+        name: 'Data Analyst',
+        description: 'Analyze sustainability metrics and create reports',
+        slotsTotal: 1,
+        slotsFilled: 1,
+        applications: []
+      }
+    ]
   }
 ];
 
