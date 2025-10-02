@@ -213,7 +213,7 @@ const GroupDetail = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-xl font-bold text-foreground">{group.name}</h1>
-                    {group.isPrivate && <Lock className="h-4 w-4 text-muted-foreground" />}
+                    {group.groupType === 'private' && <Lock className="h-4 w-4 text-muted-foreground" />}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {group.memberCount} members
@@ -261,7 +261,7 @@ const GroupDetail = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h2 className="text-2xl font-bold">{group.name}</h2>
-                {group.isPrivate && (
+                {group.groupType === 'private' && (
                   <Badge variant="secondary" className="gap-1">
                     <Lock className="h-3 w-3" />
                     Private
@@ -299,7 +299,7 @@ const GroupDetail = () => {
                         Leave Group
                       </>
                     ) : (
-                      group.isPrivate ? 'Request Access' : 'Join Group'
+                      group.groupType === 'private' ? 'Request Access' : 'Join Group'
                     )}
                   </Button>
                 )}

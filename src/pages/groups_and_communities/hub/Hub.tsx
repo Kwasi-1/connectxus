@@ -103,7 +103,7 @@ const Hub = () => {
             <div className="flex-1">
               <CardTitle className="text-lg flex items-center gap-2">
                 {group.name}
-                {group.isPrivate && <Lock className="h-4 w-4 text-muted-foreground" />}
+                {group.groupType === 'private' && <Lock className="h-4 w-4 text-muted-foreground" />}
               </CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="secondary">{group.category}</Badge>

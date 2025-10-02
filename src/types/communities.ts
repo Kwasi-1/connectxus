@@ -16,13 +16,33 @@ export interface Community {
   moderators: string[];
 }
 
+export interface ProjectRole {
+  id: string;
+  name: string;
+  description: string;
+  slotsTotal: number;
+  slotsFilled: number;
+  applications: RoleApplication[];
+}
+
+export interface RoleApplication {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  roleId: string;
+  message: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  appliedAt: Date;
+}
+
 export interface Group {
   id: string;
   name: string;
   description: string;
   category: GroupCategory;
   memberCount: number;
-  isPrivate: boolean;
+  groupType: 'public' | 'private' | 'project';
   isJoined: boolean;
   tags: string[];
   createdAt: Date;
@@ -30,6 +50,10 @@ export interface Group {
   avatar?: string;
   admins: string[];
   moderators: string[];
+  // Project-based group fields
+  projectRoles?: ProjectRole[];
+  projectDeadline?: Date;
+  isAcceptingApplications?: boolean;
 }
 
 export interface CommunityPost {

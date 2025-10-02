@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Search, Users, Lock, Plus, ArrowLeft } from 'lucide-react';
+import { Search, Users, Lock, Plus, ArrowLeft, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockGroups } from '@/data/mockCommunitiesData';
 import { Group, GroupCategory, HubTab } from '@/types/communities';
+import { CreateGroupModal } from '@/components/groups/CreateGroupModal';
+import { useToast } from '@/hooks/use-toast';
 
 const categoryFilters: GroupCategory[] = [
   'Study Group', 'Sports', 'Arts', 'Professional', 'Academic', 'Social', 'Other'
@@ -23,7 +25,9 @@ const GroupsNew = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<GroupCategory | 'All'>('All');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -66,6 +70,25 @@ const GroupsNew = () => {
     ));
   };
 
+  const handleCreateGroup = (groupData: any) => {
+    const newGroup: Group = {
+      id: `group-${Date.now()}`,
+      ...groupData,
+      memberCount: 1,
+      isJoined: true,
+      createdAt: new Date(),
+      createdBy: 'current-user',
+      admins: ['current-user'],
+      moderators: []
+    };
+
+    setGroups([newGroup, ...groups]);
+    toast({
+      title: "Group Created!",
+      description: `${newGroup.name} has been created successfully.`
+    });
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -93,6 +116,25 @@ const GroupsNew = () => {
     );
   }
 
+  const getGroupTypeIcon = (groupType: string) => {
+    if (groupType === 'project') return <Briefcase className="h-4 w-4 text-muted-foreground" />;
+    if (groupType === 'private') return <Lock className="h-4 w-4 text-muted-foreground" />;
+    return null;
+  };
+
+  const getGroupTypeBadge = (group: Group) => {
+    if (group.groupType === 'project') {
+      const totalSlots = group.projectRoles?.reduce((acc, role) => acc + role.slotsTotal, 0) || 0;
+      const filledSlots = group.projectRoles?.reduce((acc, role) => acc + role.slotsFilled, 0) || 0;
+      return (
+        <Badge variant="outline" className="text-xs">
+          Project {filledSlots}/{totalSlots}
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   const GroupCard = ({ group, showJoinButton = false }: { group: Group; showJoinButton?: boolean }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -108,10 +150,11 @@ const GroupsNew = () => {
             <div className="flex-1">
               <CardTitle className="text-lg flex items-center gap-2">
                 {group.name}
-                {group.isPrivate && <Lock className="h-4 w-4 text-muted-foreground" />}
+                {getGroupTypeIcon(group.groupType)}
               </CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="secondary">{group.category}</Badge>
+                {getGroupTypeBadge(group)}
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Users className="h-3 w-3 mr-1" />
                   {group.memberCount}
@@ -124,14 +167,20 @@ const GroupsNew = () => {
               onClick={() => handleJoinGroup(group.id)}
               variant={group.isJoined ? 'outline' : 'default'}
               size="sm"
+              disabled={group.groupType === 'project' && !group.isAcceptingApplications}
             >
-              {group.isJoined ? 'Leave' : group.isPrivate ? 'Request' : 'Join'}
+              {group.isJoined ? 'Leave' : group.groupType === 'project' ? 'View Roles' : group.groupType === 'private' ? 'Request' : 'Join'}
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground text-sm line-clamp-2">{group.description}</p>
+        {group.groupType === 'project' && group.projectDeadline && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Deadline: {new Date(group.projectDeadline).toLocaleDateString()}
+          </p>
+        )}
         <div className="flex flex-wrap gap-1 mt-2">
           {group.tags.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
@@ -161,7 +210,10 @@ const GroupsNew = () => {
                 </Button>
                 <h1 className="text-xl font-bold text-foreground">Groups</h1>
               </div>
-              <Button className="bg-foreground hover:bg-foreground/90 text-background">
+              <Button 
+                className="bg-foreground hover:bg-foreground/90 text-background"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 <span className="hidden md:block ml-2">Create Group</span>
               </Button>
@@ -274,6 +326,12 @@ const GroupsNew = () => {
             </TabsContent>
           </Tabs>
       </div>
+
+      <CreateGroupModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateGroup={handleCreateGroup}
+      />
     </AppLayout>
   );
 };
