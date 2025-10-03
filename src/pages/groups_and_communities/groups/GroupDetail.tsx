@@ -26,6 +26,8 @@ import {
   Save,
   X,
   Clock,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { mockGroups, mockUsers } from "@/data/mockCommunitiesData";
 import {
@@ -147,6 +149,14 @@ const GroupDetail = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPrivacyChangeConfirm, setShowPrivacyChangeConfirm] =
     useState(false);
+
+  // Image editing states
+  const [editedProfileImage, setEditedProfileImage] = useState<string | null>(
+    null
+  );
+  const [editedBannerImage, setEditedBannerImage] = useState<string | null>(
+    null
+  );
 
   // Update settings state when group data is loaded
   useEffect(() => {
@@ -328,6 +338,95 @@ const GroupDetail = () => {
       description: "Group is now public and approval is no longer required",
     });
   }, [toast]);
+
+  // Image upload handlers for settings
+  const handleProfileImageEdit = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Profile image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditedProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerImageEdit = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        toast({
+          title: "File too large",
+          description: "Banner image must be less than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditedBannerImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveImageChanges = useCallback(() => {
+    if (!group) return;
+
+    const updates: Partial<Group> = {};
+
+    if (editedProfileImage !== null) {
+      updates.avatar = editedProfileImage;
+    }
+
+    if (editedBannerImage !== null) {
+      updates.banner = editedBannerImage;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setGroup({
+        ...group,
+        ...updates,
+      });
+
+      setEditedProfileImage(null);
+      setEditedBannerImage(null);
+
+      toast({
+        title: "Images updated",
+        description: "Group images have been successfully updated",
+      });
+    }
+  }, [group, editedProfileImage, editedBannerImage, toast]);
+
+  const cancelImageChanges = useCallback(() => {
+    setEditedProfileImage(null);
+    setEditedBannerImage(null);
+  }, []);
+
+  const removeGroupProfileImage = useCallback(() => {
+    setEditedProfileImage("");
+  }, []);
+
+  const removeGroupBannerImage = useCallback(() => {
+    setEditedBannerImage("");
+  }, []);
 
   useEffect(() => {
     const fetchGroup = async () => {
@@ -963,6 +1062,18 @@ const GroupDetail = () => {
           </div>
         </div>
 
+        {/* Banner Image */}
+        {group.banner && (
+          <div className="relative h-48 bg-gradient-to-r from-primary/20 to-primary/10">
+            <img
+              src={group.banner}
+              alt={`${group.name} banner`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        )}
+
         {/* Group Info */}
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
@@ -1581,6 +1692,157 @@ const GroupDetail = () => {
                             </Button>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Group Images */}
+                      <div className="space-y-4 mb-6 p-4 border rounded-lg">
+                        <h4 className="font-medium">Group Images</h4>
+
+                        {/* Profile Image */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Profile Image
+                          </Label>
+                          <div className="flex items-center gap-4">
+                            <Avatar className="h-20 w-20">
+                              <AvatarImage
+                                src={
+                                  editedProfileImage !== null
+                                    ? editedProfileImage
+                                    : group?.avatar
+                                }
+                                alt={group?.name || "Group"}
+                              />
+                              <AvatarFallback className="text-lg">
+                                {group?.name?.substring(0, 2).toUpperCase() ||
+                                  "GR"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleProfileImageEdit}
+                                className="hidden"
+                                id="profile-image-edit"
+                                aria-label="Upload new profile image"
+                              />
+                              <div className="flex gap-2 mb-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    document
+                                      .getElementById("profile-image-edit")
+                                      ?.click()
+                                  }
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Change Image
+                                </Button>
+                                {(group?.avatar || editedProfileImage) && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={removeGroupProfileImage}
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Remove
+                                  </Button>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Max 5MB. JPG, PNG, or GIF.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Banner Image */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Banner Image
+                          </Label>
+                          <div className="space-y-2">
+                            {(
+                              editedBannerImage !== null
+                                ? editedBannerImage
+                                : group?.banner
+                            ) ? (
+                              <div className="relative">
+                                <img
+                                  src={
+                                    editedBannerImage !== null
+                                      ? editedBannerImage
+                                      : group?.banner
+                                  }
+                                  alt="Group banner"
+                                  className="w-full h-32 object-cover rounded-lg border"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={removeGroupBannerImage}
+                                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                                <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  No banner image
+                                </p>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleBannerImageEdit}
+                                  className="hidden"
+                                  id="banner-image-edit"
+                                  aria-label="Upload new banner image"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    document
+                                      .getElementById("banner-image-edit")
+                                      ?.click()
+                                  }
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload Banner
+                                </Button>
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              Max 10MB. JPG, PNG, or GIF. Recommended size:
+                              800x200px.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Save/Cancel buttons for images */}
+                        {(editedProfileImage !== null ||
+                          editedBannerImage !== null) && (
+                          <div className="flex gap-2 pt-2">
+                            <Button size="sm" onClick={saveImageChanges}>
+                              Save Changes
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelImageChanges}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Privacy Settings - Only for Admins */}

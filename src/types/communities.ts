@@ -64,6 +64,7 @@ export interface Group {
   createdAt: Date;
   createdBy: string;
   avatar?: string;
+  banner?: string;
   admins: string[];
   moderators: string[];
   members?: MemberWithRole[]; // Optional since members are fetched separately

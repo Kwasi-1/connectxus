@@ -1,14 +1,26 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { X, Plus, Calendar } from 'lucide-react';
-import { GroupCategory } from '@/types/communities';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { X, Plus, Calendar, Upload, Camera } from "lucide-react";
+import { GroupCategory } from "@/types/communities";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectRole {
   id: string;
@@ -20,36 +32,122 @@ interface ProjectRole {
 interface CreateGroupModalProps {
   open: boolean;
   onClose: () => void;
-  onCreateGroup: (groupData: any) => void;
+  onCreateGroup: (groupData: {
+    name: string;
+    description: string;
+    category: GroupCategory;
+    tags: string[];
+    groupType: "public" | "private" | "project";
+    avatar?: string | null;
+    banner?: string | null;
+    projectRoles?: any[];
+    projectDeadline?: Date;
+    isAcceptingApplications?: boolean;
+  }) => void;
 }
 
 const categoryOptions: GroupCategory[] = [
-  'Study Group', 'Sports', 'Arts', 'Professional', 'Academic', 'Social', 'Other'
+  "Study Group",
+  "Sports",
+  "Arts",
+  "Professional",
+  "Academic",
+  "Social",
+  "Other",
 ];
 
-export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupModalProps) {
+export function CreateGroupModal({
+  open,
+  onClose,
+  onCreateGroup,
+}: CreateGroupModalProps) {
   const { toast } = useToast();
-  const [groupType, setGroupType] = useState<'public' | 'private' | 'project'>('public');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<GroupCategory>('Study Group');
+  const [groupType, setGroupType] = useState<"public" | "private" | "project">(
+    "public"
+  );
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<GroupCategory>("Study Group");
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  
+  const [tagInput, setTagInput] = useState("");
+
+  // Image upload states
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
+
   // Project-specific fields
   const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([]);
-  const [projectDeadline, setProjectDeadline] = useState('');
-  const [currentRole, setCurrentRole] = useState({ name: '', description: '', slots: 1 });
+  const [projectDeadline, setProjectDeadline] = useState("");
+  const [currentRole, setCurrentRole] = useState({
+    name: "",
+    description: "",
+    slots: 1,
+  });
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag));
+    setTags(tags.filter((t) => t !== tag));
+  };
+
+  // Image upload handlers
+  const handleProfileImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Profile image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        toast({
+          title: "File too large",
+          description: "Banner image must be less than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBannerImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeProfileImage = () => {
+    setProfileImage(null);
+  };
+
+  const removeBannerImage = () => {
+    setBannerImage(null);
   };
 
   const handleAddRole = () => {
@@ -58,15 +156,15 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
         ...projectRoles,
         {
           id: `role-${Date.now()}`,
-          ...currentRole
-        }
+          ...currentRole,
+        },
       ]);
-      setCurrentRole({ name: '', description: '', slots: 1 });
+      setCurrentRole({ name: "", description: "", slots: 1 });
     }
   };
 
   const handleRemoveRole = (roleId: string) => {
-    setProjectRoles(projectRoles.filter(r => r.id !== roleId));
+    setProjectRoles(projectRoles.filter((r) => r.id !== roleId));
   };
 
   const handleSubmit = () => {
@@ -74,16 +172,16 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    if (groupType === 'project' && projectRoles.length === 0) {
+    if (groupType === "project" && projectRoles.length === 0) {
       toast({
         title: "Missing Roles",
         description: "Please add at least one role for the project",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -94,15 +192,19 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
       category,
       tags,
       groupType,
-      ...(groupType === 'project' && {
-        projectRoles: projectRoles.map(role => ({
+      avatar: profileImage,
+      banner: bannerImage,
+      ...(groupType === "project" && {
+        projectRoles: projectRoles.map((role) => ({
           ...role,
           slotsFilled: 0,
-          applications: []
+          applications: [],
         })),
-        projectDeadline: projectDeadline ? new Date(projectDeadline) : undefined,
-        isAcceptingApplications: true
-      })
+        projectDeadline: projectDeadline
+          ? new Date(projectDeadline)
+          : undefined,
+        isAcceptingApplications: true,
+      }),
     };
 
     onCreateGroup(groupData);
@@ -110,14 +212,16 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
   };
 
   const handleClose = () => {
-    setName('');
-    setDescription('');
-    setCategory('Study Group');
+    setName("");
+    setDescription("");
+    setCategory("Study Group");
     setTags([]);
-    setGroupType('public');
+    setGroupType("public");
     setProjectRoles([]);
-    setProjectDeadline('');
-    setCurrentRole({ name: '', description: '', slots: 1 });
+    setProjectDeadline("");
+    setCurrentRole({ name: "", description: "", slots: 1 });
+    setProfileImage(null);
+    setBannerImage(null);
     onClose();
   };
 
@@ -132,14 +236,23 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
           {/* Group Type Selection */}
           <div className="space-y-2">
             <Label>Group Type</Label>
-            <Select value={groupType} onValueChange={(value: any) => setGroupType(value)}>
+            <Select
+              value={groupType}
+              onValueChange={(value: "public" | "private" | "project") =>
+                setGroupType(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="public">Public - Anyone can join</SelectItem>
-                <SelectItem value="private">Private - Requires approval</SelectItem>
-                <SelectItem value="project">Project-Based - Role applications</SelectItem>
+                <SelectItem value="private">
+                  Private - Requires approval
+                </SelectItem>
+                <SelectItem value="project">
+                  Project-Based - Role applications
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -168,13 +281,18 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
 
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select value={category} onValueChange={(value: GroupCategory) => setCategory(value)}>
+            <Select
+              value={category}
+              onValueChange={(value: GroupCategory) => setCategory(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {categoryOptions.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -187,7 +305,9 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
               <Input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleAddTag())
+                }
                 placeholder="Add tags"
               />
               <Button type="button" onClick={handleAddTag} size="sm">
@@ -195,28 +315,146 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
-              {tags.map(tag => (
+              {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="gap-1">
                   {tag}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => handleRemoveTag(tag)}
+                  />
                 </Badge>
               ))}
             </div>
           </div>
 
+          {/* Group Images */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Group Images</h3>
+
+            {/* Profile Image */}
+            <div className="space-y-2">
+              <Label>Profile Image</Label>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={profileImage || undefined} />
+                  <AvatarFallback className="text-lg">
+                    {name ? (
+                      name.substring(0, 2).toUpperCase()
+                    ) : (
+                      <Camera className="h-6 w-6" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageUpload}
+                    className="hidden"
+                    id="profile-image-upload"
+                    aria-label="Upload profile image"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("profile-image-upload")?.click()
+                      }
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Image
+                    </Button>
+                    {profileImage && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeProfileImage}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 5MB. JPG, PNG, or GIF.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Banner Image */}
+            <div className="space-y-2">
+              <Label>Banner Image (Optional)</Label>
+              <div className="space-y-2">
+                {bannerImage ? (
+                  <div className="relative">
+                    <img
+                      src={bannerImage}
+                      alt="Group banner preview"
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeBannerImage}
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                    <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      No banner image selected
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerImageUpload}
+                      className="hidden"
+                      id="banner-image-upload"
+                      aria-label="Upload banner image"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("banner-image-upload")?.click()
+                      }
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Banner
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Max 10MB. JPG, PNG, or GIF. Recommended size: 800x200px.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Project-Based Group Fields */}
-          {groupType === 'project' && (
+          {groupType === "project" && (
             <>
               <div className="border-t pt-4 space-y-4">
                 <h3 className="font-semibold">Project Roles</h3>
-                
+
                 <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
                   <div className="space-y-2">
                     <Label htmlFor="roleName">Role Name</Label>
                     <Input
                       id="roleName"
                       value={currentRole.name}
-                      onChange={(e) => setCurrentRole({ ...currentRole, name: e.target.value })}
+                      onChange={(e) =>
+                        setCurrentRole({ ...currentRole, name: e.target.value })
+                      }
                       placeholder="e.g., Frontend Developer"
                     />
                   </div>
@@ -226,7 +464,12 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
                     <Input
                       id="roleDesc"
                       value={currentRole.description}
-                      onChange={(e) => setCurrentRole({ ...currentRole, description: e.target.value })}
+                      onChange={(e) =>
+                        setCurrentRole({
+                          ...currentRole,
+                          description: e.target.value,
+                        })
+                      }
                       placeholder="What will this role do?"
                     />
                   </div>
@@ -238,11 +481,21 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
                       type="number"
                       min="1"
                       value={currentRole.slots}
-                      onChange={(e) => setCurrentRole({ ...currentRole, slots: parseInt(e.target.value) || 1 })}
+                      onChange={(e) =>
+                        setCurrentRole({
+                          ...currentRole,
+                          slots: parseInt(e.target.value) || 1,
+                        })
+                      }
                     />
                   </div>
 
-                  <Button type="button" onClick={handleAddRole} size="sm" className="w-full">
+                  <Button
+                    type="button"
+                    onClick={handleAddRole}
+                    size="sm"
+                    className="w-full"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Role
                   </Button>
@@ -251,12 +504,19 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
                 {/* Display Added Roles */}
                 {projectRoles.length > 0 && (
                   <div className="space-y-2">
-                    {projectRoles.map(role => (
-                      <div key={role.id} className="flex items-center justify-between p-3 bg-background border rounded-lg">
+                    {projectRoles.map((role) => (
+                      <div
+                        key={role.id}
+                        className="flex items-center justify-between p-3 bg-background border rounded-lg"
+                      >
                         <div className="flex-1">
                           <div className="font-medium">{role.name}</div>
-                          <div className="text-sm text-muted-foreground">{role.description}</div>
-                          <div className="text-xs text-muted-foreground mt-1">{role.slots} slot(s)</div>
+                          <div className="text-sm text-muted-foreground">
+                            {role.description}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {role.slots} slot(s)
+                          </div>
                         </div>
                         <Button
                           type="button"
@@ -273,7 +533,9 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="deadline">Application Deadline (Optional)</Label>
+                <Label htmlFor="deadline">
+                  Application Deadline (Optional)
+                </Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -293,9 +555,7 @@ export function CreateGroupModal({ open, onClose, onCreateGroup }: CreateGroupMo
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              Create Group
-            </Button>
+            <Button onClick={handleSubmit}>Create Group</Button>
           </div>
         </div>
       </DialogContent>
