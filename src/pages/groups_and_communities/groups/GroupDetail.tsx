@@ -21,7 +21,26 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type GroupTab = 'members' | 'resources' | 'roles' | 'settings';
 
@@ -40,6 +59,10 @@ const GroupDetail = () => {
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [groupDescription, setGroupDescription] = useState('');
+  const [groupTags, setGroupTags] = useState('');
   
   const currentUserId = 'user-1'; // Mock current user ID
 
@@ -52,6 +75,9 @@ const GroupDetail = () => {
         const foundGroup = mockGroups.find(g => g.id === id);
         if (foundGroup) {
           setGroup(foundGroup);
+          setGroupName(foundGroup.name);
+          setGroupDescription(foundGroup.description);
+          setGroupTags(foundGroup.tags.join(', '));
         }
       } catch (error) {
         console.error('Error fetching group:', error);
@@ -180,7 +206,8 @@ const GroupDetail = () => {
     }
   };
 
-  const isAdmin = group?.admins.includes(currentUserId);
+  const isOwner = group?.createdBy === currentUserId;
+  const isAdmin = group?.admins.includes(currentUserId) || isOwner;
   const isModerator = group?.moderators.includes(currentUserId);
   const canManage = isAdmin || isModerator;
 
@@ -237,10 +264,65 @@ const GroupDetail = () => {
 
   const handleRemoveMember = (userId: string) => {
     setMembers(members.filter(m => m.id !== userId));
+    setRemovingMemberId(null);
     toast({
       title: "Member removed",
       description: "The member has been removed from the group",
     });
+  };
+
+  const handleToggleAdmin = (userId: string) => {
+    if (!group) return;
+    
+    const isCurrentlyAdmin = group.admins.includes(userId);
+    const updatedAdmins = isCurrentlyAdmin
+      ? group.admins.filter(id => id !== userId)
+      : [...group.admins, userId];
+    
+    setGroup({ ...group, admins: updatedAdmins });
+    toast({
+      title: isCurrentlyAdmin ? "Admin removed" : "Admin added",
+      description: isCurrentlyAdmin
+        ? "User is no longer an admin"
+        : "User is now an admin",
+    });
+  };
+
+  const getMemberRole = (memberId: string): string | null => {
+    if (!group || group.groupType !== 'project') return null;
+    
+    for (const role of group.projectRoles || []) {
+      const acceptedApp = role.applications.find(
+        app => app.userId === memberId && app.status === 'accepted'
+      );
+      if (acceptedApp) return role.name;
+    }
+    return null;
+  };
+
+  const handleSaveSettings = () => {
+    if (!group) return;
+    
+    setGroup({
+      ...group,
+      name: groupName,
+      description: groupDescription,
+      tags: groupTags.split(',').map(tag => tag.trim()).filter(Boolean),
+    });
+    
+    toast({
+      title: "Settings saved",
+      description: "Group settings have been updated successfully",
+    });
+  };
+
+  const handleDeleteGroup = () => {
+    toast({
+      title: "Group deleted",
+      description: "The group has been permanently deleted",
+      variant: "destructive",
+    });
+    navigate('/groups');
   };
 
   if (isLoading) {
@@ -437,44 +519,82 @@ const GroupDetail = () => {
                     <p className="text-muted-foreground">No members to display</p>
                   </div>
                 ) : (
-                  members.map((member) => (
-                    <div key={member.id} className="p-4 hover:bg-muted/5">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.avatar} alt={member.displayName} />
-                          <AvatarFallback>
-                            {member.displayName.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{member.displayName}</h3>
-                            {member.verified && (
-                              <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                <span className="text-primary-foreground text-xs">✓</span>
-                              </div>
-                            )}
+                  members.map((member) => {
+                    const memberRole = getMemberRole(member.id);
+                    const isMemberAdmin = group.admins.includes(member.id) || member.id === group.createdBy;
+                    
+                    return (
+                      <div key={member.id} className="p-4 hover:bg-muted/5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={member.avatar} alt={member.displayName} />
+                            <AvatarFallback>
+                              {member.displayName.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{member.displayName}</h3>
+                              {member.verified && (
+                                <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                  <span className="text-primary-foreground text-xs">✓</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-muted-foreground">@{member.username}</p>
+                              {memberRole && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Briefcase className="h-3 w-3 mr-1" />
+                                  {memberRole}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">@{member.username}</p>
+                          {member.id === group.createdBy && (
+                            <Badge variant="default" className="text-xs">Owner</Badge>
+                          )}
+                          {isMemberAdmin && member.id !== group.createdBy && (
+                            <Badge variant="secondary" className="text-xs">Admin</Badge>
+                          )}
+                          {group.moderators.includes(member.id) && (
+                            <Badge variant="outline" className="text-xs">Moderator</Badge>
+                          )}
+                          {isOwner && member.id !== currentUserId && (
+                            <div className="flex gap-2">
+                              {member.id !== group.createdBy && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleToggleAdmin(member.id)}
+                                >
+                                  {isMemberAdmin ? 'Remove Admin' : 'Make Admin'}
+                                </Button>
+                              )}
+                              {!isMemberAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setRemovingMemberId(member.id)}
+                                >
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          {isAdmin && !isOwner && member.id !== currentUserId && !isMemberAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setRemovingMemberId(member.id)}
+                            >
+                              Remove
+                            </Button>
+                          )}
                         </div>
-                        {group.admins.includes(member.id) && (
-                          <Badge variant="secondary" className="text-xs">Admin</Badge>
-                        )}
-                        {group.moderators.includes(member.id) && (
-                          <Badge variant="outline" className="text-xs">Moderator</Badge>
-                        )}
-                        {canManage && !group.admins.includes(member.id) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMember(member.id)}
-                          >
-                            Remove
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -597,29 +717,73 @@ const GroupDetail = () => {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Group Settings</h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Group Description</label>
-                      <p className="text-sm text-muted-foreground mt-1">Update your group description</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="group-name">Group Name</Label>
+                      <Input
+                        id="group-name"
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        placeholder="Enter group name"
+                      />
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Privacy Settings</label>
-                      <p className="text-sm text-muted-foreground mt-1">Change group visibility and access</p>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="group-description">Group Description</Label>
+                      <Textarea
+                        id="group-description"
+                        value={groupDescription}
+                        onChange={(e) => setGroupDescription(e.target.value)}
+                        placeholder="Describe your group"
+                        rows={4}
+                      />
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Member Management</label>
-                      <p className="text-sm text-muted-foreground mt-1">Manage member roles and permissions</p>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="group-tags">Group Tags</Label>
+                      <Input
+                        id="group-tags"
+                        value={groupTags}
+                        onChange={(e) => setGroupTags(e.target.value)}
+                        placeholder="Enter tags separated by commas"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Separate tags with commas (e.g., python, web development, beginner)
+                      </p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Group Tags</label>
-                      <p className="text-sm text-muted-foreground mt-1">Edit tags to help others discover your group</p>
+
+                    <div className="space-y-2">
+                      <Label>Group Type</Label>
+                      <Select value={group?.groupType} disabled>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public</SelectItem>
+                          <SelectItem value="private">Private</SelectItem>
+                          <SelectItem value="project">Project-Based</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Group type cannot be changed after creation
+                      </p>
                     </div>
+
+                    <Button onClick={handleSaveSettings}>
+                      Save Changes
+                    </Button>
                   </div>
                 </div>
+                
                 <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium text-red-600 mb-2">Danger Zone</h4>
-                  <Button variant="destructive" size="sm">
-                    Delete Group
-                  </Button>
+                  <h4 className="text-sm font-medium text-destructive mb-2">Danger Zone</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Once you delete this group, there is no going back. Please be certain.
+                  </p>
+                  <AlertDialog>
+                    <Button variant="destructive" size="sm" onClick={() => {}}>
+                      Delete Group
+                    </Button>
+                  </AlertDialog>
                 </div>
               </div>
             </TabsContent>
@@ -650,25 +814,46 @@ const GroupDetail = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Email Address</label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
+                id="email"
                 type="email"
                 placeholder="student@university.edu"
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
               />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setIsAddMemberModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddMember} disabled={!searchEmail}>
-                Send Invitation
-              </Button>
-            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddMemberModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMember} disabled={!searchEmail}>
+              Send Invitation
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!removingMemberId} onOpenChange={() => setRemovingMemberId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this member from the group? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => removingMemberId && handleRemoveMember(removingMemberId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
