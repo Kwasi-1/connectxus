@@ -8,8 +8,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, UserPlus, Copy, Users } from "lucide-react";
 import { User } from "@/types/global";
+import { ProjectRole } from "@/types/communities";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddMemberModalProps {
@@ -18,7 +26,8 @@ interface AddMemberModalProps {
   followedUsers: User[];
   groupType: "public" | "private" | "project";
   groupId: string;
-  onAddMember: (user: User) => void;
+  projectRoles?: ProjectRole[];
+  onAddMember: (user: User, role?: string) => void;
 }
 
 export const AddMemberModal = ({
@@ -27,9 +36,11 @@ export const AddMemberModal = ({
   followedUsers,
   groupType,
   groupId,
+  projectRoles,
   onAddMember,
 }: AddMemberModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("");
   const { toast } = useToast();
 
   const filteredUsers = followedUsers.filter(
@@ -52,9 +63,19 @@ export const AddMemberModal = ({
   };
 
   const handleAddUser = (user: User) => {
-    onAddMember(user);
+    if (groupType === "project" && !selectedRole) {
+      toast({
+        title: "Role required",
+        description: "Please select a role for the project member",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onAddMember(user, selectedRole);
     onClose();
     setSearchQuery("");
+    setSelectedRole("");
   };
 
   return (
@@ -77,6 +98,28 @@ export const AddMemberModal = ({
               className="pl-10"
             />
           </div>
+
+          {/* Role Selection for Project Groups */}
+          {groupType === "project" &&
+            projectRoles &&
+            projectRoles.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Role</label>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a role for the member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectRoles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        {role.name} ({role.slotsFilled}/{role.slotsTotal}{" "}
+                        filled)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
           {/* Results */}
           <div className="max-h-96 overflow-y-auto space-y-2">
