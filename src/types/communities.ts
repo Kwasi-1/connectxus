@@ -104,7 +104,7 @@ export type CommunityCategory = 'Academic' | 'Level' | 'Hostel' | 'Department' |
 
 export type GroupCategory = 'Study Group' | 'Sports' | 'Arts' | 'Professional' | 'Academic' | 'Social' | 'Other';
 
-export type HubTab = 'my' | 'explore';
+export type HubTab = 'communities' | 'groups';
 
 export type CommunityTab = 'posts' | 'announcements' | 'members' | 'settings';
 

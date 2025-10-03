@@ -13,7 +13,7 @@ import { mockCommunities, mockGroups } from '@/data/mockCommunitiesData';
 import { Community, Group, HubTab } from '@/types/communities';
 
 const Hub = () => {
-  const [activeTab, setActiveTab] = useState<HubTab>('my');
+  const [activeTab, setActiveTab] = useState<HubTab>('communities');
   const [isLoading, setIsLoading] = useState(true);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -143,20 +143,20 @@ const Hub = () => {
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as HubTab)}>
           <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
             <TabsTrigger 
-              value="my" 
+              value="communities" 
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
             >
               My Communities
             </TabsTrigger>
             <TabsTrigger 
-              value="explore" 
+              value="groups" 
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
             >
-              Explore
+              My Groups
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="my" className="mt-0">
+
+          <TabsContent value="communities" className="mt-0">
             <div className="p-4 space-y-6">
               {/* My Communities */}
               <div>
@@ -184,6 +184,30 @@ const Hub = () => {
                 </div>
               </div>
 
+              {/* Discover Communities */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Discover Communities</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/communities')}
+                    className="text-primary"
+                  >
+                    View All <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {exploreCommunities.map((community) => (
+                    <CommunityCard key={community.id} community={community} />
+                  ))}
+                </div>
+              </div>              
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="groups" className="mt-0">
+            <div className="p-4 space-y-6">
               {/* My Groups */}
               <div>
                 <div className="flex justify-between items-center mb-4">
@@ -207,30 +231,6 @@ const Hub = () => {
                       <GroupCard key={group.id} group={group} />
                     ))
                   )}
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="explore" className="mt-0">
-            <div className="p-4 space-y-6">
-              {/* Discover Communities */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Discover Communities</h2>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate('/communities')}
-                    className="text-primary"
-                  >
-                    View All <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {exploreCommunities.map((community) => (
-                    <CommunityCard key={community.id} community={community} />
-                  ))}
                 </div>
               </div>
 
