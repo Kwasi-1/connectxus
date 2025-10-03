@@ -36,6 +36,10 @@ export interface RoleApplication {
   appliedAt: Date;
 }
 
+export interface MemberWithRole extends User {
+  role?: string; // For project-based groups
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -50,6 +54,7 @@ export interface Group {
   avatar?: string;
   admins: string[];
   moderators: string[];
+  members?: MemberWithRole[]; // Optional since members are fetched separately
   // Project-based group fields
   projectRoles?: ProjectRole[];
   projectDeadline?: Date;

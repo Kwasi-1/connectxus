@@ -219,7 +219,7 @@ const GroupsNew = () => {
               </Button>
             </div>
           </div>
-          </div>
+        </div>
 
           
           {/* Tabs */}

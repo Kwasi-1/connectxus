@@ -135,31 +135,75 @@ const GroupDetail = () => {
 
   // Settings handlers
   const handleUpdateGroupInfo = useCallback(() => {
-    // Update group name and description
-    console.log("Updating group info:", { groupName, groupDescription });
-  }, [groupName, groupDescription]);
+    if (!group) return;
+
+    // Update group name and description in the group state
+    setGroup({
+      ...group,
+      name: groupName,
+      description: groupDescription,
+    });
+
+    toast({
+      title: "Group updated",
+      description: "Group information has been successfully updated",
+    });
+  }, [group, groupName, groupDescription, toast]);
 
   const handleUpdatePrivacySettings = useCallback(() => {
-    // Update privacy settings
-    console.log("Updating privacy settings:", {
-      groupType,
-      requireApproval,
-      allowMemberInvites,
+    if (!group) return;
+
+    // Update privacy settings in the group state
+    setGroup({
+      ...group,
+      groupType: groupType,
     });
-  }, [groupType, requireApproval, allowMemberInvites]);
+
+    toast({
+      title: "Privacy settings updated",
+      description: "Group privacy settings have been successfully updated",
+    });
+  }, [group, groupType, toast]);
 
   const addTag = useCallback(() => {
-    if (newTag.trim() && !groupTags.includes(newTag.trim())) {
-      setGroupTags([...groupTags, newTag.trim()]);
+    if (newTag.trim() && !groupTags.includes(newTag.trim()) && group) {
+      const updatedTags = [...groupTags, newTag.trim()];
+      setGroupTags(updatedTags);
+
+      // Update the group state with new tags
+      setGroup({
+        ...group,
+        tags: updatedTags,
+      });
+
       setNewTag("");
+
+      toast({
+        title: "Tag added",
+        description: `"${newTag.trim()}" has been added to group tags`,
+      });
     }
-  }, [newTag, groupTags]);
+  }, [newTag, groupTags, group, toast]);
 
   const removeTag = useCallback(
     (tagToRemove: string) => {
-      setGroupTags(groupTags.filter((tag) => tag !== tagToRemove));
+      const updatedTags = groupTags.filter((tag) => tag !== tagToRemove);
+      setGroupTags(updatedTags);
+
+      if (group) {
+        // Update the group state with new tags
+        setGroup({
+          ...group,
+          tags: updatedTags,
+        });
+
+        toast({
+          title: "Tag removed",
+          description: `"${tagToRemove}" has been removed from group tags`,
+        });
+      }
     },
-    [groupTags]
+    [groupTags, group, toast]
   );
 
   const handleDeleteGroup = useCallback(() => {
@@ -1086,7 +1130,9 @@ const GroupDetail = () => {
                             Group Type
                           </label>
                           <p className="text-sm text-muted-foreground">
-                            Change group visibility
+                            {group?.groupType === "project"
+                              ? "Project groups cannot change visibility"
+                              : "Change group visibility"}
                           </p>
                         </div>
                         <select
@@ -1098,6 +1144,7 @@ const GroupDetail = () => {
                           }
                           className="px-3 py-1 border border-border rounded text-sm"
                           aria-label="Group type selection"
+                          disabled={group?.groupType === "project"}
                         >
                           <option value="public">Public</option>
                           <option value="private">Private</option>
