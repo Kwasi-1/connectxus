@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Save,
   X,
+  Clock,
 } from "lucide-react";
 import { mockGroups, mockUsers } from "@/data/mockCommunitiesData";
 import {
@@ -108,6 +109,18 @@ const GroupDetail = () => {
   const [followedUsers, setFollowedUsers] = useState<User[]>([]);
   const [showFollowedUsers, setShowFollowedUsers] = useState(false);
 
+  // Application state
+  const [hasPendingJoinRequest, setHasPendingJoinRequest] = useState(false);
+  const [pendingRoleApplications, setPendingRoleApplications] = useState<
+    string[]
+  >([]);
+  const [
+    isProjectRoleApplicationModalOpen,
+    setIsProjectRoleApplicationModalOpen,
+  ] = useState(false);
+  const [selectedRoleForApplication, setSelectedRoleForApplication] =
+    useState<ProjectRole | null>(null);
+
   // New state for confirmations and settings
   const [memberToRemove, setMemberToRemove] = useState<MemberWithRole | null>(
     null
@@ -175,7 +188,37 @@ const GroupDetail = () => {
       ];
       setJoinRequests(mockJoinRequests);
     }
-  }, [group?.groupType, group?.id, group?.requireApproval]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Check if current user has pending applications
+    if (group && !group.isJoined) {
+      // Check for pending join request (for private groups)
+      if (group.groupType === "private") {
+        // Mock: check if user has pending join request
+        setHasPendingJoinRequest(false); // Set to true if user has pending request
+      }
+
+      // Check for pending role applications (for project groups)
+      if (group.groupType === "project" && group.projectRoles) {
+        const userPendingRoles: string[] = [];
+        group.projectRoles.forEach((role) => {
+          const userApplication = role.applications.find(
+            (app) => app.userId === currentUserId && app.status === "pending"
+          );
+          if (userApplication) {
+            userPendingRoles.push(role.id);
+          }
+        });
+        setPendingRoleApplications(userPendingRoles);
+      }
+    }
+  }, [
+    group?.groupType,
+    group?.id,
+    group?.requireApproval,
+    group?.projectRoles,
+    group?.isJoined,
+    currentUserId,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Settings handlers
   const handleUpdateGroupInfo = useCallback(() => {
@@ -387,19 +430,75 @@ const GroupDetail = () => {
 
   const handleJoinGroup = () => {
     if (group) {
-      const isJoining = !group.isJoined;
-      setGroup({
-        ...group,
-        isJoined: isJoining,
-        memberCount: isJoining ? group.memberCount + 1 : group.memberCount - 1,
-      });
+      // If user is already joined, allow them to leave
+      if (group.isJoined) {
+        const isJoining = false;
+        setGroup({
+          ...group,
+          isJoined: isJoining,
+          memberCount: group.memberCount - 1,
+        });
 
-      toast({
-        title: isJoining ? "Joined group!" : "Left group",
-        description: isJoining
-          ? `You've successfully joined ${group.name}`
-          : `You've left ${group.name}`,
-      });
+        toast({
+          title: "Left group",
+          description: `You've left ${group.name}`,
+        });
+        return;
+      }
+
+      // Handle different group types for joining
+      if (group.groupType === "private" || (group.requireApproval ?? false)) {
+        // For private groups or groups requiring approval, create a join request
+        if (!hasPendingJoinRequest) {
+          const newJoinRequest: JoinRequest = {
+            id: `req-${Date.now()}`,
+            userId: currentUserId,
+            userName: "Current User", // In real app, get from user context
+            userAvatar: "/placeholder.svg",
+            userEmail: "currentuser@university.edu",
+            groupId: group.id,
+            status: "pending",
+            requestedAt: new Date(),
+          };
+
+          setHasPendingJoinRequest(true);
+
+          toast({
+            title: "Request sent!",
+            description: `Your request to join ${group.name} has been sent for approval.`,
+          });
+        }
+      } else if (group.groupType === "project") {
+        // For project groups, user needs to apply for specific roles
+        if (group.projectRoles && group.projectRoles.length > 0) {
+          // Show available roles for application
+          toast({
+            title: "Choose a role",
+            description: "Select a role to apply for in this project group.",
+          });
+          setActiveTab("roles"); // Switch to roles tab to show available positions
+        } else {
+          toast({
+            title: "No roles available",
+            description:
+              "This project group is not currently accepting applications.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // For public groups, join immediately
+        const isJoining = true;
+        setGroup({
+          ...group,
+          isJoined: isJoining,
+          memberCount: group.memberCount + 1,
+        });
+
+        toast({
+          title: "Joined group!",
+          description: `You've successfully joined ${group.name}`,
+        });
+      }
     }
   };
 
@@ -577,6 +676,52 @@ const GroupDetail = () => {
           : role
       ),
     });
+  };
+
+  // Handle applying for a project role
+  const handleApplyForRole = useCallback(
+    (role: ProjectRole, message: string) => {
+      if (!group) return;
+
+      const newApplication: RoleApplication = {
+        id: `app-${Date.now()}`,
+        userId: currentUserId,
+        userName: "Current User", // In real app, get from user context
+        userAvatar: "/placeholder.svg",
+        roleId: role.id,
+        message: message,
+        status: "pending",
+        appliedAt: new Date(),
+      };
+
+      // Add application to the role
+      setGroup({
+        ...group,
+        projectRoles: group.projectRoles?.map((r) =>
+          r.id === role.id
+            ? {
+                ...r,
+                applications: [...r.applications, newApplication],
+              }
+            : r
+        ),
+      });
+
+      // Update local state
+      setPendingRoleApplications([...pendingRoleApplications, role.id]);
+
+      toast({
+        title: "Application submitted!",
+        description: `Your application for ${role.name} has been submitted for review.`,
+      });
+    },
+    [group, currentUserId, pendingRoleApplications, toast]
+  );
+
+  // Handle role application modal
+  const handleOpenRoleApplication = (role: ProjectRole) => {
+    setSelectedRoleForApplication(role);
+    setIsProjectRoleApplicationModalOpen(true);
   };
 
   // Handle adding member from the modal
@@ -861,14 +1006,29 @@ const GroupDetail = () => {
                   <Button
                     onClick={handleJoinGroup}
                     variant={group.isJoined ? "outline" : "default"}
+                    disabled={
+                      hasPendingJoinRequest ||
+                      (group.groupType === "project" &&
+                        pendingRoleApplications.length > 0)
+                    }
                   >
                     {group.isJoined ? (
                       <>
                         <UserMinus className="h-4 w-4 mr-2" />
                         Leave Group
                       </>
+                    ) : hasPendingJoinRequest ? (
+                      "Request Pending"
                     ) : group.groupType === "private" ? (
                       "Request Access"
+                    ) : group.groupType === "project" ? (
+                      pendingRoleApplications.length > 0 ? (
+                        `Applied for ${pendingRoleApplications.length} role${
+                          pendingRoleApplications.length > 1 ? "s" : ""
+                        }`
+                      ) : (
+                        "View Roles & Apply"
+                      )
                     ) : (
                       "Join Group"
                     )}
@@ -950,12 +1110,10 @@ const GroupDetail = () => {
             )}
           </TabsList>
 
-          <div
-            className={` relative`}
-          >
+          <div className={` relative`}>
             <div
               className={`${
-                !group?.isJoined && !canManage
+                !group?.isJoined && !canManage && activeTab !== "roles"
                   ? "blur-sm pointer-events-none"
                   : ""
               } relative`}
@@ -1042,69 +1200,77 @@ const GroupDetail = () => {
                                   </Badge>
                                 )}
 
-                                {canManage && !isCurrentUser && !isGroupOwner && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        •••
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      {isOwner && !isMemberAdmin && (
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            setMemberToPromote(member)
-                                          }
-                                        >
-                                          <Crown className="h-4 w-4 mr-2" />
-                                          Promote to Admin
-                                        </DropdownMenuItem>
-                                      )}
-                                      {isOwner && isMemberAdmin && (
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            setMemberToDemote(member)
-                                          }
-                                        >
-                                          <Crown className="h-4 w-4 mr-2" />
-                                          Demote from Admin
-                                        </DropdownMenuItem>
-                                      )}
-                                      {canManage &&
-                                        !isMemberModerator &&
-                                        !isMemberAdmin && (
+                                {canManage &&
+                                  !isCurrentUser &&
+                                  !isGroupOwner && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          •••
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        {isOwner && !isMemberAdmin && (
                                           <DropdownMenuItem
                                             onClick={() =>
-                                              handlePromoteToModerator(member.id)
+                                              setMemberToPromote(member)
                                             }
                                           >
-                                            <Shield className="h-4 w-4 mr-2" />
-                                            Make Moderator
+                                            <Crown className="h-4 w-4 mr-2" />
+                                            Promote to Admin
                                           </DropdownMenuItem>
                                         )}
-                                      {canManage &&
-                                        isMemberModerator &&
-                                        !isMemberAdmin && (
+                                        {isOwner && isMemberAdmin && (
                                           <DropdownMenuItem
                                             onClick={() =>
-                                              handleDemoteFromModerator(member.id)
+                                              setMemberToDemote(member)
                                             }
                                           >
-                                            <Shield className="h-4 w-4 mr-2" />
-                                            Remove Moderator
+                                            <Crown className="h-4 w-4 mr-2" />
+                                            Demote from Admin
                                           </DropdownMenuItem>
                                         )}
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() => handleRemoveMember(member)}
-                                        className="text-red-600"
-                                      >
-                                        <UserMinus className="h-4 w-4 mr-2" />
-                                        Remove Member
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
+                                        {canManage &&
+                                          !isMemberModerator &&
+                                          !isMemberAdmin && (
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                handlePromoteToModerator(
+                                                  member.id
+                                                )
+                                              }
+                                            >
+                                              <Shield className="h-4 w-4 mr-2" />
+                                              Make Moderator
+                                            </DropdownMenuItem>
+                                          )}
+                                        {canManage &&
+                                          isMemberModerator &&
+                                          !isMemberAdmin && (
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                handleDemoteFromModerator(
+                                                  member.id
+                                                )
+                                              }
+                                            >
+                                              <Shield className="h-4 w-4 mr-2" />
+                                              Remove Moderator
+                                            </DropdownMenuItem>
+                                          )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleRemoveMember(member)
+                                          }
+                                          className="text-red-600"
+                                        >
+                                          <UserMinus className="h-4 w-4 mr-2" />
+                                          Remove Member
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
                               </div>
                             </div>
                           </div>
@@ -1154,17 +1320,42 @@ const GroupDetail = () => {
                                 )}
                               </div>
                             </div>
-                            {canManage && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewApplications(role)}
-                              >
-                                {pendingCount > 0
-                                  ? `Review (${pendingCount})`
-                                  : "View"}
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {canManage && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewApplications(role)}
+                                >
+                                  {pendingCount > 0
+                                    ? `Review (${pendingCount})`
+                                    : "View"}
+                                </Button>
+                              )}
+                              {!canManage && !group?.isJoined && (
+                                <Button
+                                  variant={
+                                    pendingRoleApplications.includes(role.id)
+                                      ? "outline"
+                                      : "default"
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenRoleApplication(role)
+                                  }
+                                  disabled={
+                                    isFilled ||
+                                    pendingRoleApplications.includes(role.id)
+                                  }
+                                >
+                                  {pendingRoleApplications.includes(role.id)
+                                    ? "Applied"
+                                    : isFilled
+                                    ? "Full"
+                                    : "Apply"}
+                                </Button>
+                              )}
+                            </div>
                           </div>
 
                           {/* Show accepted members for this role */}
@@ -1203,7 +1394,8 @@ const GroupDetail = () => {
                       );
                     })}
 
-                    {(!group.projectRoles || group.projectRoles.length === 0) && (
+                    {(!group.projectRoles ||
+                      group.projectRoles.length === 0) && (
                       <div className="text-center py-8 text-muted-foreground">
                         No roles defined yet
                       </div>
@@ -1233,8 +1425,9 @@ const GroupDetail = () => {
                             <div className="flex-1">
                               <h3 className="font-medium">{resource.name}</h3>
                               <p className="text-sm text-muted-foreground">
-                                {resource.type} • Shared by {resource.uploadedBy}{" "}
-                                • {resource.uploadedAt.toLocaleDateString()}
+                                {resource.type} • Shared by{" "}
+                                {resource.uploadedBy} •{" "}
+                                {resource.uploadedAt.toLocaleDateString()}
                               </p>
                             </div>
                             <Button variant="ghost" size="sm">
@@ -1420,8 +1613,12 @@ const GroupDetail = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="public">Public</SelectItem>
-                                  <SelectItem value="private">Private</SelectItem>
-                                  <SelectItem value="project">Project</SelectItem>
+                                  <SelectItem value="private">
+                                    Private
+                                  </SelectItem>
+                                  <SelectItem value="project">
+                                    Project
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -1596,7 +1793,9 @@ const GroupDetail = () => {
                             size="sm"
                             onClick={() => setShowDeleteConfirm(true)}
                           >
-                            {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
+                            {isAdmin || isOwner
+                              ? "Delete Group"
+                              : "Leave Group"}
                           </Button>
                         </div>
                       </div>
@@ -1608,18 +1807,23 @@ const GroupDetail = () => {
 
             {/* Content Overlay for Non-Members */}
             {!group?.isJoined && !canManage && (
-              <div className="absolute inset-0 top-[0px] bg-background/60 backdrop-blur-md z-50 flex flex-col items-center justify-center">
+              <div className="absolute inset-0 top-[0px] bg-background/60 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden">
                 <div className="text-center space-y-6 p-8 max-w-md mx-auto z-50 mt-[120px]">
                   <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-full flex items-center justify-center border border-blue-200 dark:border-blue-800">
                     <Lock className="h-12 w-12 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-foreground">Join to View Content</h3>
+                    <h3 className="text-xl font-bold text-foreground">
+                      {group?.groupType === "project"
+                        ? "Apply to Join Project"
+                        : "Join to View Content"}
+                    </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      {group?.groupType === "private" 
+                      {group?.groupType === "private"
                         ? "This is a private group. Request access to view members, resources, and participate in discussions."
-                        : "Join this group to access member lists, shared resources, and participate in group activities."
-                      }
+                        : group?.groupType === "project"
+                        ? "This is a project-based group. Apply for a specific role to join the team and access project resources."
+                        : "Join this group to access member lists, shared resources, and participate in group activities."}
                     </p>
                   </div>
                   <div className="pt-2">
@@ -1627,12 +1831,35 @@ const GroupDetail = () => {
                       onClick={handleJoinGroup}
                       size="lg"
                       className="px-8 py-3 text-base font-medium"
+                      disabled={
+                        hasPendingJoinRequest ||
+                        (group?.groupType === "project" &&
+                          pendingRoleApplications.length > 0)
+                      }
                     >
-                      {group?.groupType === "private" ? (
+                      {hasPendingJoinRequest ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2" />
+                          Request Pending
+                        </>
+                      ) : group?.groupType === "private" ? (
                         <>
                           <Lock className="h-4 w-4 mr-2" />
                           Request Access
                         </>
+                      ) : group?.groupType === "project" ? (
+                        pendingRoleApplications.length > 0 ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Applied for {pendingRoleApplications.length} role
+                            {pendingRoleApplications.length > 1 ? "s" : ""}
+                          </>
+                        ) : (
+                          <>
+                            <Briefcase className="h-4 w-4 mr-2" />
+                            View Roles & Apply
+                          </>
+                        )
                       ) : (
                         <>
                           <UserPlus className="h-4 w-4 mr-2" />
@@ -1668,6 +1895,74 @@ const GroupDetail = () => {
         projectRoles={group?.projectRoles}
         onAddMember={handleAddMemberFromModal}
       />
+
+      {/* Project Role Application Modal */}
+      <Dialog
+        open={isProjectRoleApplicationModalOpen}
+        onOpenChange={setIsProjectRoleApplicationModalOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Apply for {selectedRoleForApplication?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Tell us why you're interested in this role and what qualifications
+              you have.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Application Message</label>
+              <Textarea
+                id="application-message"
+                placeholder="Describe your experience, skills, and why you're interested in this role..."
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+            {selectedRoleForApplication && (
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <h4 className="font-medium text-sm">
+                  {selectedRoleForApplication.name}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedRoleForApplication.description}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {selectedRoleForApplication.slotsFilled} /{" "}
+                  {selectedRoleForApplication.slotsTotal} filled
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsProjectRoleApplicationModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const message =
+                  (
+                    document.getElementById(
+                      "application-message"
+                    ) as HTMLTextAreaElement
+                  )?.value || "";
+                if (selectedRoleForApplication) {
+                  handleApplyForRole(selectedRoleForApplication, message);
+                  setIsProjectRoleApplicationModalOpen(false);
+                  setSelectedRoleForApplication(null);
+                }
+              }}
+            >
+              Submit Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Dialogs */}
       <AlertDialog
