@@ -459,9 +459,16 @@ const GroupDetail = () => {
                   </Button>
                 )}
                 {canManage && (
-                  <Button variant="outline" onClick={() => setActiveTab('settings')}>
-                    Manage Group
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setActiveTab('settings')}>
+                      Manage Group
+                    </Button>
+                                
+                    <Button onClick={() => setIsAddMemberModalOpen(true)}>
+                      <UserPlus className="h-4 w-4" />
+                      <span className="hidden md:block ml-2">Add Member</span>
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -502,14 +509,6 @@ const GroupDetail = () => {
           </TabsList>
           
           <TabsContent value="members" className="mt-0">
-            {canManage && (
-              <div className="p-4 border-b border-border">
-                <Button onClick={() => setIsAddMemberModalOpen(true)} size="sm">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Member
-                </Button>
-              </div>
-            )}
             {membersLoading ? (
               <LoadingSpinner />
             ) : (
@@ -544,7 +543,7 @@ const GroupDetail = () => {
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-muted-foreground">@{member.username}</p>
                               {memberRole && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs hidden sm:inline-flex gap-1">
                                   <Briefcase className="h-3 w-3 mr-1" />
                                   {memberRole}
                                 </Badge>
