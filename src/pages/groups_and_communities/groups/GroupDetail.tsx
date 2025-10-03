@@ -88,6 +88,10 @@ const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Mock current user ID
+  const currentUserId = "user-1";
+
   const [activeTab, setActiveTab] = useState<GroupTab>("members");
   const [isLoading, setIsLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -128,6 +132,8 @@ const GroupDetail = () => {
   const [groupTags, setGroupTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPrivacyChangeConfirm, setShowPrivacyChangeConfirm] =
+    useState(false);
 
   // Update settings state when group data is loaded
   useEffect(() => {
@@ -136,6 +142,11 @@ const GroupDetail = () => {
       setGroupDescription(group.description);
       setGroupType(group.groupType);
       setGroupTags(group.tags || []);
+      // Set default privacy settings based on group type
+      setRequireApproval(
+        group.requireApproval ?? group.groupType === "private"
+      );
+      setAllowMemberInvites(group.allowMemberInvites ?? true);
     }
   }, [group]);
 
@@ -145,8 +156,11 @@ const GroupDetail = () => {
     const mockFollowedUsers = mockUsers.filter((user, index) => index < 2);
     setFollowedUsers(mockFollowedUsers);
 
-    // Mock join requests for private groups
-    if (group?.groupType === "private" && canManage) {
+    // Mock join requests for groups with require approval
+    if (
+      (group?.requireApproval ?? group?.groupType === "private") &&
+      canManage
+    ) {
       const mockJoinRequests: JoinRequest[] = [
         {
           id: "req-1",
@@ -155,15 +169,13 @@ const GroupDetail = () => {
           userAvatar: "/placeholder.svg",
           userEmail: "alex@university.edu",
           groupId: group.id,
-          message:
-            "I would like to join this study group for exam preparation.",
           status: "pending",
           requestedAt: new Date("2024-03-15"),
         },
       ];
       setJoinRequests(mockJoinRequests);
     }
-  }, [group?.groupType, group?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [group?.groupType, group?.id, group?.requireApproval]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Settings handlers
   const handleUpdateGroupInfo = useCallback(() => {
@@ -189,13 +201,15 @@ const GroupDetail = () => {
     setGroup({
       ...group,
       groupType: groupType,
+      requireApproval: requireApproval,
+      allowMemberInvites: allowMemberInvites,
     });
 
     toast({
       title: "Privacy settings updated",
       description: "Group privacy settings have been successfully updated",
     });
-  }, [group, groupType, toast]);
+  }, [group, groupType, requireApproval, allowMemberInvites, toast]);
 
   const addTag = useCallback(() => {
     if (newTag.trim() && !groupTags.includes(newTag.trim()) && group) {
@@ -239,14 +253,38 @@ const GroupDetail = () => {
   );
 
   const handleDeleteGroup = useCallback(() => {
-    // Delete group logic
-    console.log("Deleting group:", group?.id);
+    if (!group) return;
+
+    const isUserAdmin = group.admins.includes(currentUserId);
+    const isUserOwner = group.createdBy === currentUserId;
+
+    if (isUserAdmin || isUserOwner) {
+      // Delete group logic
+      console.log("Deleting group:", group?.id);
+    } else {
+      // Leave group logic for moderators
+      console.log("Leaving group:", group?.id);
+      // Remove user from moderators and members
+      setGroup({
+        ...group,
+        moderators: group.moderators.filter((id) => id !== currentUserId),
+        memberCount: group.memberCount - 1,
+      });
+    }
     setShowDeleteConfirm(false);
     // Navigate back to groups list
     navigate("/groups");
-  }, [group?.id, navigate]);
+  }, [currentUserId, group, navigate]);
 
-  const currentUserId = "user-1"; // Mock current user ID
+  const handlePrivacyChangeConfirm = useCallback(() => {
+    setRequireApproval(false);
+    setGroupType("public");
+    setShowPrivacyChangeConfirm(false);
+    toast({
+      title: "Privacy settings updated",
+      description: "Group is now public and approval is no longer required",
+    });
+  }, [toast]);
 
   useEffect(() => {
     const fetchGroup = async () => {
@@ -543,10 +581,11 @@ const GroupDetail = () => {
 
   // Handle adding member from the modal
   const handleAddMemberFromModal = useCallback(
-    (user: User) => {
+    (user: User, role?: string) => {
       const newMember: MemberWithRole = {
         ...user,
-        role: group?.groupType === "project" ? "Team Member" : undefined,
+        role:
+          role || (group?.groupType === "project" ? "Team Member" : undefined),
       };
 
       setMembers((prevMembers) => [...prevMembers, newMember]);
@@ -556,7 +595,9 @@ const GroupDetail = () => {
 
       toast({
         title: "Member added",
-        description: `${user.displayName} has been added to the group`,
+        description: `${user.displayName} has been added to the group${
+          role ? ` as ${role}` : ""
+        }`,
       });
     },
     [group?.groupType, toast]
@@ -833,14 +874,17 @@ const GroupDetail = () => {
                     )}
                   </Button>
                 )}
-                {canManage && (
+                {(canManage ||
+                  (group?.isJoined && (group?.allowMemberInvites ?? true))) && (
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveTab("settings")}
-                    >
-                      Manage Group
-                    </Button>
+                    {canManage && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab("settings")}
+                      >
+                        Manage Group
+                      </Button>
+                    )}
 
                     <Button onClick={() => setIsAddMemberModalOpen(true)}>
                       <UserPlus className="h-4 w-4" />
@@ -879,22 +923,23 @@ const GroupDetail = () => {
             >
               Resources
             </TabsTrigger>
-            {canManage && group.groupType === "private" && (
-              <TabsTrigger
-                value="requests"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                Requests{" "}
-                {joinRequests.length > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="ml-2 h-5 w-5 text-xs p-0 flex items-center justify-center"
-                  >
-                    {joinRequests.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            )}
+            {canManage &&
+              (group?.requireApproval ?? group?.groupType === "private") && (
+                <TabsTrigger
+                  value="requests"
+                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+                >
+                  Requests{" "}
+                  {joinRequests.length > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="ml-2 h-5 w-5 text-xs p-0 flex items-center justify-center"
+                    >
+                      {joinRequests.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
             {canManage && (
               <TabsTrigger
                 value="settings"
@@ -1186,73 +1231,82 @@ const GroupDetail = () => {
             )}
           </TabsContent>
 
-          {canManage && group.groupType === "private" && (
-            <TabsContent value="requests" className="mt-0">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Join Requests</h3>
-                {joinRequests.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No pending requests</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {joinRequests.map((request) => (
-                      <div key={request.id} className="p-4 border rounded-lg">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage
-                                src={request.userAvatar}
-                                alt={request.userName}
-                              />
-                              <AvatarFallback>
-                                {request.userName.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <h4 className="font-medium">
-                                {request.userName}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {request.userEmail}
-                              </p>
-                              <p className="text-sm mt-2">{request.message}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Requested{" "}
-                                {request.requestedAt.toLocaleDateString()}
-                              </p>
+          {canManage &&
+            (group?.requireApproval || group?.groupType === "private") && (
+              <TabsContent value="requests" className="mt-0">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Join Requests</h3>
+                  {joinRequests.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        No pending requests
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {joinRequests.map((request) => (
+                        <div key={request.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage
+                                  src={request.userAvatar}
+                                  alt={request.userName}
+                                />
+                                <AvatarFallback>
+                                  {request.userName
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <h4 className="font-medium">
+                                  {request.userName}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {request.userEmail}
+                                </p>
+                                {request.message && (
+                                  <p className="text-sm mt-2">
+                                    {request.message}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Requested{" "}
+                                  {request.requestedAt.toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  handleApproveJoinRequest(request.id)
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleRejectJoinRequest(request.id)
+                                }
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                handleApproveJoinRequest(request.id)
-                              }
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleRejectJoinRequest(request.id)
-                              }
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            )}
 
           {canManage && (
             <TabsContent value="settings" className="mt-0">
@@ -1263,20 +1317,20 @@ const GroupDetail = () => {
                   {/* Group Information */}
                   <div className="space-y-4 mb-6">
                     <div className="space-y-2">
-                      <label
+                      <Label
                         htmlFor="group-name"
                         className="text-sm font-medium"
                       >
                         Group Name
-                      </label>
+                      </Label>
                       <div className="flex gap-2">
-                        <input
+                        <Input
                           id="group-name"
                           type="text"
                           value={groupName}
                           onChange={(e) => setGroupName(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
                           placeholder="Enter group name"
+                          className="flex-1"
                         />
                         <Button
                           size="sm"
@@ -1289,14 +1343,13 @@ const GroupDetail = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">
+                      <Label className="text-sm font-medium">
                         Group Description
-                      </label>
+                      </Label>
                       <div className="space-y-2">
-                        <textarea
+                        <Textarea
                           value={groupDescription}
                           onChange={(e) => setGroupDescription(e.target.value)}
-                          className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none"
                           rows={3}
                           placeholder="Enter group description"
                         />
@@ -1311,83 +1364,86 @@ const GroupDetail = () => {
                     </div>
                   </div>
 
-                  {/* Privacy Settings */}
-                  <div className="space-y-4 mb-6 p-4 border rounded-lg">
-                    <h4 className="font-medium">Privacy Settings</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium">
-                            Group Type
-                          </label>
-                          <p className="text-sm text-muted-foreground">
-                            {group?.groupType === "project"
-                              ? "Project groups cannot change visibility"
-                              : "Change group visibility"}
-                          </p>
+                  {/* Privacy Settings - Only for Admins */}
+                  {isAdmin && (
+                    <div className="space-y-4 mb-6 p-4 border rounded-lg">
+                      <h4 className="font-medium">Privacy Settings</h4>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm font-medium">
+                              Group Type
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              {group?.groupType === "project"
+                                ? "Project groups cannot change visibility"
+                                : "Change group visibility"}
+                            </p>
+                          </div>
+                          <Select
+                            value={groupType}
+                            onValueChange={(value) =>
+                              setGroupType(
+                                value as "public" | "private" | "project"
+                              )
+                            }
+                            disabled={group?.groupType === "project"}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="public">Public</SelectItem>
+                              <SelectItem value="private">Private</SelectItem>
+                              <SelectItem value="project">Project</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <select
-                          value={groupType}
-                          onChange={(e) =>
-                            setGroupType(
-                              e.target.value as "public" | "private" | "project"
-                            )
-                          }
-                          className="px-3 py-1 border border-border rounded text-sm"
-                          aria-label="Group type selection"
-                          disabled={group?.groupType === "project"}
-                        >
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
-                          <option value="project">Project</option>
-                        </select>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium">
-                            Require Approval
-                          </label>
-                          <p className="text-sm text-muted-foreground">
-                            Members need approval to join
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm font-medium">
+                              Require Approval
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Members need approval to join
+                            </p>
+                          </div>
+                          <Switch
+                            checked={requireApproval}
+                            onCheckedChange={(checked) => {
+                              if (group?.groupType === "private" && !checked) {
+                                setShowPrivacyChangeConfirm(true);
+                              } else {
+                                setRequireApproval(checked);
+                              }
+                            }}
+                          />
                         </div>
-                        <input
-                          type="checkbox"
-                          checked={requireApproval}
-                          onChange={(e) => setRequireApproval(e.target.checked)}
-                          className="h-4 w-4"
-                          aria-label="Require approval to join"
-                        />
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium">
-                            Allow Member Invites
-                          </label>
-                          <p className="text-sm text-muted-foreground">
-                            Let members invite others
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm font-medium">
+                              Allow Member Invites
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Let members invite others
+                            </p>
+                          </div>
+                          <Switch
+                            checked={allowMemberInvites}
+                            onCheckedChange={setAllowMemberInvites}
+                          />
                         </div>
-                        <input
-                          type="checkbox"
-                          checked={allowMemberInvites}
-                          onChange={(e) =>
-                            setAllowMemberInvites(e.target.checked)
-                          }
-                          className="h-4 w-4"
-                          aria-label="Allow member invites"
-                        />
                       </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleUpdatePrivacySettings()}
+                      >
+                        Save Privacy Settings
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleUpdatePrivacySettings()}
-                    >
-                      Save Privacy Settings
-                    </Button>
-                  </div>
+                  )}
 
                   {/* Group Tags */}
                   <div className="space-y-4 mb-6 p-4 border rounded-lg">
@@ -1411,13 +1467,13 @@ const GroupDetail = () => {
                         ))}
                       </div>
                       <div className="flex gap-2">
-                        <input
+                        <Input
                           type="text"
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={(e) => e.key === "Enter" && addTag()}
-                          className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
                           placeholder="Add a tag"
+                          className="flex-1"
                         />
                         <Button size="sm" onClick={addTag}>
                           Add Tag
@@ -1494,10 +1550,12 @@ const GroupDetail = () => {
                     <div className="flex items-center justify-between p-3 border border-red-200 rounded-lg">
                       <div>
                         <h5 className="text-sm font-medium text-red-600">
-                          Delete Group
+                          {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
                         </h5>
                         <p className="text-xs text-red-500">
-                          Permanently delete this group and all its data
+                          {isAdmin || isOwner
+                            ? "Permanently delete this group and all its data"
+                            : "Leave this group and lose moderator access"}
                         </p>
                       </div>
                       <Button
@@ -1505,7 +1563,7 @@ const GroupDetail = () => {
                         size="sm"
                         onClick={() => setShowDeleteConfirm(true)}
                       >
-                        Delete Group
+                        {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
                       </Button>
                     </div>
                   </div>
@@ -1533,6 +1591,7 @@ const GroupDetail = () => {
         followedUsers={followedUsers}
         groupType={group?.groupType || "public"}
         groupId={group?.id || ""}
+        projectRoles={group?.projectRoles}
         onAddMember={handleAddMemberFromModal}
       />
 
@@ -1607,11 +1666,13 @@ const GroupDetail = () => {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete "{group?.name}"? This
-              action cannot be undone. All group data, messages, and files will
-              be lost.
+              {isAdmin || isOwner
+                ? `Are you sure you want to permanently delete "${group?.name}"? This action cannot be undone. All group data, messages, and files will be lost.`
+                : `Are you sure you want to leave "${group?.name}"? You will lose your moderator access and need to request to rejoin.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1620,7 +1681,32 @@ const GroupDetail = () => {
               onClick={() => handleDeleteGroup()}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete Group
+              {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={showPrivacyChangeConfirm}
+        onOpenChange={setShowPrivacyChangeConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Make Group Public</AlertDialogTitle>
+            <AlertDialogDescription>
+              Turning off "Require Approval" for a private group will make it
+              public. Anyone will be able to join without approval. Are you sure
+              you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePrivacyChangeConfirm}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Make Public
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
