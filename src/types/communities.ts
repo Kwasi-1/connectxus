@@ -47,7 +47,7 @@ export interface JoinRequest {
   userAvatar?: string;
   userEmail: string;
   groupId: string;
-  message: string;
+  message?: string; // Optional message
   status: 'pending' | 'approved' | 'rejected';
   requestedAt: Date;
 }
@@ -67,6 +67,9 @@ export interface Group {
   admins: string[];
   moderators: string[];
   members?: MemberWithRole[]; // Optional since members are fetched separately
+  // Privacy settings
+  requireApproval?: boolean; // If true, shows requests tab and join becomes request
+  allowMemberInvites?: boolean; // If true, members can add users
   // Project-based group fields
   projectRoles?: ProjectRole[];
   projectDeadline?: Date;

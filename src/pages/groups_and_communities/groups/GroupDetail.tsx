@@ -761,7 +761,7 @@ const GroupDetail = () => {
 
   return (
     <AppLayout>
-      <div className="border-r border-border h-full">
+      <div className="border-r border-border h-full relative">
         {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
@@ -950,628 +950,698 @@ const GroupDetail = () => {
             )}
           </TabsList>
 
-          <TabsContent value="members" className="mt-0">
-            {membersLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <div className="divide-y divide-border">
-                {members.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">
-                      No members to display
-                    </p>
-                  </div>
-                ) : (
-                  members.map((member) => {
-                    const isCurrentUser = member.id === currentUserId;
-                    const isMemberAdmin = group?.admins.includes(member.id);
-                    const isMemberModerator = group?.moderators.includes(
-                      member.id
-                    );
-                    const isGroupOwner = group?.createdBy === member.id;
-
-                    return (
-                      <div key={member.id} className="p-4 hover:bg-muted/5">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage
-                              src={member.avatar}
-                              alt={member.displayName}
-                            />
-                            <AvatarFallback>
-                              {member.displayName.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">
-                                {member.displayName}
-                              </h3>
-                              {member.verified && (
-                                <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                  <span className="text-primary-foreground text-xs">
-                                    ✓
-                                  </span>
-                                </div>
-                              )}
-                              {isGroupOwner && (
-                                <Badge
-                                  variant="default"
-                                  className="text-xs gap-1"
-                                >
-                                  <Crown className="h-3 w-3" />
-                                  Owner
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              @{member.username}
-                            </p>
-                            {member.role && group?.groupType === "project" && (
-                              <p className="text-xs text-primary font-medium">
-                                {member.role}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isMemberAdmin && !isGroupOwner && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs gap-1"
-                              >
-                                <Shield className="h-3 w-3" />
-                                Admin
-                              </Badge>
-                            )}
-                            {isMemberModerator && !isMemberAdmin && (
-                              <Badge variant="outline" className="text-xs">
-                                Moderator
-                              </Badge>
-                            )}
-
-                            {canManage && !isCurrentUser && !isGroupOwner && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    •••
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {isOwner && !isMemberAdmin && (
-                                    <DropdownMenuItem
-                                      onClick={() => setMemberToPromote(member)}
-                                    >
-                                      <Crown className="h-4 w-4 mr-2" />
-                                      Promote to Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  {isOwner && isMemberAdmin && (
-                                    <DropdownMenuItem
-                                      onClick={() => setMemberToDemote(member)}
-                                    >
-                                      <Crown className="h-4 w-4 mr-2" />
-                                      Demote from Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  {canManage &&
-                                    !isMemberModerator &&
-                                    !isMemberAdmin && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handlePromoteToModerator(member.id)
-                                        }
-                                      >
-                                        <Shield className="h-4 w-4 mr-2" />
-                                        Make Moderator
-                                      </DropdownMenuItem>
-                                    )}
-                                  {canManage &&
-                                    isMemberModerator &&
-                                    !isMemberAdmin && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleDemoteFromModerator(member.id)
-                                        }
-                                      >
-                                        <Shield className="h-4 w-4 mr-2" />
-                                        Remove Moderator
-                                      </DropdownMenuItem>
-                                    )}
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleRemoveMember(member)}
-                                    className="text-red-600"
-                                  >
-                                    <UserMinus className="h-4 w-4 mr-2" />
-                                    Remove Member
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          {group.groupType === "project" && (
-            <TabsContent value="roles" className="mt-0">
-              <div className="p-4 space-y-4">
-                {group.projectRoles?.map((role) => {
-                  const pendingCount = role.applications.filter(
-                    (app) => app.status === "pending"
-                  ).length;
-                  const isFilled = role.slotsFilled >= role.slotsTotal;
-
-                  return (
-                    <div
-                      key={role.id}
-                      className="border border-border rounded-lg p-4"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold">{role.name}</h3>
-                            {isFilled && (
-                              <Badge variant="secondary" className="gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                Filled
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {role.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-muted-foreground">
-                              {role.slotsFilled} / {role.slotsTotal} filled
-                            </span>
-                            {pendingCount > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                {pendingCount} pending
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        {canManage && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewApplications(role)}
-                          >
-                            {pendingCount > 0
-                              ? `Review (${pendingCount})`
-                              : "View"}
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Show accepted members for this role */}
-                      {role.applications.filter(
-                        (app) => app.status === "accepted"
-                      ).length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            Team Members:
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {role.applications
-                              .filter((app) => app.status === "accepted")
-                              .map((app) => (
-                                <div
-                                  key={app.id}
-                                  className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1"
-                                >
-                                  <Avatar className="h-5 w-5">
-                                    <AvatarImage src={app.userAvatar} />
-                                    <AvatarFallback className="text-xs">
-                                      {app.userName
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm">
-                                    {app.userName}
-                                  </span>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {(!group.projectRoles || group.projectRoles.length === 0) && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No roles defined yet
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          )}
-
-          <TabsContent value="resources" className="mt-0">
-            {resourcesLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <div className="divide-y divide-border">
-                {resources.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">
-                      No resources shared yet
-                    </p>
-                  </div>
-                ) : (
-                  resources.map((resource) => (
-                    <div key={resource.id} className="p-4 hover:bg-muted/5">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-muted rounded-lg">
-                          <Files className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{resource.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {resource.type} • Shared by {resource.uploadedBy} •{" "}
-                            {resource.uploadedAt.toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          {canManage &&
-            (group?.requireApproval || group?.groupType === "private") && (
-              <TabsContent value="requests" className="mt-0">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Join Requests</h3>
-                  {joinRequests.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <div
+            className={`${
+              !group?.isJoined && !canManage
+                ? "blur-sm pointer-events-none"
+                : ""
+            }`}
+          >
+            <TabsContent value="members" className="mt-0">
+              {membersLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <div className="divide-y divide-border">
+                  {members.length === 0 ? (
+                    <div className="p-8 text-center">
                       <p className="text-muted-foreground">
-                        No pending requests
+                        No members to display
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {joinRequests.map((request) => (
-                        <div key={request.id} className="p-4 border rounded-lg">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage
-                                  src={request.userAvatar}
-                                  alt={request.userName}
-                                />
-                                <AvatarFallback>
-                                  {request.userName
-                                    .substring(0, 2)
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <h4 className="font-medium">
-                                  {request.userName}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {request.userEmail}
-                                </p>
-                                {request.message && (
-                                  <p className="text-sm mt-2">
-                                    {request.message}
+                    members.map((member) => {
+                      const isCurrentUser = member.id === currentUserId;
+                      const isMemberAdmin = group?.admins.includes(member.id);
+                      const isMemberModerator = group?.moderators.includes(
+                        member.id
+                      );
+                      const isGroupOwner = group?.createdBy === member.id;
+
+                      return (
+                        <div key={member.id} className="p-4 hover:bg-muted/5">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage
+                                src={member.avatar}
+                                alt={member.displayName}
+                              />
+                              <AvatarFallback>
+                                {member.displayName
+                                  .substring(0, 2)
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold">
+                                  {member.displayName}
+                                </h3>
+                                {member.verified && (
+                                  <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                    <span className="text-primary-foreground text-xs">
+                                      ✓
+                                    </span>
+                                  </div>
+                                )}
+                                {isGroupOwner && (
+                                  <Badge
+                                    variant="default"
+                                    className="text-xs gap-1"
+                                  >
+                                    <Crown className="h-3 w-3" />
+                                    Owner
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                @{member.username}
+                              </p>
+                              {member.role &&
+                                group?.groupType === "project" && (
+                                  <p className="text-xs text-primary font-medium">
+                                    {member.role}
                                   </p>
                                 )}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Requested{" "}
-                                  {request.requestedAt.toLocaleDateString()}
-                                </p>
-                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  handleApproveJoinRequest(request.id)
-                                }
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  handleRejectJoinRequest(request.id)
-                                }
-                              >
-                                <X className="h-4 w-4 mr-1" />
-                                Reject
-                              </Button>
+                            <div className="flex items-center gap-2">
+                              {isMemberAdmin && !isGroupOwner && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs gap-1"
+                                >
+                                  <Shield className="h-3 w-3" />
+                                  Admin
+                                </Badge>
+                              )}
+                              {isMemberModerator && !isMemberAdmin && (
+                                <Badge variant="outline" className="text-xs">
+                                  Moderator
+                                </Badge>
+                              )}
+
+                              {canManage && !isCurrentUser && !isGroupOwner && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      •••
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {isOwner && !isMemberAdmin && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setMemberToPromote(member)
+                                        }
+                                      >
+                                        <Crown className="h-4 w-4 mr-2" />
+                                        Promote to Admin
+                                      </DropdownMenuItem>
+                                    )}
+                                    {isOwner && isMemberAdmin && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setMemberToDemote(member)
+                                        }
+                                      >
+                                        <Crown className="h-4 w-4 mr-2" />
+                                        Demote from Admin
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canManage &&
+                                      !isMemberModerator &&
+                                      !isMemberAdmin && (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handlePromoteToModerator(member.id)
+                                          }
+                                        >
+                                          <Shield className="h-4 w-4 mr-2" />
+                                          Make Moderator
+                                        </DropdownMenuItem>
+                                      )}
+                                    {canManage &&
+                                      isMemberModerator &&
+                                      !isMemberAdmin && (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleDemoteFromModerator(member.id)
+                                          }
+                                        >
+                                          <Shield className="h-4 w-4 mr-2" />
+                                          Remove Moderator
+                                        </DropdownMenuItem>
+                                      )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleRemoveMember(member)}
+                                      className="text-red-600"
+                                    >
+                                      <UserMinus className="h-4 w-4 mr-2" />
+                                      Remove Member
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </div>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            {group.groupType === "project" && (
+              <TabsContent value="roles" className="mt-0">
+                <div className="p-4 space-y-4">
+                  {group.projectRoles?.map((role) => {
+                    const pendingCount = role.applications.filter(
+                      (app) => app.status === "pending"
+                    ).length;
+                    const isFilled = role.slotsFilled >= role.slotsTotal;
+
+                    return (
+                      <div
+                        key={role.id}
+                        className="border border-border rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{role.name}</h3>
+                              {isFilled && (
+                                <Badge variant="secondary" className="gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Filled
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {role.description}
+                            </p>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">
+                                {role.slotsFilled} / {role.slotsTotal} filled
+                              </span>
+                              {pendingCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {pendingCount} pending
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          {canManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewApplications(role)}
+                            >
+                              {pendingCount > 0
+                                ? `Review (${pendingCount})`
+                                : "View"}
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Show accepted members for this role */}
+                        {role.applications.filter(
+                          (app) => app.status === "accepted"
+                        ).length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              Team Members:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {role.applications
+                                .filter((app) => app.status === "accepted")
+                                .map((app) => (
+                                  <div
+                                    key={app.id}
+                                    className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1"
+                                  >
+                                    <Avatar className="h-5 w-5">
+                                      <AvatarImage src={app.userAvatar} />
+                                      <AvatarFallback className="text-xs">
+                                        {app.userName
+                                          .substring(0, 2)
+                                          .toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm">
+                                      {app.userName}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {(!group.projectRoles || group.projectRoles.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No roles defined yet
                     </div>
                   )}
                 </div>
               </TabsContent>
             )}
 
-          {canManage && (
-            <TabsContent value="settings" className="mt-0">
-              <div className="p-6 space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Group Settings</h3>
-
-                  {/* Group Information */}
-                  <div className="space-y-4 mb-6">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="group-name"
-                        className="text-sm font-medium"
-                      >
-                        Group Name
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="group-name"
-                          type="text"
-                          value={groupName}
-                          onChange={(e) => setGroupName(e.target.value)}
-                          placeholder="Enter group name"
-                          className="flex-1"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateGroupInfo()}
-                          disabled={groupName === group?.name}
-                        >
-                          Save
-                        </Button>
-                      </div>
+            <TabsContent value="resources" className="mt-0">
+              {resourcesLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <div className="divide-y divide-border">
+                  {resources.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        No resources shared yet
+                      </p>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">
-                        Group Description
-                      </Label>
-                      <div className="space-y-2">
-                        <Textarea
-                          value={groupDescription}
-                          onChange={(e) => setGroupDescription(e.target.value)}
-                          rows={3}
-                          placeholder="Enter group description"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateGroupInfo()}
-                          disabled={groupDescription === group?.description}
-                        >
-                          Update Description
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Privacy Settings - Only for Admins */}
-                  {isAdmin && (
-                    <div className="space-y-4 mb-6 p-4 border rounded-lg">
-                      <h4 className="font-medium">Privacy Settings</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm font-medium">
-                              Group Type
-                            </Label>
+                  ) : (
+                    resources.map((resource) => (
+                      <div key={resource.id} className="p-4 hover:bg-muted/5">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-muted rounded-lg">
+                            <Files className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium">{resource.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {group?.groupType === "project"
-                                ? "Project groups cannot change visibility"
-                                : "Change group visibility"}
+                              {resource.type} • Shared by {resource.uploadedBy}{" "}
+                              • {resource.uploadedAt.toLocaleDateString()}
                             </p>
                           </div>
-                          <Select
-                            value={groupType}
-                            onValueChange={(value) =>
-                              setGroupType(
-                                value as "public" | "private" | "project"
-                              )
-                            }
-                            disabled={group?.groupType === "project"}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="public">Public</SelectItem>
-                              <SelectItem value="private">Private</SelectItem>
-                              <SelectItem value="project">Project</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm font-medium">
-                              Require Approval
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Members need approval to join
-                            </p>
-                          </div>
-                          <Switch
-                            checked={requireApproval}
-                            onCheckedChange={(checked) => {
-                              if (group?.groupType === "private" && !checked) {
-                                setShowPrivacyChangeConfirm(true);
-                              } else {
-                                setRequireApproval(checked);
-                              }
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm font-medium">
-                              Allow Member Invites
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Let members invite others
-                            </p>
-                          </div>
-                          <Switch
-                            checked={allowMemberInvites}
-                            onCheckedChange={setAllowMemberInvites}
-                          />
+                          <Button variant="ghost" size="sm">
+                            Download
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleUpdatePrivacySettings()}
-                      >
-                        Save Privacy Settings
-                      </Button>
-                    </div>
+                    ))
                   )}
+                </div>
+              )}
+            </TabsContent>
 
-                  {/* Group Tags */}
-                  <div className="space-y-4 mb-6 p-4 border rounded-lg">
-                    <h4 className="font-medium">Group Tags</h4>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        {groupTags.map((tag, index) => (
-                          <Badge
-                            key={index}
-                            variant="secondary"
-                            className="gap-1"
+            {canManage &&
+              (group?.requireApproval || group?.groupType === "private") && (
+                <TabsContent value="requests" className="mt-0">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Join Requests
+                    </h3>
+                    {joinRequests.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                          No pending requests
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {joinRequests.map((request) => (
+                          <div
+                            key={request.id}
+                            className="p-4 border rounded-lg"
                           >
-                            {tag}
-                            <button
-                              onClick={() => removeTag(tag)}
-                              className="ml-1 text-muted-foreground hover:text-foreground"
-                            >
-                              ×
-                            </button>
-                          </Badge>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage
+                                    src={request.userAvatar}
+                                    alt={request.userName}
+                                  />
+                                  <AvatarFallback>
+                                    {request.userName
+                                      .substring(0, 2)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <h4 className="font-medium">
+                                    {request.userName}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {request.userEmail}
+                                  </p>
+                                  {request.message && (
+                                    <p className="text-sm mt-2">
+                                      {request.message}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Requested{" "}
+                                    {request.requestedAt.toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleApproveJoinRequest(request.id)
+                                  }
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleRejectJoinRequest(request.id)
+                                  }
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          onKeyPress={(e) => e.key === "Enter" && addTag()}
-                          placeholder="Add a tag"
-                          className="flex-1"
-                        />
-                        <Button size="sm" onClick={addTag}>
-                          Add Tag
+                    )}
+                  </div>
+                </TabsContent>
+              )}
+
+            {canManage && (
+              <TabsContent value="settings" className="mt-0">
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Group Settings
+                    </h3>
+
+                    {/* Group Information */}
+                    <div className="space-y-4 mb-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="group-name"
+                          className="text-sm font-medium"
+                        >
+                          Group Name
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="group-name"
+                            type="text"
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                            placeholder="Enter group name"
+                            className="flex-1"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateGroupInfo()}
+                            disabled={groupName === group?.name}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">
+                          Group Description
+                        </Label>
+                        <div className="space-y-2">
+                          <Textarea
+                            value={groupDescription}
+                            onChange={(e) =>
+                              setGroupDescription(e.target.value)
+                            }
+                            rows={3}
+                            placeholder="Enter group description"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateGroupInfo()}
+                            disabled={groupDescription === group?.description}
+                          >
+                            Update Description
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Privacy Settings - Only for Admins */}
+                    {isAdmin && (
+                      <div className="space-y-4 mb-6 p-4 border rounded-lg">
+                        <h4 className="font-medium">Privacy Settings</h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Group Type
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                {group?.groupType === "project"
+                                  ? "Project groups cannot change visibility"
+                                  : "Change group visibility"}
+                              </p>
+                            </div>
+                            <Select
+                              value={groupType}
+                              onValueChange={(value) =>
+                                setGroupType(
+                                  value as "public" | "private" | "project"
+                                )
+                              }
+                              disabled={group?.groupType === "project"}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="public">Public</SelectItem>
+                                <SelectItem value="private">Private</SelectItem>
+                                <SelectItem value="project">Project</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Require Approval
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Members need approval to join
+                              </p>
+                            </div>
+                            <Switch
+                              checked={requireApproval}
+                              onCheckedChange={(checked) => {
+                                if (
+                                  group?.groupType === "private" &&
+                                  !checked
+                                ) {
+                                  setShowPrivacyChangeConfirm(true);
+                                } else {
+                                  setRequireApproval(checked);
+                                }
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Allow Member Invites
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Let members invite others
+                              </p>
+                            </div>
+                            <Switch
+                              checked={allowMemberInvites}
+                              onCheckedChange={setAllowMemberInvites}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdatePrivacySettings()}
+                        >
+                          Save Privacy Settings
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Group Tags */}
+                    <div className="space-y-4 mb-6 p-4 border rounded-lg">
+                      <h4 className="font-medium">Group Tags</h4>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {groupTags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="gap-1"
+                            >
+                              {tag}
+                              <button
+                                onClick={() => removeTag(tag)}
+                                className="ml-1 text-muted-foreground hover:text-foreground"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && addTag()}
+                            placeholder="Add a tag"
+                            className="flex-1"
+                          />
+                          <Button size="sm" onClick={addTag}>
+                            Add Tag
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin Management */}
+                    {isOwner && (
+                      <div className="space-y-4 mb-6 p-4 border rounded-lg">
+                        <h4 className="font-medium">Admin Management</h4>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Current Admins:
+                          </p>
+                          <div className="space-y-2">
+                            {group?.admins.map((adminId) => {
+                              const admin = members.find(
+                                (m) => m.id === adminId
+                              );
+                              if (!admin) return null;
+                              return (
+                                <div
+                                  key={adminId}
+                                  className="flex items-center justify-between p-2 bg-muted/50 rounded"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage
+                                        src={admin.avatar}
+                                        alt={admin.displayName}
+                                      />
+                                      <AvatarFallback className="text-xs">
+                                        {admin.displayName
+                                          .substring(0, 2)
+                                          .toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm font-medium">
+                                      {admin.displayName}
+                                    </span>
+                                    {group.createdBy === adminId && (
+                                      <Badge
+                                        variant="default"
+                                        className="text-xs"
+                                      >
+                                        Owner
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {group.createdBy !== adminId && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setMemberToDemote(admin)}
+                                    >
+                                      Remove Admin
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="pt-4 border-t border-red-200">
+                    <h4 className="text-sm font-medium text-red-600 mb-4">
+                      Danger Zone
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 border border-red-200 rounded-lg">
+                        <div>
+                          <h5 className="text-sm font-medium text-red-600">
+                            {isAdmin || isOwner
+                              ? "Delete Group"
+                              : "Leave Group"}
+                          </h5>
+                          <p className="text-xs text-red-500">
+                            {isAdmin || isOwner
+                              ? "Permanently delete this group and all its data"
+                              : "Leave this group and lose moderator access"}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowDeleteConfirm(true)}
+                        >
+                          {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
                         </Button>
                       </div>
                     </div>
                   </div>
-
-                  {/* Admin Management */}
-                  {isOwner && (
-                    <div className="space-y-4 mb-6 p-4 border rounded-lg">
-                      <h4 className="font-medium">Admin Management</h4>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Current Admins:
-                        </p>
-                        <div className="space-y-2">
-                          {group?.admins.map((adminId) => {
-                            const admin = members.find((m) => m.id === adminId);
-                            if (!admin) return null;
-                            return (
-                              <div
-                                key={adminId}
-                                className="flex items-center justify-between p-2 bg-muted/50 rounded"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage
-                                      src={admin.avatar}
-                                      alt={admin.displayName}
-                                    />
-                                    <AvatarFallback className="text-xs">
-                                      {admin.displayName
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm font-medium">
-                                    {admin.displayName}
-                                  </span>
-                                  {group.createdBy === adminId && (
-                                    <Badge
-                                      variant="default"
-                                      className="text-xs"
-                                    >
-                                      Owner
-                                    </Badge>
-                                  )}
-                                </div>
-                                {group.createdBy !== adminId && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setMemberToDemote(admin)}
-                                  >
-                                    Remove Admin
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                {/* Danger Zone */}
-                <div className="pt-4 border-t border-red-200">
-                  <h4 className="text-sm font-medium text-red-600 mb-4">
-                    Danger Zone
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 border border-red-200 rounded-lg">
-                      <div>
-                        <h5 className="text-sm font-medium text-red-600">
-                          {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
-                        </h5>
-                        <p className="text-xs text-red-500">
-                          {isAdmin || isOwner
-                            ? "Permanently delete this group and all its data"
-                            : "Leave this group and lose moderator access"}
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setShowDeleteConfirm(true)}
-                      >
-                        {isAdmin || isOwner ? "Delete Group" : "Leave Group"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          )}
+              </TabsContent>
+            )}
+          </div>
         </Tabs>
+
+        {/* Content Overlay for Non-Members */}
+        {/* {!group?.isJoined && !canManage && (
+          <div className="absolute inset-0 top-[520px] bg-background/90 backdrop-blur-md z-50 flex flex-col items-center justify-center">
+            <div className="text-center space-y-6 p-8 max-w-md mx-auto">
+              <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-full flex items-center justify-center border border-blue-200 dark:border-blue-800">
+                <Lock className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-xl font-bold text-foreground">Join to View Content</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {group?.groupType === "private" 
+                    ? "This is a private group. Request access to view members, resources, and participate in discussions."
+                    : "Join this group to access member lists, shared resources, and participate in group activities."
+                  }
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button
+                  onClick={handleJoinGroup}
+                  size="lg"
+                  className="px-8 py-3 text-base font-medium"
+                >
+                  {group?.groupType === "private" ? (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Request Access
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Join Group
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )} */}
       </div>
 
       {/* Modals */}
