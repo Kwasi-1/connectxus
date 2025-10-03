@@ -32,9 +32,11 @@ import {
   ProjectRole,
   RoleApplication,
   MemberWithRole,
+  JoinRequest,
 } from "@/types/communities";
 import { User } from "@/types/global";
 import { ProjectRoleApplicationsModal } from "@/components/groups/ProjectRoleApplicationsModal";
+import { AddMemberModal } from "@/components/groups/AddMemberModal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -72,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type GroupTab = "members" | "resources" | "roles" | "settings";
+type GroupTab = "members" | "resources" | "roles" | "settings" | "requests";
 
 interface Resource {
   id: string;
@@ -96,7 +98,11 @@ const GroupDetail = () => {
   const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
-  const [searchEmail, setSearchEmail] = useState("");
+
+  // Join requests state
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [followedUsers, setFollowedUsers] = useState<User[]>([]);
+  const [showFollowedUsers, setShowFollowedUsers] = useState(false);
 
   // New state for confirmations and settings
   const [memberToRemove, setMemberToRemove] = useState<MemberWithRole | null>(
@@ -132,6 +138,32 @@ const GroupDetail = () => {
       setGroupTags(group.tags || []);
     }
   }, [group]);
+
+  // Fetch followed users and join requests
+  useEffect(() => {
+    // Mock followed users (users you're connected to)
+    const mockFollowedUsers = mockUsers.filter((user, index) => index < 2);
+    setFollowedUsers(mockFollowedUsers);
+
+    // Mock join requests for private groups
+    if (group?.groupType === "private" && canManage) {
+      const mockJoinRequests: JoinRequest[] = [
+        {
+          id: "req-1",
+          userId: "user-4",
+          userName: "Alex Chen",
+          userAvatar: "/placeholder.svg",
+          userEmail: "alex@university.edu",
+          groupId: group.id,
+          message:
+            "I would like to join this study group for exam preparation.",
+          status: "pending",
+          requestedAt: new Date("2024-03-15"),
+        },
+      ];
+      setJoinRequests(mockJoinRequests);
+    }
+  }, [group?.groupType, group?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Settings handlers
   const handleUpdateGroupInfo = useCallback(() => {
@@ -509,14 +541,89 @@ const GroupDetail = () => {
     });
   };
 
-  const handleAddMember = () => {
-    toast({
-      title: "Invitation sent",
-      description: `An invitation has been sent to ${searchEmail}`,
-    });
-    setSearchEmail("");
-    setIsAddMemberModalOpen(false);
-  };
+  // Handle adding member from the modal
+  const handleAddMemberFromModal = useCallback(
+    (user: User) => {
+      const newMember: MemberWithRole = {
+        ...user,
+        role: group?.groupType === "project" ? "Team Member" : undefined,
+      };
+
+      setMembers((prevMembers) => [...prevMembers, newMember]);
+      setGroup((prev) =>
+        prev ? { ...prev, memberCount: prev.memberCount + 1 } : prev
+      );
+
+      toast({
+        title: "Member added",
+        description: `${user.displayName} has been added to the group`,
+      });
+    },
+    [group?.groupType, toast]
+  );
+
+  // Join request handlers
+  const handleJoinRequest = useCallback(
+    (request: JoinRequest) => {
+      if (group?.groupType !== "private") return;
+
+      setJoinRequests((prev) => [...prev, request]);
+      toast({
+        title: "New join request",
+        description: `${request.userName} wants to join the group`,
+      });
+    },
+    [group?.groupType, toast]
+  );
+
+  const handleApproveJoinRequest = useCallback(
+    (requestId: string) => {
+      const request = joinRequests.find((req) => req.id === requestId);
+      if (!request) return;
+
+      // Add user to members
+      const newMember: MemberWithRole = {
+        id: request.userId,
+        username: request.userName.toLowerCase().replace(" ", "_"),
+        displayName: request.userName,
+        email: request.userEmail,
+        avatar: request.userAvatar || "/placeholder.svg",
+        verified: false,
+        followers: 0,
+        following: 0,
+        createdAt: new Date(),
+        roles: ["student"],
+        role: group?.groupType === "project" ? "Team Member" : undefined,
+      };
+
+      setMembers((prev) => [...prev, newMember]);
+      setGroup((prev) =>
+        prev ? { ...prev, memberCount: prev.memberCount + 1 } : prev
+      );
+      setJoinRequests((prev) => prev.filter((req) => req.id !== requestId));
+
+      toast({
+        title: "Request approved",
+        description: `${request.userName} has been added to the group`,
+      });
+    },
+    [joinRequests, group?.groupType, toast]
+  );
+
+  const handleRejectJoinRequest = useCallback(
+    (requestId: string) => {
+      const request = joinRequests.find((req) => req.id === requestId);
+      if (!request) return;
+
+      setJoinRequests((prev) => prev.filter((req) => req.id !== requestId));
+
+      toast({
+        title: "Request rejected",
+        description: `${request.userName}'s request has been rejected`,
+      });
+    },
+    [joinRequests, toast]
+  );
 
   const handleRemoveMember = useCallback((member: MemberWithRole) => {
     setMemberToRemove(member);
@@ -772,6 +879,22 @@ const GroupDetail = () => {
             >
               Resources
             </TabsTrigger>
+            {canManage && group.groupType === "private" && (
+              <TabsTrigger
+                value="requests"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Requests{" "}
+                {joinRequests.length > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-2 h-5 w-5 text-xs p-0 flex items-center justify-center"
+                  >
+                    {joinRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
             {canManage && (
               <TabsTrigger
                 value="settings"
@@ -1063,6 +1186,74 @@ const GroupDetail = () => {
             )}
           </TabsContent>
 
+          {canManage && group.groupType === "private" && (
+            <TabsContent value="requests" className="mt-0">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Join Requests</h3>
+                {joinRequests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No pending requests</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {joinRequests.map((request) => (
+                      <div key={request.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage
+                                src={request.userAvatar}
+                                alt={request.userName}
+                              />
+                              <AvatarFallback>
+                                {request.userName.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <h4 className="font-medium">
+                                {request.userName}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {request.userEmail}
+                              </p>
+                              <p className="text-sm mt-2">{request.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Requested{" "}
+                                {request.requestedAt.toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                handleApproveJoinRequest(request.id)
+                              }
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleRejectJoinRequest(request.id)
+                              }
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
+
           {canManage && (
             <TabsContent value="settings" className="mt-0">
               <div className="p-6 space-y-6">
@@ -1336,45 +1527,14 @@ const GroupDetail = () => {
         />
       )}
 
-      <Dialog
-        open={isAddMemberModalOpen}
-        onOpenChange={setIsAddMemberModalOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Member to Group</DialogTitle>
-            <DialogDescription>
-              {group.groupType === "private"
-                ? "Invite someone to this private group by their email"
-                : "Add a new member to the group"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                placeholder="student@university.edu"
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setIsAddMemberModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddMember} disabled={!searchEmail}>
-                Send Invitation
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddMemberModal
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setIsAddMemberModalOpen(false)}
+        followedUsers={followedUsers}
+        groupType={group?.groupType || "public"}
+        groupId={group?.id || ""}
+        onAddMember={handleAddMemberFromModal}
+      />
 
       {/* Confirmation Dialogs */}
       <AlertDialog

@@ -40,6 +40,18 @@ export interface MemberWithRole extends User {
   role?: string; // For project-based groups
 }
 
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  userEmail: string;
+  groupId: string;
+  message: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: Date;
+}
+
 export interface Group {
   id: string;
   name: string;
