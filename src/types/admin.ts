@@ -49,10 +49,18 @@ export interface ContentModerationItem {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   reviewedBy?: string;
   reviewedAt?: Date;
+  moderationNotes?: string;
   content: {
     text?: string;
     images?: string[];
     author: User;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    replies?: number;
+    members?: number;
+    posts?: number;
+    createdAt?: Date;
   };
   createdAt: Date;
 }
@@ -99,13 +107,14 @@ export interface GroupManagement {
   description: string;
   category: string;
   memberCount: number;
-  status: 'active' | 'suspended' | 'archived';
+  status: 'active' | 'suspended' | 'archived' | 'pending' | 'approved' | 'rejected';
   visibility: 'public' | 'private' | 'restricted';
   createdBy: string;
   moderators: string[];
   flags: number;
   lastActivity: Date;
   createdAt: Date;
+  avatarUrl?: string;
 }
 
 export interface TutorApplication {
