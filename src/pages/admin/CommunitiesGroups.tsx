@@ -76,6 +76,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Community, Group } from "@/types/communities";
 import { User } from "@/types/global";
+import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 
 // Admin Group interface for admin management
 interface AdminGroup extends Group {
@@ -585,67 +586,67 @@ export function CommunitiesGroups() {
   );
 
   // Selection handlers
-  
-    const filteredCommunities = communities.filter((community) => {
-      const matchesSearch =
-        community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        community.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        statusFilter === "all" ||
-        (statusFilter === "academic" && community.category === "Academic") ||
-        (statusFilter === "department" && community.category === "Department") ||
-        (statusFilter === "level" && community.category === "Level") ||
-        (statusFilter === "hostel" && community.category === "Hostel") ||
-        (statusFilter === "faculty" && community.category === "Faculty");
-  
-      return matchesSearch && matchesCategory;
-    });
-  
-    const filteredGroups = groups.filter((group) => {
-      const matchesSearch =
-        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        group.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        group.creatorInfo.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || group.status === statusFilter;
-      const matchesType =
-        groupTypeFilter === "all" || group.groupType === groupTypeFilter;
-      return matchesSearch && matchesStatus && matchesType;
-    });
-  
-    const handleSelectAllCommunities = useCallback(() => {
-      if (selectedCommunities.length === filteredCommunities.length) {
-        setSelectedCommunities([]);
-      } else {
-        setSelectedCommunities(
-          filteredCommunities.map((community) => community.id)
-        );
-      }
-    }, [selectedCommunities, filteredCommunities]);
-  
-    const handleSelectCommunity = useCallback((communityId: string) => {
-      setSelectedCommunities((prev) =>
-        prev.includes(communityId)
-          ? prev.filter((id) => id !== communityId)
-          : [...prev, communityId]
+
+  const filteredCommunities = communities.filter((community) => {
+    const matchesSearch =
+      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      community.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      statusFilter === "all" ||
+      (statusFilter === "academic" && community.category === "Academic") ||
+      (statusFilter === "department" && community.category === "Department") ||
+      (statusFilter === "level" && community.category === "Level") ||
+      (statusFilter === "hostel" && community.category === "Hostel") ||
+      (statusFilter === "faculty" && community.category === "Faculty");
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredGroups = groups.filter((group) => {
+    const matchesSearch =
+      group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.creatorInfo.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || group.status === statusFilter;
+    const matchesType =
+      groupTypeFilter === "all" || group.groupType === groupTypeFilter;
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const handleSelectAllCommunities = useCallback(() => {
+    if (selectedCommunities.length === filteredCommunities.length) {
+      setSelectedCommunities([]);
+    } else {
+      setSelectedCommunities(
+        filteredCommunities.map((community) => community.id)
       );
-    }, []);
-  
-    const handleSelectAllGroups = useCallback(() => {
-      if (selectedGroups.length === filteredGroups.length) {
-        setSelectedGroups([]);
-      } else {
-        setSelectedGroups(filteredGroups.map((group) => group.id));
-      }
-    }, [selectedGroups, filteredGroups]);
-  
-    const handleSelectGroup = useCallback((groupId: string) => {
-      setSelectedGroups((prev) =>
-        prev.includes(groupId)
-          ? prev.filter((id) => id !== groupId)
-          : [...prev, groupId]
-      );
-    }, []);
+    }
+  }, [selectedCommunities, filteredCommunities]);
+
+  const handleSelectCommunity = useCallback((communityId: string) => {
+    setSelectedCommunities((prev) =>
+      prev.includes(communityId)
+        ? prev.filter((id) => id !== communityId)
+        : [...prev, communityId]
+    );
+  }, []);
+
+  const handleSelectAllGroups = useCallback(() => {
+    if (selectedGroups.length === filteredGroups.length) {
+      setSelectedGroups([]);
+    } else {
+      setSelectedGroups(filteredGroups.map((group) => group.id));
+    }
+  }, [selectedGroups, filteredGroups]);
+
+  const handleSelectGroup = useCallback((groupId: string) => {
+    setSelectedGroups((prev) =>
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId]
+    );
+  }, []);
 
   const getGroupTypeIcon = (groupType: string) => {
     switch (groupType) {
@@ -737,1073 +738,984 @@ export function CommunitiesGroups() {
     );
   };
 
-  return (
-    <div className="space-y-6">
+  // Calculate statistics based on active tab
+  const communityStats = {
+    total: communities.length,
+    academic: communities.filter((c) => c.category === "Academic").length,
+    departments: communities.filter((c) => c.category === "Department").length,
+    totalMembers: communities.reduce(
+      (acc, community) => acc + community.memberCount,
+      0
+    ),
+  };
+
+  const groupStats = {
+    total: groups.length,
+    active: groups.filter((g) => g.status === "active").length,
+    projects: groups.filter((g) => g.groupType === "project").length,
+    totalMembers: groups.reduce((acc, group) => acc + group.memberCount, 0),
+  };
+
+  // Create stats cards data based on active tab
+  const statsCards =
+    activeTab === "communities"
+      ? [
+          {
+            title: "Total Communities",
+            value: communityStats.total,
+            icon: <Users className="h-4 w-4 text-muted-foreground" />,
+            description: "Active communities",
+          },
+          {
+            title: "Academic",
+            value: communityStats.academic,
+            icon: <AlertTriangle className="h-4 w-4 text-blue-600" />,
+            description: "Academic communities",
+          },
+          {
+            title: "Departments",
+            value: communityStats.departments,
+            icon: <Flag className="h-4 w-4 text-green-600" />,
+            description: "Department communities",
+          },
+          {
+            title: "Total Members",
+            value: communityStats.totalMembers,
+            icon: <UserPlus className="h-4 w-4 text-purple-600" />,
+            description: "Across all communities",
+          },
+        ]
+      : [
+          {
+            title: "Total Groups",
+            value: groupStats.total,
+            icon: <Users className="h-4 w-4 text-muted-foreground" />,
+            description: "All groups",
+          },
+          {
+            title: "Active Groups",
+            value: groupStats.active,
+            icon: <Activity className="h-4 w-4 text-green-600" />,
+            description: "Currently active",
+          },
+          {
+            title: "Project Groups",
+            value: groupStats.projects,
+            icon: <Briefcase className="h-4 w-4 text-blue-600" />,
+            description: "Project-based groups",
+          },
+          {
+            title: "Total Members",
+            value: groupStats.totalMembers,
+            icon: <UserPlus className="h-4 w-4 text-purple-600" />,
+            description: "Across all groups",
+          },
+        ];
+
+  // Create action buttons
+  const actionButtons = [
+    {
+      label: `Export ${activeTab === "communities" ? "Communities" : "Groups"}`,
+      icon: <Download className="h-4 w-4 mr-2" />,
+      variant: "outline" as const,
+      onClick: handleExport,
+    },
+    ...(activeTab === "communities"
+      ? [
+          {
+            label: "Create Community",
+            icon: <Plus className="h-4 w-4 mr-2" />,
+            variant: "default" as const,
+            onClick: () => setShowCreateModal(true),
+          },
+        ]
+      : []),
+  ];
+
+  // Create filter options
+  const filterOptions =
+    activeTab === "communities"
+      ? [
+          { value: "all", label: "All Categories" },
+          { value: "academic", label: "Academic" },
+          { value: "department", label: "Department" },
+          { value: "level", label: "Level" },
+          { value: "hostel", label: "Hostel" },
+          { value: "faculty", label: "Faculty" },
+        ]
+      : [
+          { value: "all", label: "All Status" },
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+          { value: "suspended", label: "Suspended" },
+        ];
+
+  const groupTypeFilterOptions = [
+    { value: "all", label: "All Types" },
+    { value: "public", label: "Public" },
+    { value: "private", label: "Private" },
+    { value: "project", label: "Project" },
+  ];
+
+  // Create communities table content
+  const communitiesTableContent = (
+    <div className="space-y-4">
+      {/* Communities Table with header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold custom-font">
-          Communities & Groups Management
-        </h1>
-        <div className="flex gap-2">
-          <Button onClick={handleExport} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export {activeTab === "communities" ? "Communities" : "Groups"}
-          </Button>
-          {activeTab === "communities" && (
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Community
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create New Community</DialogTitle>
-                  <DialogDescription>
-                    Create a new community for campus activities and
-                    departments.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Community Name</Label>
-                    <Input
-                      id="name"
-                      value={newCommunity.name}
-                      onChange={(e) =>
-                        setNewCommunity((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter community name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={newCommunity.description}
-                      onChange={(e) =>
-                        setNewCommunity((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Describe the community's purpose"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={newCommunity.category}
-                      onValueChange={(value) =>
-                        setNewCommunity((prev) => ({
-                          ...prev,
-                          category: value as Community["category"],
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Academic">Academic</SelectItem>
-                        <SelectItem value="Department">Department</SelectItem>
-                        <SelectItem value="Level">Level</SelectItem>
-                        <SelectItem value="Hostel">Hostel</SelectItem>
-                        <SelectItem value="Faculty">Faculty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="coverImage">Cover Image</Label>
-                    <Input
-                      id="coverImage"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        setNewCommunity((prev) => ({
-                          ...prev,
-                          coverImage: e.target.files?.[0] || null,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCreateModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateCommunity}>
-                    Create Community
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+        <h3 className="text-lg font-medium">
+          Communities ({filteredCommunities.length})
+        </h3>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            checked={
+              selectedCommunities.length === filteredCommunities.length &&
+              filteredCommunities.length > 0
+            }
+            onCheckedChange={handleSelectAllCommunities}
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedCommunities.length} selected
+          </span>
         </div>
       </div>
-
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="communities">Communities</TabsTrigger>
-          <TabsTrigger value="groups">Groups</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="communities" className="space-y-6">
-          {/* Communities Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Communities
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{communities.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active communities
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Academic</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {communities.filter((c) => c.category === "Academic").length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Academic communities
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Departments
-                </CardTitle>
-                <Flag className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {
-                    communities.filter((c) => c.category === "Department")
-                      .length
-                  }
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Department communities
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Members
-                </CardTitle>
-                <UserPlus className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {communities.reduce(
-                    (acc, community) => acc + community.memberCount,
-                    0
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Across all communities
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Communities Filters and Search */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search communities..."
-                  className="pl-9 w-full sm:w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="academic">Academic</SelectItem>
-                  <SelectItem value="department">Department</SelectItem>
-                  <SelectItem value="level">Level</SelectItem>
-                  <SelectItem value="hostel">Hostel</SelectItem>
-                  <SelectItem value="faculty">Faculty</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Communities Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>
-                  Communities ({filteredCommunities.length})
-                </CardTitle>
-                <div className="flex items-center space-x-2">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">
+              <Checkbox
+                checked={
+                  selectedCommunities.length === filteredCommunities.length &&
+                  filteredCommunities.length > 0
+                }
+                onCheckedChange={handleSelectAllCommunities}
+              />
+            </TableHead>
+            <TableHead>Community</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Members</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8">
+                Loading communities...
+              </TableCell>
+            </TableRow>
+          ) : filteredCommunities.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8">
+                No communities found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredCommunities.map((community) => (
+              <TableRow key={community.id}>
+                <TableCell>
                   <Checkbox
-                    checked={
-                      selectedCommunities.length ===
-                        filteredCommunities.length &&
-                      filteredCommunities.length > 0
-                    }
-                    onCheckedChange={handleSelectAllCommunities}
+                    checked={selectedCommunities.includes(community.id)}
+                    onCheckedChange={() => handleSelectCommunity(community.id)}
                   />
-                  <span className="text-sm text-muted-foreground">
-                    {selectedCommunities.length} selected
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={
-                          selectedCommunities.length ===
-                            filteredCommunities.length &&
-                          filteredCommunities.length > 0
-                        }
-                        onCheckedChange={handleSelectAllCommunities}
-                      />
-                    </TableHead>
-                    <TableHead>Community</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        Loading communities...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredCommunities.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        No communities found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredCommunities.map((community) => (
-                      <TableRow key={community.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedCommunities.includes(community.id)}
-                            onCheckedChange={() =>
-                              handleSelectCommunity(community.id)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={community.coverImage} />
-                              <AvatarFallback>
-                                {community.name.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">
-                                {community.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {community.description}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{community.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1 text-muted-foreground" />
-                            {community.memberCount}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {community.createdAt.toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedCommunity(community);
-                                  setShowEditModal(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedCommunity(community);
-                                  setShowAssignModeratorModal(true);
-                                }}
-                              >
-                                <Shield className="h-4 w-4 mr-2" />
-                                Assign Moderator
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedCommunity(community);
-                                  setShowDeleteDialog(true);
-                                }}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="groups" className="space-y-6">
-          {/* Groups Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Groups
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{groups.length}</div>
-                <p className="text-xs text-muted-foreground">All groups</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Groups
-                </CardTitle>
-                <Activity className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {groups.filter((g) => g.status === "active").length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Currently active
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Project Groups
-                </CardTitle>
-                <Briefcase className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {groups.filter((g) => g.groupType === "project").length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Project-based groups
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Members
-                </CardTitle>
-                <UserPlus className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {groups.reduce((acc, group) => acc + group.memberCount, 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Across all groups
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Groups Filters and Search */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search groups..."
-                  className="pl-9 w-full sm:w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={groupTypeFilter}
-                onValueChange={setGroupTypeFilter}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                  <SelectItem value="project">Project</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Groups Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Groups ({filteredGroups.length})</CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={
-                      selectedGroups.length === filteredGroups.length &&
-                      filteredGroups.length > 0
-                    }
-                    onCheckedChange={handleSelectAllGroups}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {selectedGroups.length} selected
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={
-                          selectedGroups.length === filteredGroups.length &&
-                          filteredGroups.length > 0
-                        }
-                        onCheckedChange={handleSelectAllGroups}
-                      />
-                    </TableHead>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Creator</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
-                        Loading groups...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredGroups.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
-                        No groups found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredGroups.map((group) => (
-                      <TableRow key={group.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedGroups.includes(group.id)}
-                            onCheckedChange={() => handleSelectGroup(group.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={group.avatar} />
-                              <AvatarFallback>
-                                {group.name.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">
-                                  {group.name}
-                                </span>
-                                {getGroupTypeIcon(group.groupType)}
-                              </div>
-                              <div className="text-sm text-muted-foreground line-clamp-1">
-                                {group.description}
-                              </div>
-                              <div className="flex gap-1 mt-1">
-                                {group.tags.slice(0, 2).map((tag) => (
-                                  <Badge
-                                    key={tag}
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                                {group.tags.length > 2 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{group.tags.length - 2}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getGroupTypeBadge(group.groupType)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={group.creatorInfo.avatar} />
-                              <AvatarFallback className="text-xs">
-                                {group.creatorInfo.name
-                                  .substring(0, 2)
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="text-sm font-medium">
-                                {group.creatorInfo.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {group.creatorInfo.email}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1 text-muted-foreground" />
-                            {group.memberCount}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(group.status)}
-                          {group.flags > 0 && (
-                            <Badge variant="destructive" className="ml-1">
-                              {group.flags} flags
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>{group.createdAt.toLocaleDateString()}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Last active:{" "}
-                              {group.lastActivity.toLocaleDateString()}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedGroup(group);
-                                  setShowGroupDetailsModal(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {group.status === "active" ? (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedGroup(group);
-                                    setShowSuspendGroupDialog(true);
-                                  }}
-                                  className="text-red-600"
-                                >
-                                  <Ban className="h-4 w-4 mr-2" />
-                                  Suspend Group
-                                </DropdownMenuItem>
-                              ) : group.status === "suspended" ? (
-                                <DropdownMenuItem
-                                  onClick={() => handleReactivateGroup(group)}
-                                  className="text-green-600"
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Reactivate Group
-                                </DropdownMenuItem>
-                              ) : null}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Group Details Modal */}
-      <Dialog
-        open={showGroupDetailsModal}
-        onOpenChange={setShowGroupDetailsModal}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Group Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about {selectedGroup?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedGroup && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedGroup.avatar} />
-                  <AvatarFallback>
-                    {selectedGroup.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {selectedGroup.name}
-                    {getGroupTypeIcon(selectedGroup.groupType)}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {selectedGroup.description}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    {getGroupTypeBadge(selectedGroup.groupType)}
-                    {getStatusBadge(selectedGroup.status)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Group Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={community.coverImage} />
+                      <AvatarFallback>
+                        {community.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <span className="text-sm text-muted-foreground">
-                        Category:
-                      </span>
-                      <span className="ml-2">{selectedGroup.category}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Members:
-                      </span>
-                      <span className="ml-2">{selectedGroup.memberCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Created:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Last Activity:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.lastActivity.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      Creator Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {selectedGroup.creatorInfo.name
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-sm font-medium">
-                          {selectedGroup.creatorInfo.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {selectedGroup.creatorInfo.email}
-                        </div>
+                      <div className="font-medium">{community.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {community.description}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {selectedGroup.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedGroup.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
                   </div>
-                </div>
-              )}
-
-              {selectedGroup.groupType === "project" &&
-                selectedGroup.projectRoles && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
-                    <div className="space-y-2">
-                      {selectedGroup.projectRoles.map((role) => (
-                        <div key={role.id} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-medium">{role.name}</h5>
-                            <Badge variant="outline">
-                              {role.slotsFilled}/{role.slotsTotal}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {role.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedGroup.projectDeadline && (
-                      <div className="mt-3 p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-sm">
-                            Project Deadline:{" "}
-                            {selectedGroup.projectDeadline.toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{community.category}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {community.memberCount}
                   </div>
-                )}
-
-              {selectedGroup.flags > 0 && (
-                <div className="bg-destructive/10 p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">
-                      This group has {selectedGroup.flags} flag
-                      {selectedGroup.flags !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+                </TableCell>
+                <TableCell>
+                  {community.createdAt.toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setShowEditModal(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setShowAssignModeratorModal(true);
+                        }}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Assign Moderator
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
           )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowGroupDetailsModal(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Suspend Group Dialog */}
-      <AlertDialog
-        open={showSuspendGroupDialog}
-        onOpenChange={setShowSuspendGroupDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to suspend "{selectedGroup?.name}"? This
-              action will make the group inactive and prevent new members from
-              joining.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSuspendGroup}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Suspend Group
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Group Details Modal */}
-      <Dialog
-        open={showGroupDetailsModal}
-        onOpenChange={setShowGroupDetailsModal}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Group Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about {selectedGroup?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedGroup && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedGroup.avatar} />
-                  <AvatarFallback>
-                    {selectedGroup.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {selectedGroup.name}
-                    {getGroupTypeIcon(selectedGroup.groupType)}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {selectedGroup.description}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    {getGroupTypeBadge(selectedGroup.groupType)}
-                    {getStatusBadge(selectedGroup.status)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Group Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Category:
-                      </span>
-                      <span className="ml-2">{selectedGroup.category}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Members:
-                      </span>
-                      <span className="ml-2">{selectedGroup.memberCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Created:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Last Activity:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.lastActivity.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      Creator Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {selectedGroup.creatorInfo.name
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-sm font-medium">
-                          {selectedGroup.creatorInfo.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {selectedGroup.creatorInfo.email}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {selectedGroup.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedGroup.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedGroup.groupType === "project" &&
-                selectedGroup.projectRoles && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
-                    <div className="space-y-2">
-                      {selectedGroup.projectRoles.map((role) => (
-                        <div key={role.id} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-medium">{role.name}</h5>
-                            <Badge variant="outline">
-                              {role.slotsFilled}/{role.slotsTotal}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {role.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedGroup.projectDeadline && (
-                      <div className="mt-3 p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-sm">
-                            Project Deadline:{" "}
-                            {selectedGroup.projectDeadline.toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              {selectedGroup.flags > 0 && (
-                <div className="bg-destructive/10 p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">
-                      This group has {selectedGroup.flags} flag
-                      {selectedGroup.flags !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowGroupDetailsModal(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Suspend Group Dialog */}
-      <AlertDialog
-        open={showSuspendGroupDialog}
-        onOpenChange={setShowSuspendGroupDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to suspend "{selectedGroup?.name}"? This
-              action will make the group inactive and prevent new members from
-              joining.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSuspendGroup}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Suspend Group
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </TableBody>
+      </Table>
     </div>
   );
+
+  // Create groups table content
+  const groupsTableContent = (
+    <div className="space-y-4">
+      {/* Additional filter for groups */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-medium">
+            Groups ({filteredGroups.length})
+          </h3>
+          <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              {groupTypeFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            checked={
+              selectedGroups.length === filteredGroups.length &&
+              filteredGroups.length > 0
+            }
+            onCheckedChange={handleSelectAllGroups}
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedGroups.length} selected
+          </span>
+        </div>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">
+              <Checkbox
+                checked={
+                  selectedGroups.length === filteredGroups.length &&
+                  filteredGroups.length > 0
+                }
+                onCheckedChange={handleSelectAllGroups}
+              />
+            </TableHead>
+            <TableHead>Group</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Creator</TableHead>
+            <TableHead>Members</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8">
+                Loading groups...
+              </TableCell>
+            </TableRow>
+          ) : filteredGroups.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8">
+                No groups found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredGroups.map((group) => (
+              <TableRow key={group.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedGroups.includes(group.id)}
+                    onCheckedChange={() => handleSelectGroup(group.id)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={group.avatar} />
+                      <AvatarFallback>
+                        {group.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{group.name}</span>
+                        {getGroupTypeIcon(group.groupType)}
+                      </div>
+                      <div className="text-sm text-muted-foreground line-clamp-1">
+                        {group.description}
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {group.tags.slice(0, 2).map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                        {group.tags.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{group.tags.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>{getGroupTypeBadge(group.groupType)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={group.creatorInfo.avatar} />
+                      <AvatarFallback className="text-xs">
+                        {group.creatorInfo.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-medium">
+                        {group.creatorInfo.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {group.creatorInfo.email}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {group.memberCount}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(group.status)}
+                  {group.flags > 0 && (
+                    <Badge variant="destructive" className="ml-1">
+                      {group.flags} flags
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    <div>{group.createdAt.toLocaleDateString()}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Last active: {group.lastActivity.toLocaleDateString()}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedGroup(group);
+                          setShowGroupDetailsModal(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {group.status === "active" ? (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedGroup(group);
+                            setShowSuspendGroupDialog(true);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Ban className="h-4 w-4 mr-2" />
+                          Suspend Group
+                        </DropdownMenuItem>
+                      ) : group.status === "suspended" ? (
+                        <DropdownMenuItem
+                          onClick={() => handleReactivateGroup(group)}
+                          className="text-green-600"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Reactivate Group
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  // Create tabs configuration
+  const tabs = [
+    {
+      value: "communities",
+      label: "Communities Management",
+      content: communitiesTableContent,
+    },
+    {
+      value: "groups",
+      label: "Groups Management",
+      content: groupsTableContent,
+    },
+  ];
+
+  return (
+    <>
+      <AdminPageLayout
+        title="Communities & Groups Management"
+        actionButtons={actionButtons}
+        statsCards={statsCards}
+        contentTitle="Management"
+        showSearch={true}
+        searchPlaceholder={`Search ${activeTab}...`}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        showFilter={true}
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        filterOptions={filterOptions}
+        filterPlaceholder={activeTab === "communities" ? "Category" : "Status"}
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isLoading={loading}
+        loadingCardCount={4}
+      />
+
+      {/* Create Community Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Community</DialogTitle>
+            <DialogDescription>
+              Create a new community for campus activities and departments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Community Name</Label>
+              <Input
+                id="name"
+                value={newCommunity.name}
+                onChange={(e) =>
+                  setNewCommunity((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                placeholder="Enter community name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newCommunity.description}
+                onChange={(e) =>
+                  setNewCommunity((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Describe the community's purpose"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={newCommunity.category}
+                onValueChange={(value) =>
+                  setNewCommunity((prev) => ({
+                    ...prev,
+                    category: value as Community["category"],
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                  <SelectItem value="Department">Department</SelectItem>
+                  <SelectItem value="Level">Level</SelectItem>
+                  <SelectItem value="Hostel">Hostel</SelectItem>
+                  <SelectItem value="Faculty">Faculty</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="coverImage">Cover Image</Label>
+              <Input
+                id="coverImage"
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setNewCommunity((prev) => ({
+                    ...prev,
+                    coverImage: e.target.files?.[0] || null,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCommunity}>Create Community</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Community Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Group Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about {selectedGroup?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedGroup && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={selectedGroup.avatar} />
+                  <AvatarFallback>
+                    {selectedGroup.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    {selectedGroup.name}
+                    {getGroupTypeIcon(selectedGroup.groupType)}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {selectedGroup.description}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    {getGroupTypeBadge(selectedGroup.groupType)}
+                    {getStatusBadge(selectedGroup.status)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Group Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Category:
+                      </span>
+                      <span className="ml-2">{selectedGroup.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Members:
+                      </span>
+                      <span className="ml-2">{selectedGroup.memberCount}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Created:
+                      </span>
+                      <span className="ml-2">
+                        {selectedGroup.createdAt.toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Last Activity:
+                      </span>
+                      <span className="ml-2">
+                        {selectedGroup.lastActivity.toLocaleDateString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">
+                      Creator Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
+                        <AvatarFallback className="text-xs">
+                          {selectedGroup.creatorInfo.name
+                            .substring(0, 2)
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-medium">
+                          {selectedGroup.creatorInfo.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {selectedGroup.creatorInfo.email}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {selectedGroup.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Tags</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedGroup.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedGroup.groupType === "project" &&
+                selectedGroup.projectRoles && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
+                    <div className="space-y-2">
+                      {selectedGroup.projectRoles.map((role) => (
+                        <div key={role.id} className="border rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium">{role.name}</h5>
+                            <Badge variant="outline">
+                              {role.slotsFilled}/{role.slotsTotal}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {role.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedGroup.projectDeadline && (
+                      <div className="mt-3 p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            Project Deadline:{" "}
+                            {selectedGroup.projectDeadline.toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {selectedGroup.flags > 0 && (
+                <div className="bg-destructive/10 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Flag className="h-4 w-4 text-destructive" />
+                    <span className="text-sm font-medium text-destructive">
+                      This group has {selectedGroup.flags} flag
+                      {selectedGroup.flags !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowGroupDetailsModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend Group Dialog */}
+      <AlertDialog
+        open={showSuspendGroupDialog}
+        onOpenChange={setShowSuspendGroupDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to suspend "{selectedGroup?.name}"? This
+              action will make the group inactive and prevent new members from
+              joining.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSuspendGroup}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Suspend Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Group Details Modal */}
+      <Dialog
+        open={showGroupDetailsModal}
+        onOpenChange={setShowGroupDetailsModal}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Group Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about {selectedGroup?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedGroup && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={selectedGroup.avatar} />
+                  <AvatarFallback>
+                    {selectedGroup.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    {selectedGroup.name}
+                    {getGroupTypeIcon(selectedGroup.groupType)}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {selectedGroup.description}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    {getGroupTypeBadge(selectedGroup.groupType)}
+                    {getStatusBadge(selectedGroup.status)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Group Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Category:
+                      </span>
+                      <span className="ml-2">{selectedGroup.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Members:
+                      </span>
+                      <span className="ml-2">{selectedGroup.memberCount}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Created:
+                      </span>
+                      <span className="ml-2">
+                        {selectedGroup.createdAt.toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Last Activity:
+                      </span>
+                      <span className="ml-2">
+                        {selectedGroup.lastActivity.toLocaleDateString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">
+                      Creator Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
+                        <AvatarFallback className="text-xs">
+                          {selectedGroup.creatorInfo.name
+                            .substring(0, 2)
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-medium">
+                          {selectedGroup.creatorInfo.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {selectedGroup.creatorInfo.email}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {selectedGroup.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Tags</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedGroup.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedGroup.groupType === "project" &&
+                selectedGroup.projectRoles && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
+                    <div className="space-y-2">
+                      {selectedGroup.projectRoles.map((role) => (
+                        <div key={role.id} className="border rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium">{role.name}</h5>
+                            <Badge variant="outline">
+                              {role.slotsFilled}/{role.slotsTotal}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {role.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedGroup.projectDeadline && (
+                      <div className="mt-3 p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            Project Deadline:{" "}
+                            {selectedGroup.projectDeadline.toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {selectedGroup.flags > 0 && (
+                <div className="bg-destructive/10 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Flag className="h-4 w-4 text-destructive" />
+                    <span className="text-sm font-medium text-destructive">
+                      This group has {selectedGroup.flags} flag
+                      {selectedGroup.flags !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowGroupDetailsModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend Group Dialog */}
+      <AlertDialog
+        open={showSuspendGroupDialog}
+        onOpenChange={setShowSuspendGroupDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to suspend "{selectedGroup?.name}"? This
+              action will make the group inactive and prevent new members from
+              joining.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSuspendGroup}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Suspend Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
+
+export default CommunitiesGroups;
