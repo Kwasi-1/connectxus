@@ -23,25 +23,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -77,241 +58,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Community, Group } from "@/types/communities";
 import { User } from "@/types/global";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
-
-// Admin Group interface for admin management
-interface AdminGroup extends Group {
-  status: "active" | "inactive" | "suspended";
-  flags: number;
-  lastActivity: Date;
-  creatorInfo: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-}
-
-// Mock API - replace with real API calls
-const mockCommunitiesApi = {
-  getCommunities: async (): Promise<Community[]> => {
-    // Mock data - replace with actual API call
-    return [
-      {
-        id: "1",
-        name: "Computer Science Department",
-        description:
-          "Connect with fellow CS students, share projects, and collaborate on assignments.",
-        category: "Academic",
-        memberCount: 1247,
-        coverImage: "/placeholder.svg",
-        isJoined: false,
-        createdAt: new Date("2024-01-15"),
-        admins: ["admin-1"],
-        moderators: ["mod-1", "mod-2"],
-      },
-      // Add more mock communities
-    ];
-  },
-  createCommunity: async (
-    community: Partial<Community>
-  ): Promise<Community> => {
-    // Mock implementation
-    return { ...community, id: Date.now().toString() } as Community;
-  },
-  updateCommunity: async (
-    id: string,
-    community: Partial<Community>
-  ): Promise<Community> => {
-    // Mock implementation
-    return community as Community;
-  },
-  deleteCommunity: async (id: string): Promise<void> => {
-    // Mock implementation
-  },
-  assignModerator: async (
-    communityId: string,
-    userId: string
-  ): Promise<void> => {
-    // Mock implementation
-  },
-  exportCommunities: async (): Promise<void> => {
-    // Mock implementation
-  },
-};
-
-// Mock Groups API
-const mockGroupsApi = {
-  getGroups: async (): Promise<AdminGroup[]> => {
-    // Mock data - replace with actual API call
-    return [
-      {
-        id: "g1",
-        name: "Study Squad - Data Structures",
-        description:
-          "Weekly study sessions for Data Structures and Algorithms course.",
-        category: "Study Group",
-        memberCount: 23,
-        groupType: "public",
-        isJoined: false,
-        tags: ["Study", "CS", "Algorithms"],
-        createdAt: new Date("2024-03-01"),
-        createdBy: "user-1",
-        avatar: "/placeholder.svg",
-        admins: ["user-1"],
-        moderators: ["user-2"],
-        status: "active",
-        flags: 0,
-        lastActivity: new Date("2024-03-15"),
-        creatorInfo: {
-          id: "user-1",
-          name: "John Doe",
-          email: "john@university.edu",
-          avatar: "/placeholder.svg",
-        },
-      },
-      {
-        id: "g2",
-        name: "AI Research Group",
-        description:
-          "Collaborative research on machine learning and artificial intelligence.",
-        category: "Academic",
-        memberCount: 15,
-        groupType: "private",
-        isJoined: false,
-        tags: ["AI", "Research", "Machine Learning"],
-        createdAt: new Date("2024-02-15"),
-        createdBy: "user-3",
-        avatar: "/placeholder.svg",
-        admins: ["user-3"],
-        moderators: [],
-        status: "active",
-        flags: 0,
-        lastActivity: new Date("2024-03-14"),
-        creatorInfo: {
-          id: "user-3",
-          name: "Dr. Sarah Wilson",
-          email: "sarah.wilson@university.edu",
-          avatar: "/placeholder.svg",
-        },
-      },
-      {
-        id: "g3",
-        name: "Campus Mobile App Project",
-        description: "Building a comprehensive mobile app for campus services.",
-        category: "Professional",
-        memberCount: 8,
-        groupType: "project",
-        isJoined: false,
-        tags: ["Mobile Dev", "React Native", "Team Project"],
-        createdAt: new Date("2024-01-20"),
-        createdBy: "user-4",
-        avatar: "/placeholder.svg",
-        admins: ["user-4"],
-        moderators: ["user-5"],
-        projectRoles: [
-          {
-            id: "role-1",
-            name: "Frontend Developer",
-            description: "React Native mobile app development",
-            slotsTotal: 2,
-            slotsFilled: 1,
-            applications: [],
-          },
-          {
-            id: "role-2",
-            name: "Backend Developer",
-            description: "Node.js API development",
-            slotsTotal: 2,
-            slotsFilled: 2,
-            applications: [],
-          },
-        ],
-        projectDeadline: new Date("2024-12-01"),
-        isAcceptingApplications: true,
-        status: "active",
-        flags: 0,
-        lastActivity: new Date("2024-03-13"),
-        creatorInfo: {
-          id: "user-4",
-          name: "Mike Chen",
-          email: "mike.chen@university.edu",
-          avatar: "/placeholder.svg",
-        },
-      },
-      {
-        id: "g4",
-        name: "Gaming Club",
-        description: "Weekly gaming sessions and esports tournaments.",
-        category: "Social",
-        memberCount: 45,
-        groupType: "public",
-        isJoined: false,
-        tags: ["Gaming", "Esports", "Social"],
-        createdAt: new Date("2024-02-28"),
-        createdBy: "user-6",
-        avatar: "/placeholder.svg",
-        admins: ["user-6"],
-        moderators: ["user-7"],
-        status: "inactive",
-        flags: 2,
-        lastActivity: new Date("2024-02-28"),
-        creatorInfo: {
-          id: "user-6",
-          name: "Alex Turner",
-          email: "alex.turner@university.edu",
-        },
-      },
-    ];
-  },
-  suspendGroup: async (groupId: string): Promise<void> => {
-    // Mock implementation
-    console.log(`Suspending group ${groupId}`);
-  },
-  reactivateGroup: async (groupId: string): Promise<void> => {
-    // Mock implementation
-    console.log(`Reactivating group ${groupId}`);
-  },
-  exportGroups: async (): Promise<void> => {
-    // Mock implementation
-    console.log("Exporting groups data");
-  },
-};
-
-const mockUsersApi = {
-  searchUsers: async (query: string): Promise<User[]> => {
-    // Mock implementation - replace with real API
-    return [
-      {
-        id: "user-1",
-        username: "john_doe",
-        displayName: "John Doe",
-        email: "john@university.edu",
-        avatar: "/placeholder.svg",
-        verified: false,
-        followers: 234,
-        following: 180,
-        createdAt: new Date("2024-01-01"),
-        roles: ["student" as const],
-      },
-      {
-        id: "user-2",
-        username: "sarah_admin",
-        displayName: "Sarah Johnson",
-        email: "sarah@university.edu",
-        avatar: "/placeholder.svg",
-        verified: true,
-        followers: 567,
-        following: 234,
-        createdAt: new Date("2024-01-05"),
-        roles: ["admin" as const],
-      },
-    ].filter(
-      (user) =>
-        user.displayName.toLowerCase().includes(query.toLowerCase()) ||
-        user.email.toLowerCase().includes(query.toLowerCase())
-    );
-  },
-};
+import {
+  mockCommunitiesApi,
+  mockGroupsApi,
+  mockUsersApi,
+  type AdminGroup,
+} from "@/data/mockAdminCommunitiesData";
+import {
+  CreateCommunityModal,
+  GroupDetailsModal,
+  SuspendGroupDialog,
+} from "@/components/admin/communities";
 
 export function CommunitiesGroups() {
   const { toast } = useToast();
@@ -344,12 +101,6 @@ export function CommunitiesGroups() {
   const [searchUsers, setSearchUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userSearchLoading, setUserSearchLoading] = useState(false);
-  const [newCommunity, setNewCommunity] = useState({
-    name: "",
-    description: "",
-    category: "Academic" as Community["category"],
-    coverImage: null as File | null,
-  });
 
   const fetchCommunities = useCallback(async () => {
     try {
@@ -417,38 +168,35 @@ export function CommunitiesGroups() {
     return () => clearTimeout(debounceTimer);
   }, [userSearchQuery, searchUsersForModerator]);
 
-  const handleCreateCommunity = useCallback(async () => {
-    try {
-      await mockCommunitiesApi.createCommunity({
-        name: newCommunity.name,
-        description: newCommunity.description,
-        category: newCommunity.category,
-        memberCount: 0,
-        isJoined: false,
-        createdAt: new Date(),
-        admins: ["current-admin-id"], // Replace with actual admin ID
-        moderators: [],
-      });
-      toast({
-        title: "Success",
-        description: "Community created successfully.",
-      });
-      setShowCreateModal(false);
-      setNewCommunity({
-        name: "",
-        description: "",
-        category: "Academic",
-        coverImage: null,
-      });
-      fetchCommunities();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create community.",
-        variant: "destructive",
-      });
-    }
-  }, [newCommunity, toast, fetchCommunities]);
+  const handleCreateCommunity = useCallback(
+    async (communityData: Partial<Community>) => {
+      try {
+        await mockCommunitiesApi.createCommunity({
+          name: communityData.name || "",
+          description: communityData.description || "",
+          category: communityData.category || "Academic",
+          memberCount: 0,
+          isJoined: false,
+          createdAt: new Date(),
+          admins: ["current-admin-id"], // Replace with actual admin ID
+          moderators: [],
+        });
+        toast({
+          title: "Success",
+          description: "Community created successfully.",
+        });
+        setShowCreateModal(false);
+        fetchCommunities();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create community.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast, fetchCommunities]
+  );
 
   const handleEditCommunity = useCallback(async () => {
     if (!selectedCommunity) return;
@@ -1235,485 +983,25 @@ export function CommunitiesGroups() {
         loadingCardCount={4}
       />
 
-      {/* Create Community Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Community</DialogTitle>
-            <DialogDescription>
-              Create a new community for campus activities and departments.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Community Name</Label>
-              <Input
-                id="name"
-                value={newCommunity.name}
-                onChange={(e) =>
-                  setNewCommunity((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
-                placeholder="Enter community name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newCommunity.description}
-                onChange={(e) =>
-                  setNewCommunity((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                placeholder="Describe the community's purpose"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={newCommunity.category}
-                onValueChange={(value) =>
-                  setNewCommunity((prev) => ({
-                    ...prev,
-                    category: value as Community["category"],
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Academic">Academic</SelectItem>
-                  <SelectItem value="Department">Department</SelectItem>
-                  <SelectItem value="Level">Level</SelectItem>
-                  <SelectItem value="Hostel">Hostel</SelectItem>
-                  <SelectItem value="Faculty">Faculty</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="coverImage">Cover Image</Label>
-              <Input
-                id="coverImage"
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setNewCommunity((prev) => ({
-                    ...prev,
-                    coverImage: e.target.files?.[0] || null,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateCommunity}>Create Community</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modular Components */}
+      <CreateCommunityModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onCreateCommunity={handleCreateCommunity}
+      />
 
-      {/* Edit Community Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Group Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about {selectedGroup?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedGroup && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedGroup.avatar} />
-                  <AvatarFallback>
-                    {selectedGroup.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {selectedGroup.name}
-                    {getGroupTypeIcon(selectedGroup.groupType)}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {selectedGroup.description}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    {getGroupTypeBadge(selectedGroup.groupType)}
-                    {getStatusBadge(selectedGroup.status)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Group Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Category:
-                      </span>
-                      <span className="ml-2">{selectedGroup.category}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Members:
-                      </span>
-                      <span className="ml-2">{selectedGroup.memberCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Created:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Last Activity:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.lastActivity.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      Creator Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {selectedGroup.creatorInfo.name
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-sm font-medium">
-                          {selectedGroup.creatorInfo.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {selectedGroup.creatorInfo.email}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {selectedGroup.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedGroup.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedGroup.groupType === "project" &&
-                selectedGroup.projectRoles && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
-                    <div className="space-y-2">
-                      {selectedGroup.projectRoles.map((role) => (
-                        <div key={role.id} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-medium">{role.name}</h5>
-                            <Badge variant="outline">
-                              {role.slotsFilled}/{role.slotsTotal}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {role.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedGroup.projectDeadline && (
-                      <div className="mt-3 p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-sm">
-                            Project Deadline:{" "}
-                            {selectedGroup.projectDeadline.toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              {selectedGroup.flags > 0 && (
-                <div className="bg-destructive/10 p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">
-                      This group has {selectedGroup.flags} flag
-                      {selectedGroup.flags !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowGroupDetailsModal(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Suspend Group Dialog */}
-      <AlertDialog
-        open={showSuspendGroupDialog}
-        onOpenChange={setShowSuspendGroupDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to suspend "{selectedGroup?.name}"? This
-              action will make the group inactive and prevent new members from
-              joining.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSuspendGroup}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Suspend Group
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Group Details Modal */}
-      <Dialog
+      <GroupDetailsModal
         open={showGroupDetailsModal}
         onOpenChange={setShowGroupDetailsModal}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Group Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about {selectedGroup?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedGroup && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedGroup.avatar} />
-                  <AvatarFallback>
-                    {selectedGroup.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {selectedGroup.name}
-                    {getGroupTypeIcon(selectedGroup.groupType)}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {selectedGroup.description}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    {getGroupTypeBadge(selectedGroup.groupType)}
-                    {getStatusBadge(selectedGroup.status)}
-                  </div>
-                </div>
-              </div>
+        group={selectedGroup}
+      />
 
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Group Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Category:
-                      </span>
-                      <span className="ml-2">{selectedGroup.category}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Members:
-                      </span>
-                      <span className="ml-2">{selectedGroup.memberCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Created:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Last Activity:
-                      </span>
-                      <span className="ml-2">
-                        {selectedGroup.lastActivity.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      Creator Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedGroup.creatorInfo.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {selectedGroup.creatorInfo.name
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-sm font-medium">
-                          {selectedGroup.creatorInfo.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {selectedGroup.creatorInfo.email}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {selectedGroup.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedGroup.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedGroup.groupType === "project" &&
-                selectedGroup.projectRoles && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Project Roles</h4>
-                    <div className="space-y-2">
-                      {selectedGroup.projectRoles.map((role) => (
-                        <div key={role.id} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-medium">{role.name}</h5>
-                            <Badge variant="outline">
-                              {role.slotsFilled}/{role.slotsTotal}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {role.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedGroup.projectDeadline && (
-                      <div className="mt-3 p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-sm">
-                            Project Deadline:{" "}
-                            {selectedGroup.projectDeadline.toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              {selectedGroup.flags > 0 && (
-                <div className="bg-destructive/10 p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">
-                      This group has {selectedGroup.flags} flag
-                      {selectedGroup.flags !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowGroupDetailsModal(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Suspend Group Dialog */}
-      <AlertDialog
+      <SuspendGroupDialog
         open={showSuspendGroupDialog}
         onOpenChange={setShowSuspendGroupDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Suspend Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to suspend "{selectedGroup?.name}"? This
-              action will make the group inactive and prevent new members from
-              joining.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSuspendGroup}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Suspend Group
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        group={selectedGroup}
+        onConfirm={handleSuspendGroup}
+      />
     </>
   );
 }
