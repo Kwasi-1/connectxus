@@ -16,8 +16,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored admin on app load
-    const storedAdmin = localStorage.getItem('admin-user');
+        const storedAdmin = localStorage.getItem('admin-user');
     if (storedAdmin) {
       try {
         setAdmin(JSON.parse(storedAdmin));
@@ -31,8 +30,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Mock admin authentication - replace with actual API call
-      const mockAdmin: AdminUser = {
+            const mockAdmin: AdminUser = {
         id: '1',
         email,
         name: 'John Admin',

@@ -29,8 +29,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
   };
 
   const handleSettings = () => {
-    // You can create a settings page route later
-    console.log('Settings clicked');
+        console.log('Settings clicked');
   };
 
   const handleSignOut = () => {

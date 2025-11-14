@@ -1,594 +1,888 @@
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Star,
+  DollarSign,
+  BookOpen,
+  MessageCircle,
+  UserCheck,
+  UserMinus,
+  Plus,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  searchMentors,
+  getMyMentorProfile,
+  getMyMentorApplication,
+  getRecommendedMentors,
+  getUserMentorshipRequests,
+  getMentorSessionRequests,
+  MentorProfile as ApiMentorProfile,
+  MentorApplication as ApiMentorApplication,
+  MentoringRequest,
+} from "@/api/mentorship.api";
+import { getOrCreateDirectConversation } from "@/api/messaging.api";
+import {
+  followUser,
+  unfollowUser,
+  checkFollowingStatus,
+} from "@/api/users.api";
+import { toast } from "sonner";
+import { MentorshipRequestDetailsModal } from "@/components/mentors/MentorshipRequestDetailsModal";
+import { RequestMentoringSessionModal } from "@/components/mentors/RequestMentoringSessionModal";
+import { useAuth } from "@/contexts/AuthContext";
 
-import { useState, useEffect } from 'react';
-import { Search, Star, MessageCircle, UserCheck, Briefcase, Users } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MentoringRequestModal } from '@/components/mentors/MentoringRequestModal';
-import { MessageModal } from '@/components/messages/MessageModal';
-import { MentorApplicationCard } from '@/components/mentors/MentorApplicationCard';
-import { MentoringRequestCard } from '@/components/mentors/MentoringRequestCard';
-import { EditMentorApplicationModal } from '@/components/mentors/EditMentorApplicationModal';
-import { mockMentors } from '@/data/mockData';
-import { mockMentorApplications } from '@/data/mockApplications';
-import { mockMentoringRequests } from '@/data/mockMentoringData';
-import { MentorProfile } from '@/types/global';
-import { MentorApplication } from '@/types/applications';
-import { MentoringRequest } from '@/types/mentoring';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+type MentoringTabMentor = "available" | "requests" | "myservices";
+type MentoringTabNonMentor = "available" | "requests";
+type RequestFilter = "received" | "sent" | "all";
 
-const industryFilters = ['All', 'Technology', 'Business', 'Finance', 'Healthcare', 'Engineering', 'Marketing'];
-
-const Mentors = () => {
+const Mentoring = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [mentors, setMentors] = useState<MentorProfile[]>([]);
-  const [applications, setApplications] = useState<MentorApplication[]>([]);
-  const [requests, setRequests] = useState<MentoringRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [requestsLoading, setRequestsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIndustry, setSelectedIndustry] = useState('All');
-  const [selectedMentor, setSelectedMentor] = useState<MentorProfile | null>(null);
-  const [selectedApplication, setSelectedApplication] = useState<MentorApplication | null>(null);
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeMentorTab, setActiveMentorTab] =
+    useState<MentoringTabMentor>("available");
+  const [activeNonMentorTab, setActiveNonMentorTab] =
+    useState<MentoringTabNonMentor>("available");
+  const [requestFilter, setRequestFilter] = useState<RequestFilter>("received");
+  const [selectedRequest, setSelectedRequest] =
+    useState<MentoringRequest | null>(null);
+  const [isRequestDetailsOpen, setIsRequestDetailsOpen] = useState(false);
+  const [isRequestSessionOpen, setIsRequestSessionOpen] = useState(false);
+  const [selectedMentorForRequest, setSelectedMentorForRequest] =
+    useState<ApiMentorProfile | null>(null);
+  const [followingStatus, setFollowingStatus] = useState<
+    Record<string, boolean>
+  >({});
 
-  // Simulate current user ID
-  const currentUserId = '1';
-  const hasApplication = applications.some(app => app.applicantId === currentUserId);
-  const isApprovedMentor = applications.some(app => app.applicantId === currentUserId && app.status === 'approved');
+  const { data: recommendedMentors = [], isLoading: loadingRecommended } =
+    useQuery({
+      queryKey: ["recommended-mentors"],
+      queryFn: () => getRecommendedMentors(5),
+      staleTime: 300000,
+      retry: false,
+    });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setMentors(mockMentors);
-      setApplications(mockMentorApplications);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  const fetchRequests = async () => {
-    setRequestsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRequests(mockMentoringRequests);
-    setRequestsLoading(false);
-  };
-
-  useEffect(() => {
-    if (isApprovedMentor) {
-      fetchRequests();
-    }
-  }, [isApprovedMentor]);
-
-  const filteredMentors = mentors.filter(mentor => {
-    const matchesSearch = mentor.user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         mentor.specialties.some(specialty => specialty.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesIndustry = selectedIndustry === 'All' || mentor.industry === selectedIndustry;
-    return matchesSearch && matchesIndustry;
+  const { data: mentors = [], isLoading: loadingMentors } = useQuery({
+    queryKey: ["mentors", searchQuery],
+    queryFn: () =>
+      searchMentors(searchQuery || undefined, { page: 1, limit: 100 }),
+    staleTime: 60000,
   });
 
-  const userApplications = applications.filter(app => app.applicantId === currentUserId);
-  const userRequests = requests.filter(req => req.mentorId === currentUserId);
-
-  const handleRequestMentoring = (mentor: MentorProfile) => {
-    setSelectedMentor(mentor);
-    setIsRequestModalOpen(true);
-  };
-
-  const handleContactMentor = (mentor: MentorProfile) => {
-    setSelectedMentor(mentor);
-    setIsMessageModalOpen(true);
-  };
-
-  const handleBecomeMentor = () => {
-    navigate('/mentors/become-mentor');
-  };
-
-  const handleFollowMentor = (mentor: MentorProfile) => {
-    toast({
-      title: "Following",
-      description: `You are now following ${mentor.user.displayName}`,
+  const { data: myMentorApplication, isLoading: loadingMyApplication } =
+    useQuery({
+      queryKey: ["my-mentor-application"],
+      queryFn: () => getMyMentorApplication(),
+      staleTime: 60000,
+      retry: false,
     });
-  };
 
-  const handleEditApplication = (application: MentorApplication) => {
-    setSelectedApplication(application);
-    setIsEditModalOpen(true);
-  };
+  const { data: myMentorProfile, isLoading: loadingMyProfile } = useQuery({
+    queryKey: ["my-mentor-profile"],
+    queryFn: () => getMyMentorProfile(),
+    staleTime: 60000,
+    retry: false,
+  });
 
-  const handleSaveApplication = (updatedApplication: MentorApplication) => {
-    setApplications(prev => prev.map(app => 
-      app.id === updatedApplication.id ? updatedApplication : app
-    ));
-  };
+  const { data: sentRequests = [], isLoading: loadingSentRequests } = useQuery({
+    queryKey: ["mentoring-requests-sent"],
+    queryFn: () => getUserMentorshipRequests(1, 100),
+    staleTime: 30000,
+  });
 
-  const handleDeleteApplication = async (applicationId: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setApplications(prev => prev.filter(app => app.id !== applicationId));
-    toast({
-      title: "Application Deleted",
-      description: "Your mentor application has been deleted successfully.",
+  const { data: receivedRequests = [], isLoading: loadingReceivedRequests } =
+    useQuery({
+      queryKey: ["mentoring-requests-received"],
+      queryFn: () => getMentorSessionRequests(1, 100),
+      enabled: !!myMentorProfile,
+      staleTime: 30000,
     });
+
+  const loading = loadingMentors || loadingMyApplication;
+
+  const isMentor = !!myMentorProfile;
+  const hasPendingApplication =
+    myMentorApplication && myMentorApplication.status === "pending";
+  const isApprovedMentor =
+    myMentorApplication && myMentorApplication.status === "approved";
+
+  const filteredMentors = mentors.filter((mentor) => {
+    if (myMentorProfile && mentor.id === myMentorProfile.id) {
+      return false;
+    }
+
+    const userName = mentor.full_name || mentor.username || "";
+    const matchesSearch =
+      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      mentor.expertise?.some((topic) =>
+        topic.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    return matchesSearch;
+  });
+
+  const getFilteredRequestsMentor = () => {
+    switch (requestFilter) {
+      case "received":
+        return receivedRequests;
+      case "sent":
+        return sentRequests;
+      case "all":
+        return [...receivedRequests, ...sentRequests];
+      default:
+        return receivedRequests;
+    }
   };
 
-  const handleAcceptRequest = (requestId: string) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, status: 'accepted' as const } : req
-    ));
+  const getFilteredRequestsNonMentor = () => {
+    return sentRequests;
   };
 
-  const handleDeclineRequest = (requestId: string) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, status: 'declined' as const } : req
-    ));
+  const handleMentorAction = () => {
+    if (isApprovedMentor) {
+      navigate("/mentoring/become-mentor");
+      toast.info("Add another mentoring specialty or topic");
+    } else if (
+      myMentorApplication &&
+      myMentorApplication.status === "pending"
+    ) {
+      toast.info("Your application is pending review");
+    } else {
+      navigate("/mentoring/become-mentor");
+    }
+  };
+
+  const getMentorButtonText = () => {
+    if (isApprovedMentor) {
+      return "Add Another Service";
+    } else if (
+      myMentorApplication &&
+      myMentorApplication.status === "pending"
+    ) {
+      return "Application Pending";
+    }
+    return "Become a Mentor";
+  };
+
+  const messageMentorMutation = useMutation({
+    mutationFn: (userId: string) => getOrCreateDirectConversation(userId),
+    onSuccess: (response) => {
+      navigate(`/messages/${response.conversation_id}`);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to start conversation"
+      );
+    },
+  });
+
+  const handleContactMentor = (mentor: ApiMentorProfile) => {
+    if (!mentor.user_id) {
+      toast.error("Unable to message this mentor");
+      return;
+    }
+    messageMentorMutation.mutate(mentor.user_id);
+  };
+
+  const handleRequestMentoring = (mentor: ApiMentorProfile) => {
+    setSelectedMentorForRequest(mentor);
+    setIsRequestSessionOpen(true);
+  };
+
+  const followMutation = useMutation({
+    mutationFn: (userId: string) => followUser(userId),
+    onMutate: async (userId) => {
+      setFollowingStatus((prev) => ({ ...prev, [userId]: true }));
+    },
+    onSuccess: (_, userId) => {
+      toast.success("Successfully followed mentor");
+      queryClient.invalidateQueries({ queryKey: ["mentors"] });
+    },
+    onError: (error: any, userId) => {
+      setFollowingStatus((prev) => ({ ...prev, [userId]: false }));
+      toast.error(error.response?.data?.message || "Failed to follow mentor");
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: (userId: string) => unfollowUser(userId),
+    onMutate: async (userId) => {
+      setFollowingStatus((prev) => ({ ...prev, [userId]: false }));
+    },
+    onSuccess: (_, userId) => {
+      toast.success("Successfully unfollowed mentor");
+      queryClient.invalidateQueries({ queryKey: ["mentors"] });
+    },
+    onError: (error: any, userId) => {
+      setFollowingStatus((prev) => ({ ...prev, [userId]: true }));
+      toast.error(error.response?.data?.message || "Failed to unfollow mentor");
+    },
+  });
+
+  const handleFollowMentor = async (mentor: ApiMentorProfile) => {
+    if (!mentor.user_id) {
+      toast.error("Unable to follow this mentor");
+      return;
+    }
+
+    const isFollowing = followingStatus[mentor.user_id];
+    if (isFollowing) {
+      unfollowMutation.mutate(mentor.user_id);
+    } else {
+      followMutation.mutate(mentor.user_id);
+    }
+  };
+
+  const checkFollowStatus = async (userId: string) => {
+    try {
+      const status = await checkFollowingStatus(userId);
+      setFollowingStatus((prev) => ({ ...prev, [userId]: status }));
+    } catch (error) {
+      setFollowingStatus((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  useEffect(() => {
+    const mentorsToCheck = [...filteredMentors, ...recommendedMentors];
+    mentorsToCheck.forEach((mentor) => {
+      if (mentor.user_id && !followingStatus[mentor.user_id]) {
+        checkFollowStatus(mentor.user_id);
+      }
+    });
+  }, [filteredMentors, recommendedMentors]);
+
+  const RecommendedMentorsList = () => {
+    if (loadingRecommended) {
+      return (
+        <div className="flex justify-center py-8">
+          <LoadingSpinner />
+        </div>
+      );
+    }
+
+    const recommendations = recommendedMentors.filter(
+      (mentor) => !myMentorProfile || mentor.id !== myMentorProfile.id
+    );
+
+    if (recommendations.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Recommended Mentors</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {recommendations.map((mentor) => {
+            const userName = mentor.full_name || mentor.username || "Unknown";
+            const isFollowing = followingStatus[mentor.user_id || ""];
+
+            return (
+              <Card
+                key={mentor.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3 mb-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={mentor.avatar} alt={userName} />
+                      <AvatarFallback>
+                        {userName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{userName}</h3>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        {mentor.rating && (
+                          <div className="flex items-center mr-2">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                            <span>{mentor.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                        {mentor.hourly_rate && (
+                          <div className="flex items-center">
+                            <DollarSign className="h-3 w-3" />
+                            <span>{mentor.hourly_rate}/hr</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {mentor.expertise && mentor.expertise.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {mentor.expertise.slice(0, 3).map((topic, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleRequestMentoring(mentor)}
+                      size="sm"
+                      className="flex-1"
+                      variant="default"
+                    >
+                      Request Mentoring
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleContactMentor(mentor)}
+                        size="sm"
+                        className="flex-1"
+                        variant="outline"
+                        disabled={messageMentorMutation.isPending}
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                      </Button>
+                      {!isFollowing && (
+                        <Button
+                          onClick={() => handleFollowMentor(mentor)}
+                          size="sm"
+                          variant="outline"
+                          disabled={
+                            followMutation.isPending ||
+                            unfollowMutation.isPending
+                          }
+                        >
+                          <UserCheck className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const AvailableMentorsList = () => {
+    if (loadingMentors) {
+      return (
+        <div className="flex justify-center py-12">
+          <LoadingSpinner />
+        </div>
+      );
+    }
+
+    if (filteredMentors.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Available Mentors</h3>
+          <p className="text-muted-foreground">
+            {searchQuery
+              ? "No mentors match your search"
+              : "No mentors are currently available"}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {filteredMentors.map((mentor) => {
+          const mentorName = mentor.full_name || mentor.username || "Unknown";
+          const mentorAvatar = mentor.avatar;
+          const isFollowing = followingStatus[mentor.user_id || ""];
+
+          return (
+            <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={mentorAvatar} alt={mentorName} />
+                      <AvatarFallback>
+                        {mentorName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-xl font-semibold">{mentorName}</h3>
+                        {mentor.rating && (
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                            <span className="text-sm">
+                              {mentor.rating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {mentor.bio && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {mentor.bio}
+                        </p>
+                      )}
+
+                      {mentor.expertise && mentor.expertise.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          <span className="text-xs text-muted-foreground mr-2">
+                            Expertise:
+                          </span>
+                          {mentor.expertise.map((topic, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {topic}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {mentor.hourly_rate && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4 mr-1" />$
+                          {mentor.hourly_rate}/hour
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lg:w-64 space-y-2">
+                    <Button
+                      onClick={() => handleRequestMentoring(mentor)}
+                      size="sm"
+                      className="w-full"
+                      variant="default"
+                    >
+                      Request Mentoring
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleContactMentor(mentor)}
+                        size="sm"
+                        className="flex-1"
+                        variant="outline"
+                        disabled={messageMentorMutation.isPending}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Message
+                      </Button>
+                      <Button
+                        onClick={() => handleFollowMentor(mentor)}
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          followMutation.isPending || unfollowMutation.isPending
+                        }
+                      >
+                        {isFollowing ? (
+                          <>
+                            <UserMinus className="h-4 w-4" />
+                            Unfollow
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="h-4 w-4" />
+                            Follow
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const RequestsList = ({ requests }: { requests: MentoringRequest[] }) => {
+    if (requests.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Requests</h3>
+          <p className="text-muted-foreground">No mentoring requests found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {requests.map((request) => {
+          const requesterName =
+            request.requester_full_name ||
+            request.requester_username ||
+            "Unknown";
+          const isReceived = request.session_id === myMentorProfile?.id;
+
+          return (
+            <Card
+              key={request.id}
+              className="hover:shadow-lg transition-shadow"
+            >
+              <CardContent className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage
+                        src={request.requester_avatar}
+                        alt={requesterName}
+                      />
+                      <AvatarFallback>
+                        {requesterName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">
+                          {requesterName}
+                        </h3>
+                        <Badge
+                          variant={
+                            request.status === "pending"
+                              ? "secondary"
+                              : request.status === "approved"
+                              ? "default"
+                              : "destructive"
+                          }
+                        >
+                          {request.status}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {isReceived ? "Received" : "Sent"}
+                        </Badge>
+                      </div>
+
+                      {request.message && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {request.message}
+                        </p>
+                      )}
+
+                      {request.topic && (
+                        <div className="flex items-center gap-2 text-sm mb-2">
+                          <BookOpen className="h-4 w-4" />
+                          <span>Topic: {request.topic}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lg:w-64 space-y-2">
+                    <Button
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setIsRequestDetailsOpen(true);
+                      }}
+                      size="sm"
+                      className="w-full"
+                      variant="outline"
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="p-6 space-y-6 custom-fonts">
-        <div className="flex justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Mentors</h1>
-            <p className="text-muted-foreground mt-1">Connect with experienced professionals and alumni</p>
+      <div className="max-w-7xl mx-auto p-6 h-full flex flex-col">
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Mentoring</h1>
+              <p className="text-muted-foreground">
+                Find expert mentors or share your knowledge
+              </p>
+            </div>
+            <Button
+              onClick={handleMentorAction}
+              disabled={hasPendingApplication}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {getMentorButtonText()}
+            </Button>
           </div>
-          <Button variant="outline" onClick={handleBecomeMentor}>
-            <Briefcase className="h-4 w-4" />
-            <span className='hidden md:block ml-2'>Become a Mentor</span>
-          </Button>
+
+          <div className="mt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Input
+                placeholder="Search by mentor name or topic..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+          </div>
         </div>
 
-        {isApprovedMentor ? (
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="available">Available Mentors</TabsTrigger>
-              <TabsTrigger value="services">My Application</TabsTrigger>
-              {/* <TabsTrigger value="requests">Requests ({userRequests.length})</TabsTrigger> */}
-              {/* <TabsTrigger value="sessions">Sessions</TabsTrigger> */}
-            </TabsList>
-            
-            <TabsContent value="available" className="space-y-4">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search mentors or specialties..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
-                  />
-                </div>
-
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {industryFilters.map((industry) => (
-                    <Button
-                      key={industry}
-                      variant={selectedIndustry === industry ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedIndustry(industry)}
-                      className='rounded-full px-5'
-                    >
-                      {industry}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {loading ? (
-                <LoadingSpinner size='md' />
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-                    {filteredMentors.map((mentor) => (
-                      <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            {/* Mentor Header */}
-                            <div className="flex items-start space-x-4">
-                              <Avatar className="h-16 w-16">
-                                <AvatarImage src={mentor.user.avatar} alt={mentor.user.displayName} />
-                                <AvatarFallback>{mentor.user.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="text-xl font-semibold">{mentor.user.displayName}</h3>
-                                  {mentor.verified && (
-                                    <Badge variant="default" className="text-xs">Verified</Badge>
-                                  )}
-                                </div>
-                                {mentor.position && mentor.company && (
-                                  <p className="text-muted-foreground mb-2">
-                                    {mentor.position} at {mentor.company}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Briefcase className="h-4 w-4" />
-                                  {mentor.industry} • {mentor.experience} years experience
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Description */}
-                            <p className="text-sm text-muted-foreground">{mentor.description}</p>
-
-                            {/* Specialties */}
-                            <div className="flex flex-wrap gap-1">
-                              {mentor.specialties.map((specialty, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {specialty}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            {/* Rating and Actions */}
-                            <div className="flex items-center justify-between pt-2">
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                                {mentor.rating} ({mentor.reviewCount} reviews)
-                              </div>
-                              <div className="flex space-x-2">
-                                <Button 
-                                  onClick={() => handleContactMentor(mentor)}
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <MessageCircle className="h-4 w-4" />
-                                  <span className="hidden md:inline ml-2">Contact</span>
-                                </Button>
-                                <Button 
-                                  onClick={() => handleFollowMentor(mentor)}
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <UserCheck className="h-4 w-4" />
-                                  <span className="hidden md:inline ml-2">Follow</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {filteredMentors.length === 0 && (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No mentors found</h3>
-                      <p className="text-muted-foreground">Try adjusting your search or filters</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="services" className="space-y-4">
-              {userApplications.map((application) => (
-                <MentorApplicationCard
-                  key={application.id}
-                  application={application}
-                  onEdit={handleEditApplication}
-                  onDelete={handleDeleteApplication}
-                />
-              ))}
-            </TabsContent>
-            
-            <TabsContent value="requests" className="space-y-4">
-              {requestsLoading ? (
-                <LoadingSpinner size="md" />
-              ) : (
-                <>
-                  {userRequests.length > 0 ? (
-                    <div className="space-y-4">
-                      {userRequests.map((request) => (
-                        <MentoringRequestCard
-                          key={request.id}
-                          request={request}
-                          onAccept={handleAcceptRequest}
-                          onDecline={handleDeclineRequest}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No mentoring requests</h3>
-                      <p className="text-muted-foreground">Requests from students will appear here</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="sessions" className="space-y-4">
-              <div className="text-center py-12">
-                <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No sessions yet</h3>
-                <p className="text-muted-foreground">Your confirmed mentoring sessions will appear here</p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : hasApplication ? (
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="available">Available Mentors</TabsTrigger>
-              <TabsTrigger value="application">My Application</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="available">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search mentors or specialties..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
-                  />
-                </div>
-
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {industryFilters.map((industry) => (
-                    <Button
-                      key={industry}
-                      variant={selectedIndustry === industry ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedIndustry(industry)}
-                      className='rounded-full px-5'
-                    >
-                      {industry}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {loading ? (
-                <LoadingSpinner />
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    {filteredMentors.map((mentor) => (
-                      <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex flex-col lg:flex-row gap-6">
-                            <div className="flex items-start space-x-4 flex-1">
-                              <Avatar className="h-16 w-16">
-                                <AvatarImage src={mentor.user.avatar} alt={mentor.user.displayName} />
-                                <AvatarFallback>{mentor.user.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="text-xl font-semibold">{mentor.user.displayName}</h3>
-                                  {mentor.verified && (
-                                    <Badge variant="default" className="text-xs">Verified</Badge>
-                                  )}
-                                </div>
-                                <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                                <p className="text-sm mb-3">{mentor.description}</p>
-                                
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {mentor.specialties.map((specialty, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                      {specialty}
-                                    </Badge>
-                                  ))}
-                                </div>
-
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <div className="flex items-center">
-                                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                                    {mentor.rating} ({mentor.reviewCount} reviews)
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Users className="h-4 w-4 mr-1" />
-                                    {mentor.experience} years experience
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="lg:w-64 space-y-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Industry</h4>
-                                <Badge variant="outline">{mentor.industry}</Badge>
-                              </div>
-                              <div className="flex space-x-2">
-                                <Button 
-                                  onClick={() => handleContactMentor(mentor)}
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1"
-                                >
-                                  <MessageCircle className="h-4 w-4" />
-                                  <span className="ml-2">Contact</span>
-                                </Button>
-                                <Button 
-                                  onClick={() => handleFollowMentor(mentor)}
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <UserCheck className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {filteredMentors.length === 0 && (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No mentors found</h3>
-                      <p className="text-muted-foreground">Try adjusting your search or filters</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="application" className="space-y-4">
-              {userApplications.map((application) => (
-                <MentorApplicationCard
-                  key={application.id}
-                  application={application}
-                  onEdit={handleEditApplication}
-                  onDelete={handleDeleteApplication}
-                />
-              ))}
-            </TabsContent>
-          </Tabs>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner />
+          </div>
         ) : (
           <>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search mentors or specialties..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
-                />
-              </div>
+            {isMentor ? (
+              <Tabs
+                value={activeMentorTab}
+                onValueChange={(value: string) =>
+                  setActiveMentorTab(value as MentoringTabMentor)
+                }
+              >
+                <TabsList className="mb-6">
+                  <TabsTrigger value="available">
+                    Recommended Mentors
+                  </TabsTrigger>
+                  <TabsTrigger value="requests">
+                    Requests{" "}
+                    {receivedRequests.length > 0 &&
+                      `(${receivedRequests.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="myservices">My Services</TabsTrigger>
+                </TabsList>
 
-              <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                {industryFilters.map((industry) => (
-                  <Button
-                    key={industry}
-                    variant={selectedIndustry === industry ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedIndustry(industry)}
-                    className='rounded-full px-5'
-                  >
-                    {industry}
-                  </Button>
-                ))}
-              </div>
-            </div>
+                <TabsContent value="available">
+                  <RecommendedMentorsList />
+                </TabsContent>
 
-            {loading ? (
-              <LoadingSpinner />
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {filteredMentors.map((mentor) => (
-                    <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col lg:flex-row gap-6">
-                          <div className="flex items-start space-x-4 flex-1">
-                            <Avatar className="h-16 w-16">
-                              <AvatarImage src={mentor.user.avatar} alt={mentor.user.displayName} />
-                              <AvatarFallback>{mentor.user.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="text-xl font-semibold">{mentor.user.displayName}</h3>
-                                {mentor.verified && (
-                                  <Badge variant="default" className="text-xs">Verified</Badge>
+                <TabsContent value="requests">
+                  <div className="mb-4">
+                    <Tabs
+                      value={requestFilter}
+                      onValueChange={(value: string) =>
+                        setRequestFilter(value as RequestFilter)
+                      }
+                    >
+                      <TabsList>
+                        <TabsTrigger value="received">Received</TabsTrigger>
+                        <TabsTrigger value="sent">Sent</TabsTrigger>
+                        <TabsTrigger value="all">All</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  <RequestsList requests={getFilteredRequestsMentor()} />
+                </TabsContent>
+
+                <TabsContent value="myservices">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">
+                        My Mentoring Services
+                      </h3>
+                      <Button onClick={handleMentorAction} size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Service
+                      </Button>
+                    </div>
+
+                    {myMentorApplication ? (
+                      <Card className="hover:shadow-lg transition-shadow">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="text-xl font-semibold">
+                                    {myMentorApplication.industry}
+                                  </h3>
+                                  <Badge
+                                    variant={
+                                      myMentorApplication.status === "approved"
+                                        ? "default"
+                                        : myMentorApplication.status ===
+                                          "pending"
+                                        ? "secondary"
+                                        : "destructive"
+                                    }
+                                  >
+                                    {myMentorApplication.status}
+                                  </Badge>
+                                </div>
+                                {myMentorApplication.company && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {myMentorApplication.position} at{" "}
+                                    {myMentorApplication.company}
+                                  </p>
                                 )}
                               </div>
-                              <p className="text-muted-foreground mb-2">{mentor.position} at {mentor.company}</p>
-                              <p className="text-sm mb-3">{mentor.description}</p>
-                              
-                              <div className="flex flex-wrap gap-1 mb-3">
-                                {mentor.specialties.map((specialty, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs">
-                                    {specialty}
-                                  </Badge>
-                                ))}
-                              </div>
-
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center">
-                                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                                  {mentor.rating} ({mentor.reviewCount} reviews)
-                                </div>
-                                <div className="flex items-center">
-                                  <Users className="h-4 w-4 mr-1" />
-                                  {mentor.experience} years experience
-                                </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() =>
+                                    navigate("/mentoring/become-mentor")
+                                  }
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="lg:w-64 space-y-4">
-                            <div>
-                              <h4 className="font-medium mb-2">Industry</h4>
-                              <Badge variant="outline">{mentor.industry}</Badge>
+                            {myMentorApplication.specialties &&
+                              myMentorApplication.specialties.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-medium mb-2">
+                                    Specialties:
+                                  </h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {myMentorApplication.specialties.map(
+                                      (specialty, index) => (
+                                        <Badge key={index} variant="secondary">
+                                          {specialty}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                            {myMentorApplication.motivation && (
+                              <div>
+                                <h4 className="text-sm font-medium mb-2">
+                                  Motivation:
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {myMentorApplication.motivation}
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <BookOpen className="h-4 w-4" />
+                                <span>
+                                  {myMentorApplication.experience} years
+                                  experience
+                                </span>
+                              </div>
+                              {myMentorApplication.rate && (
+                                <div className="flex items-center gap-1">
+                                  <DollarSign className="h-4 w-4" />
+                                  <span>${myMentorApplication.rate}/hr</span>
+                                </div>
+                              )}
                             </div>
-                            <Button 
-                              onClick={() => handleRequestMentoring(mentor)}
-                              className="w-full bg-foreground hover:bg-foreground/90 text-background"
-                            >
-                              Request Mentoring
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
 
-                {filteredMentors.length === 0 && (
-                  <div className="text-center py-12">
-                    <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No mentors found</h3>
-                    <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                            {myMentorApplication.availability &&
+                              myMentorApplication.availability.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-medium mb-2">
+                                    Availability:
+                                  </h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {myMentorApplication.availability.map(
+                                      (slot, index) => (
+                                        <Badge key={index} variant="outline">
+                                          {slot}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="text-center py-12">
+                        <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No Services Yet
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          You haven't created any mentoring services
+                        </p>
+                        <Button onClick={handleMentorAction}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Your First Service
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <Tabs
+                value={activeNonMentorTab}
+                onValueChange={(value: string) =>
+                  setActiveNonMentorTab(value as MentoringTabNonMentor)
+                }
+              >
+                <TabsList className="mb-6">
+                  <TabsTrigger value="available">
+                    Recommended Mentors
+                  </TabsTrigger>
+                  <TabsTrigger value="requests">
+                    My Requests{" "}
+                    {sentRequests.length > 0 && `(${sentRequests.length})`}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="available">
+                  <RecommendedMentorsList />
+                </TabsContent>
+
+                <TabsContent value="requests">
+                  <RequestsList requests={getFilteredRequestsNonMentor()} />
+                </TabsContent>
+              </Tabs>
             )}
           </>
         )}
+
+        {selectedMentorForRequest && (
+          <RequestMentoringSessionModal
+            open={isRequestSessionOpen}
+            onOpenChange={setIsRequestSessionOpen}
+            sessionId={selectedMentorForRequest.id}
+            sessionTopic={
+              selectedMentorForRequest.expertise?.[0] || "Mentoring"
+            }
+            mentorName={
+              selectedMentorForRequest.full_name ||
+              selectedMentorForRequest.username ||
+              "Mentor"
+            }
+          />
+        )}
+
+        {selectedRequest && (
+          <MentorshipRequestDetailsModal
+            open={isRequestDetailsOpen}
+            onOpenChange={setIsRequestDetailsOpen}
+            request={selectedRequest}
+            isMentor={isMentor}
+          />
+        )}
       </div>
-
-      {selectedMentor && (
-        <MentoringRequestModal
-          isOpen={isRequestModalOpen}
-          onClose={() => {
-            setIsRequestModalOpen(false);
-            setSelectedMentor(null);
-          }}
-          mentor={selectedMentor}
-        />
-      )}
-
-      {selectedMentor && (
-        <MessageModal
-          isOpen={isMessageModalOpen}
-          onClose={() => {
-            setIsMessageModalOpen(false);
-            setSelectedMentor(null);
-          }}
-          recipient={selectedMentor.user}
-        />
-      )}
-
-      {selectedApplication && (
-        <EditMentorApplicationModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setSelectedApplication(null);
-          }}
-          application={selectedApplication}
-          onSave={handleSaveApplication}
-        />
-      )}
     </AppLayout>
   );
 };
 
-export default Mentors;
+export default Mentoring;

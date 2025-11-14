@@ -20,8 +20,7 @@ export const PublicFooter: React.FC = () => {
             <React.Fragment key={link.path}>
               <Link 
                 to={link.path}
-                // target='_blank' 
-                className="hover:text-foreground transition-colors duration-200 hover:underline"
+                                className="hover:text-foreground transition-colors duration-200 hover:underline"
               >
                 {link.name}
               </Link>

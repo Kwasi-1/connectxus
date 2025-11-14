@@ -38,8 +38,7 @@ export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModa
         createdAt: new Date(),
       };
 
-      // Store the quote data for the main feed to pick up
-      sessionStorage.setItem('newQuote', JSON.stringify({
+            sessionStorage.setItem('newQuote', JSON.stringify({
         newPost,
         quotedPostId: post.id
       }));

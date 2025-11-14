@@ -1,22 +1,26 @@
-
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
-import { 
-  X, 
-  Search, 
-  Phone, 
-  MoreHorizontal, 
-  Pin, 
-  PinOff, 
-  UserPlus, 
-  Settings, 
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import {
+  X,
+  Search,
+  Phone,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  UserPlus,
+  Settings,
   LogOut,
-  Users
-} from 'lucide-react';
-import { GroupChat } from '@/types/messages';
+  Users,
+} from "lucide-react";
+import { GroupChat } from "@/types/messages";
 
 interface GroupChatHeaderProps {
   groupChat: GroupChat;
@@ -37,7 +41,7 @@ export const GroupChatHeader = ({
   onLeaveGroup,
   onManageGroup,
   onAddMembers,
-  onViewMembers
+  onViewMembers,
 }: GroupChatHeaderProps) => {
   const navigate = useNavigate();
 
@@ -48,7 +52,6 @@ export const GroupChatHeader = ({
   return (
     <div className="sticky top-16 lg:top-0 z-40 bg-background p-4 border-b border-border flex items-center justify-between">
       <div className="flex items-center space-x-3">
-        {/* Back button for mobile */}
         <Button
           variant="ghost"
           size="icon"
@@ -57,8 +60,11 @@ export const GroupChatHeader = ({
         >
           <X className="h-5 w-5" />
         </Button>
-        
-        <div className="relative cursor-pointer" onClick={handleGroupProfileClick}>
+
+        <div
+          className="relative cursor-pointer"
+          onClick={handleGroupProfileClick}
+        >
           <Avatar className="w-10 h-10 hover:ring-2 hover:ring-primary/20 transition-all">
             <AvatarImage src={groupChat.avatar} alt={groupChat.name} />
             <AvatarFallback>{groupChat.name.charAt(0)}</AvatarFallback>
@@ -71,10 +77,14 @@ export const GroupChatHeader = ({
           <div className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <h3 className="font-semibold text-foreground">{groupChat.name}</h3>
             {groupChat.isAdmin && (
-              <Badge variant="secondary" className="text-xs hidden md:block">Admin</Badge>
+              <Badge variant="secondary" className="text-xs hidden md:block">
+                Admin
+              </Badge>
             )}
             {groupChat.isModerator && !groupChat.isAdmin && (
-              <Badge variant="outline" className="text-xs hidden md:block">Moderator</Badge>
+              <Badge variant="outline" className="text-xs hidden md:block">
+                Moderator
+              </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
@@ -82,27 +92,16 @@ export const GroupChatHeader = ({
           </p>
         </div>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        {/* Search Messages Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSearch}
-        >
+        <Button variant="ghost" size="icon" onClick={onToggleSearch}>
           <Search className="h-5 w-5" />
         </Button>
-        
-        {/* View Members Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onViewMembers}
-        >
+
+        <Button variant="ghost" size="icon" onClick={onViewMembers}>
           <Users className="h-5 w-5" />
         </Button>
-        
-        {/* Actions Menu */}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -135,7 +134,10 @@ export const GroupChatHeader = ({
                 Manage Group
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={onLeaveGroup} className="text-destructive">
+            <DropdownMenuItem
+              onClick={onLeaveGroup}
+              className="text-destructive"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Leave Group
             </DropdownMenuItem>

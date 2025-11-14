@@ -45,7 +45,7 @@ export const AddMemberModal = ({
 
   const filteredUsers = followedUsers.filter(
     (user) =>
-      user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -88,7 +88,6 @@ export const AddMemberModal = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -99,7 +98,6 @@ export const AddMemberModal = ({
             />
           </div>
 
-          {/* Role Selection for Project Groups */}
           {groupType === "project" &&
             projectRoles &&
             projectRoles.length > 0 && (
@@ -121,7 +119,6 @@ export const AddMemberModal = ({
               </div>
             )}
 
-          {/* Results */}
           <div className="max-h-96 overflow-y-auto space-y-2">
             {hasResults ? (
               <>
@@ -132,15 +129,13 @@ export const AddMemberModal = ({
                   >
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={user.avatar} alt={user.displayName} />
+                        <AvatarImage src={user.avatar} alt={user.username} />
                         <AvatarFallback>
-                          {user.displayName.charAt(0)}
+                          {user.username.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">
-                          {user.displayName}
-                        </p>
+                        <p className="font-medium text-sm">{user.username}</p>
                         <p className="text-xs text-muted-foreground">
                           @{user.username}
                         </p>
@@ -158,7 +153,6 @@ export const AddMemberModal = ({
                 ))}
               </>
             ) : (
-              /* No Results Found */
               <div className="text-center py-8 space-y-4">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground" />
                 <div>
@@ -181,7 +175,6 @@ export const AddMemberModal = ({
             )}
           </div>
 
-          {/* Group Link Section - Always visible at bottom */}
           {hasResults && (
             <div className="pt-4 border-t">
               <div className="text-center space-y-2">

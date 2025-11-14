@@ -1,5 +1,4 @@
 
-// Global types for Campus Vibe Net
 
 export interface User {
   id: string;

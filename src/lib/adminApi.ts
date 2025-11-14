@@ -11,10 +11,8 @@ import {
 } from '@/types/admin';
 import { User } from '@/types/global';
 
-// Mock delay to simulate API calls
 const mockDelay = (ms: number = 1000) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Mock database - in a real app, this would be handled by the backend
 let mockUsers: User[] = [];
 let mockAdmins: AdminUser[] = [];
 let mockAnnouncements: CampusAnnouncement[] = [];
@@ -25,10 +23,8 @@ let mockMentorApplications: MentorApplication[] = [];
 let mockReports: ContentModerationItem[] = [];
 let mockNotifications: AdminNotification[] = [];
 
-// Initialize with some mock data
 const initializeMockData = () => {
-  // Mock users
-  mockUsers = [
+    mockUsers = [
     {
       id: '1',
       username: 'john_doe',
@@ -55,8 +51,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock admins
-  mockAdmins = [
+    mockAdmins = [
     {
       id: 'admin1',
       email: 'admin@university.edu',
@@ -71,8 +66,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock announcements
-  mockAnnouncements = [
+    mockAnnouncements = [
     {
       id: '1',
       title: 'System Maintenance Notice',
@@ -87,8 +81,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock events
-  mockEvents = [
+    mockEvents = [
     {
       id: '1',
       title: 'Tech Career Fair',
@@ -109,8 +102,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock groups
-  mockGroups = [
+    mockGroups = [
     {
       id: '1',
       name: 'Computer Science Study Group',
@@ -188,8 +180,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock tutor applications
-  mockTutorApplications = [
+    mockTutorApplications = [
     {
       id: '1',
       applicantId: '1',
@@ -207,8 +198,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock mentor applications
-  mockMentorApplications = [
+    mockMentorApplications = [
     {
       id: '1',
       applicantId: '2',
@@ -224,8 +214,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock reports
-  mockReports = [
+    mockReports = [
     {
       id: '1',
       type: 'post',
@@ -243,8 +232,7 @@ const initializeMockData = () => {
     },
   ];
 
-  // Mock notifications
-  mockNotifications = [
+    mockNotifications = [
     {
       id: '1',
       type: 'report',
@@ -259,10 +247,8 @@ const initializeMockData = () => {
   ];
 };
 
-// Initialize mock data
 initializeMockData();
 
-// User Management API
 export const userApi = {
   async getUsers(): Promise<User[]> {
     await mockDelay(500);
@@ -283,8 +269,7 @@ export const userApi = {
     const userIndex = mockUsers.findIndex(u => u.id === id);
     if (userIndex === -1) throw new Error('User not found');
     
-    // In a real app, you'd add suspension fields to the User type
-    console.log(`User ${id} suspended for: ${reason}`);
+        console.log(`User ${id} suspended for: ${reason}`);
   },
 
   async banUser(id: string, reason: string): Promise<void> {
@@ -306,7 +291,6 @@ export const userApi = {
   },
 };
 
-// Content Management API
 export const contentApi = {
   async getAnnouncements(): Promise<CampusAnnouncement[]> {
     await mockDelay(500);
@@ -380,7 +364,6 @@ export const contentApi = {
   },
 };
 
-// Groups Management API
 export const groupsApi = {
   async getGroups(): Promise<GroupManagement[]> {
     await mockDelay(500);
@@ -489,7 +472,6 @@ export const groupsApi = {
   },
 };
 
-// Tutoring & Mentorship API
 export const applicationApi = {
   async getTutorApplications(): Promise<TutorApplication[]> {
     await mockDelay(500);
@@ -562,7 +544,6 @@ export const applicationApi = {
   },
 };
 
-// Reports API
 export const reportsApi = {
   async getReports(): Promise<ContentModerationItem[]> {
     await mockDelay(500);
@@ -596,7 +577,6 @@ export const reportsApi = {
   },
 };
 
-// Admin Management API
 export const adminApi = {
   async getAdmins(): Promise<AdminUser[]> {
     await mockDelay(500);
@@ -633,7 +613,6 @@ export const adminApi = {
   },
 };
 
-// Notifications API
 export const notificationsApi = {
   async getNotifications(): Promise<AdminNotification[]> {
     await mockDelay(500);
@@ -662,7 +641,6 @@ export const notificationsApi = {
   },
 };
 
-// Analytics API
 export const analyticsApi = {
   async getMetrics(): Promise<SystemMetrics> {
     await mockDelay(500);
@@ -682,13 +660,11 @@ export const analyticsApi = {
 
   async exportData(type: 'csv' | 'pdf', dataType: string): Promise<Blob> {
     await mockDelay(1000);
-    // Mock file generation
-    const content = `Mock ${type.toUpperCase()} export for ${dataType}\nGenerated on: ${new Date().toISOString()}`;
+        const content = `Mock ${type.toUpperCase()} export for ${dataType}\nGenerated on: ${new Date().toISOString()}`;
     return new Blob([content], { type: type === 'csv' ? 'text/csv' : 'application/pdf' });
   },
 };
 
-// System Settings API
 export const systemApi = {
   async getSettings(): Promise<Record<string, any>> {
     await mockDelay(500);

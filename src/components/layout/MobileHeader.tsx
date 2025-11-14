@@ -1,9 +1,8 @@
-
-import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { SearchOverlay } from '@/components/search/SearchOverlay';
-import Logo from '../shared/Logo';
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
+import Logo from "../shared/Logo";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -16,7 +15,6 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
     <>
       <div className="fixed top-0 left-0 right-0 bg-background lg:hidden z-50">
         <div className="flex items-center justify-between px-4 py-3">
-          {/* Profile Avatar */}
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -30,13 +28,10 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
             </Button>
           </div>
 
-          {/* Logo */}
           <div className="flex items-center space-x-2">
-            {/* <img src={logo} alt="Campus Vibe Logo" className="h-12 w-auto rounded-lg" /> */}
             <Logo className="h-10 w-auto rounded-lg" />
           </div>
 
-          {/* Search Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -48,7 +43,6 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
         </div>
       </div>
 
-      {/* Search Overlay */}
       <SearchOverlay
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}

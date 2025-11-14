@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import moment from "moment";
 import {
   Table,
   TableBody,
@@ -69,18 +70,21 @@ import {
 } from "lucide-react";
 import { User, UserRole } from "@/types/global";
 import { useToast } from "@/hooks/use-toast";
-import { userApi, analyticsApi } from "@/lib/adminApi";
+import { adminApi } from "@/api/admin.api";
+import { getDefaultSpaceId } from "@/lib/apiClient";
 
 export function UserManagement() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-  // Modal states
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -89,25 +93,29 @@ export function UserManagement() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [actionUser, setActionUser] = useState<User | null>(null);
 
-  // Form states
   const [suspendReason, setSuspendReason] = useState("");
   const [banReason, setBanReason] = useState("");
   const [newUser, setNewUser] = useState({
     username: "",
     displayName: "",
     email: "",
+    password: "",
     bio: "",
     department: "",
     level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
     roles: ["student"] as UserRole[],
   });
+  const [resetPassword, setResetPassword] = useState("");
 
   const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const userData = await userApi.getUsers();
-      setUsers(userData);
+      const spaceId = getDefaultSpaceId();
+      const response = await adminApi.getUsers(spaceId, currentPage, pageSize);
+      setUsers(response.users as User[]);
+      setTotalUsers(response.total);
     } catch (error) {
+      console.error("Error loading users:", error);
       toast({
         title: "Error",
         description: "Failed to load users",
@@ -116,7 +124,7 @@ export function UserManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [currentPage, pageSize, toast]);
 
   useEffect(() => {
     loadUsers();
@@ -124,7 +132,7 @@ export function UserManagement() {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole =
       selectedRole === "all" || user.roles.includes(selectedRole as UserRole);
@@ -132,42 +140,45 @@ export function UserManagement() {
     return matchesSearch && matchesRole;
   });
 
-  // CRUD Handlers
   const handleCreateUser = async () => {
     try {
-      const newUserData: User = {
-        id: Date.now().toString(),
-        ...newUser,
-        avatar: "/placeholder.svg",
-        verified: false,
-        followers: 0,
-        following: 0,
-        createdAt: new Date(),
-        university: "University of Ghana",
-        major: newUser.department,
-      };
-
-      await userApi.updateUser(newUserData.id, newUserData);
-      setUsers((prev) => [...prev, newUserData]);
-      setAddUserModalOpen(false);
-      setNewUser({
-        username: "",
-        displayName: "",
-        email: "",
-        bio: "",
-        department: "",
-        level: "undergraduate",
-        roles: ["student"] as UserRole[],
+      const spaceId = getDefaultSpaceId();
+      await adminApi.createUser({
+        space_id: spaceId,
+        username: newUser.username,
+        email: newUser.email,
+        password: newUser.password,
+        full_name: newUser.username,
+        department: newUser.department,
+        level: newUser.level,
+        roles: newUser.roles,
+        status: "active",
+        verified: true,
       });
 
       toast({
         title: "User Created",
-        description: `${newUserData.displayName} has been added successfully.`,
+        description: `${newUser.username} has been created successfully.`,
       });
+
+      setNewUser({
+        username: "",
+        displayName: "",
+        email: "",
+        password: "",
+        bio: "",
+        department: "",
+        level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
+        roles: ["student"] as UserRole[],
+      });
+
+      setAddUserModalOpen(false);
+      await loadUsers();
     } catch (error) {
+      console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: "Failed to create user. Please try again.",
         variant: "destructive",
       });
     }
@@ -177,21 +188,27 @@ export function UserManagement() {
     if (!editingUser) return;
 
     try {
-      const updatedUser = await userApi.updateUser(editingUser.id, editingUser);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
-      );
-      setEditUserModalOpen(false);
-      setEditingUser(null);
+      await adminApi.updateUser(editingUser.id, {
+        email: editingUser.email,
+        full_name: editingUser.username,
+        department: editingUser.department,
+        roles: editingUser.roles,
+        status: editingUser.isActive ? "active" : "inactive",
+      });
 
       toast({
         title: "User Updated",
-        description: `${updatedUser.displayName} has been updated successfully.`,
+        description: `${editingUser.username} has been updated successfully.`,
       });
+
+      setEditUserModalOpen(false);
+      setEditingUser(null);
+      await loadUsers();
     } catch (error) {
+      console.error("Error updating user:", error);
       toast({
         title: "Error",
-        description: "Failed to update user",
+        description: "Failed to update user. Please try again.",
         variant: "destructive",
       });
     }
@@ -199,17 +216,26 @@ export function UserManagement() {
 
   const handleSuspendUser = async (user: User) => {
     try {
-      await userApi.suspendUser(user.id, suspendReason);
+      const adminUserId = localStorage.getItem("userId") || "";
+      await adminApi.suspendUser({
+        user_id: user.id,
+        suspended_by: adminUserId,
+        reason: suspendReason,
+        duration_days: 7,
+        is_permanent: false,
+      });
+      await loadUsers();
       setSuspendModalOpen(false);
       setSuspendReason("");
       setActionUser(null);
 
       toast({
         title: "User Suspended",
-        description: `${user.displayName} has been suspended.`,
+        description: `${user.username} has been suspended.`,
         variant: "destructive",
       });
     } catch (error) {
+      console.error("Error suspending user:", error);
       toast({
         title: "Error",
         description: "Failed to suspend user",
@@ -220,17 +246,19 @@ export function UserManagement() {
 
   const handleBanUser = async (user: User) => {
     try {
-      await userApi.banUser(user.id, banReason);
+      await adminApi.banUser(user.id, banReason);
+      await loadUsers();
       setBanModalOpen(false);
       setBanReason("");
       setActionUser(null);
 
       toast({
         title: "User Banned",
-        description: `${user.displayName} has been banned.`,
+        description: `${user.username} has been banned permanently.`,
         variant: "destructive",
       });
     } catch (error) {
+      console.error("Error banning user:", error);
       toast({
         title: "Error",
         description: "Failed to ban user",
@@ -241,17 +269,18 @@ export function UserManagement() {
 
   const handleDeleteUser = async (user: User) => {
     try {
-      await userApi.deleteUser(user.id);
+      await adminApi.deleteUser(user.id);
       setUsers((prev) => prev.filter((u) => u.id !== user.id));
       setDeleteModalOpen(false);
       setActionUser(null);
 
       toast({
         title: "User Deleted",
-        description: `${user.displayName} has been deleted permanently.`,
+        description: `${user.username} has been deleted permanently.`,
         variant: "destructive",
       });
     } catch (error) {
+      console.error("Error deleting user:", error);
       toast({
         title: "Error",
         description: "Failed to delete user",
@@ -261,17 +290,29 @@ export function UserManagement() {
   };
 
   const handleResetPassword = async (user: User) => {
+    if (!resetPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter a new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await userApi.resetPassword(user.id);
+      await adminApi.resetUserPassword(user.id, resetPassword);
 
       toast({
         title: "Password Reset",
-        description: `Password reset email sent to ${user.displayName}.`,
+        description: `Password for ${user.username} has been reset successfully.`,
       });
+
+      setResetPassword("");
     } catch (error) {
+      console.error("Error resetting password:", error);
       toast({
         title: "Error",
-        description: "Failed to reset password",
+        description: "Failed to reset password. Please try again.",
         variant: "destructive",
       });
     }
@@ -281,12 +322,21 @@ export function UserManagement() {
     action: "suspend" | "activate" | "delete"
   ) => {
     try {
+      const adminUserId = localStorage.getItem("userId") || "";
       const promises = selectedUsers.map((userId) => {
         switch (action) {
           case "suspend":
-            return userApi.suspendUser(userId, "Bulk action");
+            return adminApi.suspendUser({
+              user_id: userId,
+              suspended_by: adminUserId,
+              reason: "Bulk action",
+              duration_days: 7,
+              is_permanent: false,
+            });
           case "delete":
-            return userApi.deleteUser(userId);
+            return adminApi.deleteUser(userId);
+          case "activate":
+            return adminApi.unsuspendUser(userId);
           default:
             return Promise.resolve();
         }
@@ -296,6 +346,8 @@ export function UserManagement() {
 
       if (action === "delete") {
         setUsers((prev) => prev.filter((u) => !selectedUsers.includes(u.id)));
+      } else {
+        await loadUsers();
       }
 
       setSelectedUsers([]);
@@ -305,6 +357,7 @@ export function UserManagement() {
         description: `${selectedUsers.length} users ${action}d successfully.`,
       });
     } catch (error) {
+      console.error("Error performing bulk action:", error);
       toast({
         title: "Error",
         description: `Failed to ${action} users`,
@@ -315,7 +368,7 @@ export function UserManagement() {
 
   const handleExportUsers = async () => {
     try {
-      const blob = await analyticsApi.exportData("csv", "users");
+      const blob = await adminApi.exportData("csv", "users");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -399,7 +452,6 @@ export function UserManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">User Management</h1>
         <div className="flex items-center space-x-2">
@@ -475,7 +527,7 @@ export function UserManagement() {
                     <Label htmlFor="displayName">Display Name</Label>
                     <Input
                       id="displayName"
-                      value={newUser.displayName}
+                      value={newUser.username}
                       onChange={(e) =>
                         setNewUser((prev) => ({
                           ...prev,
@@ -496,6 +548,21 @@ export function UserManagement() {
                       setNewUser((prev) => ({ ...prev, email: e.target.value }))
                     }
                     placeholder="john@university.edu"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter password"
                   />
                 </div>
                 <div className="space-y-2">
@@ -591,7 +658,6 @@ export function UserManagement() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -633,7 +699,6 @@ export function UserManagement() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -696,14 +761,14 @@ export function UserManagement() {
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.displayName} />
+                        <AvatarImage src={user.avatar} alt={user.username} />
                         <AvatarFallback>
-                          {user.displayName.charAt(0)}
+                          {user.username.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <div className="font-medium">{user.displayName}</div>
+                          <div className="font-medium">{user.username}</div>
                           {user.verified && (
                             <Shield className="h-3 w-3 text-primary" />
                           )}
@@ -721,10 +786,12 @@ export function UserManagement() {
                       variant="outline"
                       className="text-green-600 border-green-600"
                     >
-                      Active
+                      {user.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {moment(user.createdAt).format("Do MMMM")}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -793,7 +860,6 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* Edit User Modal */}
       <Dialog open={editUserModalOpen} onOpenChange={setEditUserModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -821,7 +887,7 @@ export function UserManagement() {
                   <Label htmlFor="edit-displayName">Display Name</Label>
                   <Input
                     id="edit-displayName"
-                    value={editingUser.displayName}
+                    value={editingUser.username}
                     onChange={(e) =>
                       setEditingUser((prev) =>
                         prev ? { ...prev, displayName: e.target.value } : null
@@ -881,7 +947,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Suspend User Modal */}
       <Dialog open={suspendModalOpen} onOpenChange={setSuspendModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -919,7 +984,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Ban User Modal */}
       <Dialog open={banModalOpen} onOpenChange={setBanModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -954,7 +1018,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Modal */}
       <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -29,9 +29,8 @@ import {
   Camera,
   Upload,
 } from "lucide-react";
-import { mockGroups, mockUsers } from "@/data/mockCommunitiesData";
+import { mockUsers } from "@/data/mockCommunitiesData";
 import {
-  Group,
   ProjectRole,
   RoleApplication,
   MemberWithRole,
@@ -40,6 +39,16 @@ import {
 import { User } from "@/types/global";
 import { ProjectRoleApplicationsModal } from "@/components/groups/ProjectRoleApplicationsModal";
 import { AddMemberModal } from "@/components/groups/AddMemberModal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getGroupById,
+  getGroupMembers,
+  getGroupRoles,
+  joinGroup,
+  leaveGroup,
+  Group,
+} from "@/api/groups.api";
+import { getPostsByGroup } from "@/api/posts.api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -92,26 +101,71 @@ const GroupDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Mock current user ID
   const currentUserId = "user-1";
 
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<GroupTab>("members");
-  const [isLoading, setIsLoading] = useState(true);
-  const [membersLoading, setMembersLoading] = useState(false);
   const [resourcesLoading, setResourcesLoading] = useState(false);
-  const [group, setGroup] = useState<Group | null>(null);
-  const [members, setMembers] = useState<MemberWithRole[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
-  // Join requests state
+  const { data: group, isLoading } = useQuery({
+    queryKey: ["group", id],
+    queryFn: () => getGroupById(id || ""),
+    enabled: !!id,
+  });
+
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: ["group-members", id],
+    queryFn: () => getGroupMembers(id || "", { page: 1, limit: 100 }),
+    enabled: !!id && activeTab === "members",
+  });
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ["group-roles", id],
+    queryFn: () => getGroupRoles(id || ""),
+    enabled: !!id && activeTab === "roles",
+  });
+
+  const joinMutation = useMutation({
+    mutationFn: () => joinGroup(id || ""),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({
+        title: "Joined group",
+        description: `You've successfully joined ${group?.name}`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to join group",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: () => leaveGroup(id || ""),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({ title: "Left group", description: `You've left ${group?.name}` });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to leave group",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [followedUsers, setFollowedUsers] = useState<User[]>([]);
   const [showFollowedUsers, setShowFollowedUsers] = useState(false);
 
-  // Application state
   const [hasPendingJoinRequest, setHasPendingJoinRequest] = useState(false);
   const [pendingRoleApplications, setPendingRoleApplications] = useState<
     string[]
@@ -123,7 +177,6 @@ const GroupDetail = () => {
   const [selectedRoleForApplication, setSelectedRoleForApplication] =
     useState<ProjectRole | null>(null);
 
-  // New state for confirmations and settings
   const [memberToRemove, setMemberToRemove] = useState<MemberWithRole | null>(
     null
   );
@@ -136,7 +189,6 @@ const GroupDetail = () => {
   const [isSettingsEditing, setIsSettingsEditing] = useState(false);
   const [editedGroup, setEditedGroup] = useState<Partial<Group>>({});
 
-  // Settings state
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [groupType, setGroupType] = useState<"public" | "private" | "project">(
@@ -150,7 +202,6 @@ const GroupDetail = () => {
   const [showPrivacyChangeConfirm, setShowPrivacyChangeConfirm] =
     useState(false);
 
-  // Image editing states
   const [editedProfileImage, setEditedProfileImage] = useState<string | null>(
     null
   );
@@ -158,30 +209,25 @@ const GroupDetail = () => {
     null
   );
 
-  // Update settings state when group data is loaded
   useEffect(() => {
     if (group) {
       setGroupName(group.name);
       setGroupDescription(group.description);
-      setGroupType(group.groupType);
+      setGroupType(group.group_type);
       setGroupTags(group.tags || []);
-      // Set default privacy settings based on group type
       setRequireApproval(
-        group.requireApproval ?? group.groupType === "private"
+        group.requireApproval ?? group.group_type === "private"
       );
       setAllowMemberInvites(group.allowMemberInvites ?? true);
     }
   }, [group]);
 
-  // Fetch followed users and join requests
   useEffect(() => {
-    // Mock followed users (users you're connected to)
     const mockFollowedUsers = mockUsers.filter((user, index) => index < 2);
     setFollowedUsers(mockFollowedUsers);
 
-    // Mock join requests for groups with require approval
     if (
-      (group?.requireApproval ?? group?.groupType === "private") &&
+      (group?.requireApproval ?? group?.group_type === "private") &&
       canManage
     ) {
       const mockJoinRequests: JoinRequest[] = [
@@ -199,18 +245,14 @@ const GroupDetail = () => {
       setJoinRequests(mockJoinRequests);
     }
 
-    // Check if current user has pending applications
-    if (group && !group.isJoined) {
-      // Check for pending join request (for private groups)
-      if (group.groupType === "private") {
-        // Mock: check if user has pending join request
-        setHasPendingJoinRequest(false); // Set to true if user has pending request
+    if (group && !group.is_member) {
+      if (group.group_type === "private") {
+        setHasPendingJoinRequest(false);
       }
 
-      // Check for pending role applications (for project groups)
-      if (group.groupType === "project" && group.projectRoles) {
+      if (group.group_type === "project" && roles) {
         const userPendingRoles: string[] = [];
-        group.projectRoles.forEach((role) => {
+        roles.forEach((role) => {
           const userApplication = role.applications.find(
             (app) => app.userId === currentUserId && app.status === "pending"
           );
@@ -222,19 +264,16 @@ const GroupDetail = () => {
       }
     }
   }, [
-    group?.groupType,
+    group?.group_type,
     group?.id,
     group?.requireApproval,
-    group?.projectRoles,
-    group?.isJoined,
+    roles,
+    group?.is_member,
     currentUserId,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Settings handlers
+  ]);
   const handleUpdateGroupInfo = useCallback(() => {
     if (!group) return;
 
-    // Update group name and description in the group state
     setGroup({
       ...group,
       name: groupName,
@@ -250,7 +289,6 @@ const GroupDetail = () => {
   const handleUpdatePrivacySettings = useCallback(() => {
     if (!group) return;
 
-    // Update privacy settings in the group state
     setGroup({
       ...group,
       groupType: groupType,
@@ -269,7 +307,6 @@ const GroupDetail = () => {
       const updatedTags = [...groupTags, newTag.trim()];
       setGroupTags(updatedTags);
 
-      // Update the group state with new tags
       setGroup({
         ...group,
         tags: updatedTags,
@@ -290,7 +327,6 @@ const GroupDetail = () => {
       setGroupTags(updatedTags);
 
       if (group) {
-        // Update the group state with new tags
         setGroup({
           ...group,
           tags: updatedTags,
@@ -312,20 +348,16 @@ const GroupDetail = () => {
     const isUserOwner = group.createdBy === currentUserId;
 
     if (isUserAdmin || isUserOwner) {
-      // Delete group logic
       console.log("Deleting group:", group?.id);
     } else {
-      // Leave group logic for moderators
       console.log("Leaving group:", group?.id);
-      // Remove user from moderators and members
       setGroup({
         ...group,
         moderators: group.moderators.filter((id) => id !== currentUserId),
-        memberCount: group.memberCount - 1,
+        memberCount: group.member_count - 1,
       });
     }
     setShowDeleteConfirm(false);
-    // Navigate back to groups list
     navigate("/groups");
   }, [currentUserId, group, navigate]);
 
@@ -339,14 +371,12 @@ const GroupDetail = () => {
     });
   }, [toast]);
 
-  // Image upload handlers for settings
   const handleProfileImageEdit = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
         toast({
           title: "File too large",
           description: "Profile image must be less than 5MB",
@@ -369,7 +399,6 @@ const GroupDetail = () => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
         toast({
           title: "File too large",
           description: "Banner image must be less than 10MB",
@@ -429,74 +458,15 @@ const GroupDetail = () => {
   }, []);
 
   useEffect(() => {
-    const fetchGroup = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const foundGroup = mockGroups.find((g) => g.id === id);
-        if (foundGroup) {
-          setGroup(foundGroup);
-        }
-      } catch (error) {
-        console.error("Error fetching group:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchGroup();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === "members" && group) {
-      fetchMembers();
-    } else if (activeTab === "resources" && group) {
+    if (activeTab === "resources" && group) {
       fetchResources();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, group]);
-
-  const fetchMembers = useCallback(async () => {
-    setMembersLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      // Mock members - in real app, this would be an API call
-      const baseMembers = mockUsers.slice(0, 3);
-
-      // Add roles for project-based groups
-      const membersWithRoles: MemberWithRole[] = baseMembers.map(
-        (member, index) => {
-          if (group?.groupType === "project") {
-            const projectRoles = [
-              "Frontend Developer",
-              "Backend Developer",
-              "UI/UX Designer",
-            ];
-            return {
-              ...member,
-              role: projectRoles[index % projectRoles.length],
-            };
-          }
-          return member;
-        }
-      );
-
-      setMembers(membersWithRoles);
-    } catch (error) {
-      console.error("Error fetching members:", error);
-    } finally {
-      setMembersLoading(false);
-    }
-  }, [group?.groupType]);
 
   const fetchResources = useCallback(async () => {
     setResourcesLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 600));
-      // Mock resources
       setResources([
         {
           id: "1",
@@ -528,93 +498,60 @@ const GroupDetail = () => {
   }, []);
 
   const handleJoinGroup = () => {
-    if (group) {
-      // If user is already joined, allow them to leave
-      if (group.isJoined) {
-        const isJoining = false;
-        setGroup({
-          ...group,
-          isJoined: isJoining,
-          memberCount: group.memberCount - 1,
-        });
+    if (!group || !id) return;
 
+    if (group.is_member) {
+      leaveMutation.mutate();
+      return;
+    }
+
+    if (group.group_type === "project") {
+      if (roles && roles.length > 0) {
         toast({
-          title: "Left group",
-          description: `You've left ${group.name}`,
+          title: "Choose a role",
+          description: "Select a role to apply for in this project group.",
         });
-        return;
-      }
-
-      // Handle different group types for joining
-      if (group.groupType === "private" || (group.requireApproval ?? false)) {
-        // For private groups or groups requiring approval, create a join request
-        if (!hasPendingJoinRequest) {
-          const newJoinRequest: JoinRequest = {
-            id: `req-${Date.now()}`,
-            userId: currentUserId,
-            userName: "Current User", // In real app, get from user context
-            userAvatar: "/placeholder.svg",
-            userEmail: "currentuser@university.edu",
-            groupId: group.id,
-            status: "pending",
-            requestedAt: new Date(),
-          };
-
-          setHasPendingJoinRequest(true);
-
-          toast({
-            title: "Request sent!",
-            description: `Your request to join ${group.name} has been sent for approval.`,
-          });
-        }
-      } else if (group.groupType === "project") {
-        // For project groups, user needs to apply for specific roles
-        if (group.projectRoles && group.projectRoles.length > 0) {
-          // Show available roles for application
-          toast({
-            title: "Choose a role",
-            description: "Select a role to apply for in this project group.",
-          });
-          setActiveTab("roles"); // Switch to roles tab to show available positions
-        } else {
-          toast({
-            title: "No roles available",
-            description:
-              "This project group is not currently accepting applications.",
-            variant: "destructive",
-          });
-        }
+        setActiveTab("roles");
       } else {
-        // For public groups, join immediately
-        const isJoining = true;
-        setGroup({
-          ...group,
-          isJoined: isJoining,
-          memberCount: group.memberCount + 1,
-        });
-
         toast({
-          title: "Joined group!",
-          description: `You've successfully joined ${group.name}`,
+          title: "No roles available",
+          description:
+            "This project group is not currently accepting applications.",
+          variant: "destructive",
         });
       }
+    } else {
+      joinMutation.mutate();
     }
   };
 
-  const handleChatClick = () => {
-    if (group && group.isJoined) {
-      // Navigate to messages page with the group chat selected
-      navigate("/messages", {
-        state: {
-          selectedGroupId: id,
-          selectedGroupName: group.name,
-          selectedGroupAvatar: group.avatar,
-        },
-      });
-    } else {
+  const handleChatClick = async () => {
+    if (!group || !group.is_member) {
       toast({
         title: "Join group first",
         description: "You need to join the group to access the chat",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { getOrCreateGroupConversation } = await import(
+        "@/api/messaging.api"
+      );
+
+      const response = await getOrCreateGroupConversation(
+        id!,
+        group.name,
+        group.avatar || undefined
+      );
+
+      navigate(`/messages/${response.conversation_id}`);
+    } catch (error) {
+      console.error("Failed to open group chat:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open group chat. Please try again.",
         variant: "destructive",
       });
     }
@@ -635,11 +572,9 @@ const GroupDetail = () => {
           description: "Group link has been shared",
         });
       } catch (error) {
-        // If sharing fails, fall back to copying
         await copyToClipboard(groupUrl);
       }
     } else {
-      // Fall back to copying to clipboard
       await copyToClipboard(groupUrl);
     }
   };
@@ -660,12 +595,11 @@ const GroupDetail = () => {
     }
   };
 
-  const isAdmin = group?.admins.includes(currentUserId);
-  const isModerator = group?.moderators.includes(currentUserId);
+  const isAdmin = group?.role === "admin" || group?.role === "owner";
+  const isModerator = group?.role === "moderator";
   const canManage = isAdmin || isModerator;
-  const isOwner = group?.createdBy === currentUserId;
+  const isOwner = group?.role === "owner";
 
-  // Admin management functions
   const handlePromoteToAdmin = useCallback(
     (userId: string) => {
       if (!group || !isOwner) return;
@@ -673,7 +607,7 @@ const GroupDetail = () => {
       setGroup({
         ...group,
         admins: [...group.admins, userId],
-        moderators: group.moderators.filter((id) => id !== userId), // Remove from moderators if present
+        moderators: group.moderators.filter((id) => id !== userId),
       });
 
       toast({
@@ -741,11 +675,11 @@ const GroupDetail = () => {
 
     setGroup({
       ...group,
-      projectRoles: group.projectRoles?.map((role) =>
+      projectRoles: roles?.map((role) =>
         role.id === selectedRole.id
           ? {
               ...role,
-              slotsFilled: role.slotsFilled + 1,
+              slotsFilled: role.slots_filled + 1,
               applications: role.applications.map((app) =>
                 app.id === applicationId
                   ? { ...app, status: "accepted" as const }
@@ -762,7 +696,7 @@ const GroupDetail = () => {
 
     setGroup({
       ...group,
-      projectRoles: group.projectRoles?.map((role) =>
+      projectRoles: roles?.map((role) =>
         role.id === selectedRole.id
           ? {
               ...role,
@@ -777,7 +711,6 @@ const GroupDetail = () => {
     });
   };
 
-  // Handle applying for a project role
   const handleApplyForRole = useCallback(
     (role: ProjectRole, message: string) => {
       if (!group) return;
@@ -785,7 +718,7 @@ const GroupDetail = () => {
       const newApplication: RoleApplication = {
         id: `app-${Date.now()}`,
         userId: currentUserId,
-        userName: "Current User", // In real app, get from user context
+        userName: "Current User",
         userAvatar: "/placeholder.svg",
         roleId: role.id,
         message: message,
@@ -793,10 +726,9 @@ const GroupDetail = () => {
         appliedAt: new Date(),
       };
 
-      // Add application to the role
       setGroup({
         ...group,
-        projectRoles: group.projectRoles?.map((r) =>
+        projectRoles: roles?.map((r) =>
           r.id === role.id
             ? {
                 ...r,
@@ -806,7 +738,6 @@ const GroupDetail = () => {
         ),
       });
 
-      // Update local state
       setPendingRoleApplications([...pendingRoleApplications, role.id]);
 
       toast({
@@ -817,19 +748,17 @@ const GroupDetail = () => {
     [group, currentUserId, pendingRoleApplications, toast]
   );
 
-  // Handle role application modal
   const handleOpenRoleApplication = (role: ProjectRole) => {
     setSelectedRoleForApplication(role);
     setIsProjectRoleApplicationModalOpen(true);
   };
 
-  // Handle adding member from the modal
   const handleAddMemberFromModal = useCallback(
     (user: User, role?: string) => {
       const newMember: MemberWithRole = {
         ...user,
         role:
-          role || (group?.groupType === "project" ? "Team Member" : undefined),
+          role || (group?.group_type === "project" ? "Team Member" : undefined),
       };
 
       setMembers((prevMembers) => [...prevMembers, newMember]);
@@ -839,18 +768,17 @@ const GroupDetail = () => {
 
       toast({
         title: "Member added",
-        description: `${user.displayName} has been added to the group${
+        description: `${user.username} has been added to the group${
           role ? ` as ${role}` : ""
         }`,
       });
     },
-    [group?.groupType, toast]
+    [group?.group_type, toast]
   );
 
-  // Join request handlers
   const handleJoinRequest = useCallback(
     (request: JoinRequest) => {
-      if (group?.groupType !== "private") return;
+      if (group?.group_type !== "private") return;
 
       setJoinRequests((prev) => [...prev, request]);
       toast({
@@ -858,7 +786,7 @@ const GroupDetail = () => {
         description: `${request.userName} wants to join the group`,
       });
     },
-    [group?.groupType, toast]
+    [group?.group_type, toast]
   );
 
   const handleApproveJoinRequest = useCallback(
@@ -866,7 +794,6 @@ const GroupDetail = () => {
       const request = joinRequests.find((req) => req.id === requestId);
       if (!request) return;
 
-      // Add user to members
       const newMember: MemberWithRole = {
         id: request.userId,
         username: request.userName.toLowerCase().replace(" ", "_"),
@@ -878,7 +805,7 @@ const GroupDetail = () => {
         following: 0,
         createdAt: new Date(),
         roles: ["student"],
-        role: group?.groupType === "project" ? "Team Member" : undefined,
+        role: group?.group_type === "project" ? "Team Member" : undefined,
       };
 
       setMembers((prev) => [...prev, newMember]);
@@ -892,7 +819,7 @@ const GroupDetail = () => {
         description: `${request.userName} has been added to the group`,
       });
     },
-    [joinRequests, group?.groupType, toast]
+    [joinRequests, group?.group_type, toast]
   );
 
   const handleRejectJoinRequest = useCallback(
@@ -914,16 +841,14 @@ const GroupDetail = () => {
     setMemberToRemove(member);
   }, []);
 
-  // Confirmation handlers
   const confirmRemoveMember = useCallback(() => {
     if (memberToRemove && group) {
-      // Actually remove the member from the members state and update group member count
       setMembers((prevMembers) =>
         prevMembers.filter((m) => m.id !== memberToRemove.id)
       );
       setGroup({
         ...group,
-        memberCount: group.memberCount - 1,
+        memberCount: group.member_count - 1,
       });
 
       toast({
@@ -954,7 +879,7 @@ const GroupDetail = () => {
     setEditedGroup({
       name: group?.name,
       description: group?.description,
-      groupType: group?.groupType,
+      groupType: group?.group_type,
       tags: group?.tags,
     });
   };
@@ -1006,7 +931,6 @@ const GroupDetail = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full relative">
-        {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -1024,17 +948,17 @@ const GroupDetail = () => {
                     <h1 className="text-xl font-bold text-foreground">
                       {group.name}
                     </h1>
-                    {group.groupType === "private" && (
+                    {group.group_type === "private" && (
                       <Lock className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {group.memberCount} members
+                    {group.member_count} members
                   </p>
                 </div>
               </div>
               <div className="flex flex-col md:flex-row items-center gap-2">
-                {group.isJoined && (
+                {group.is_member && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1052,17 +976,11 @@ const GroupDetail = () => {
                 >
                   <Share className="h-4 w-4" />
                 </Button>
-                {/* {canManage && (
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('settings')}>
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                )} */}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Banner Image */}
         {group.banner && (
           <div className="relative h-48 bg-gradient-to-r from-primary/20 to-primary/10">
             <img
@@ -1074,7 +992,6 @@ const GroupDetail = () => {
           </div>
         )}
 
-        {/* Group Info */}
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16">
@@ -1086,7 +1003,7 @@ const GroupDetail = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h2 className="text-2xl font-bold">{group.name}</h2>
-                {group.groupType === "private" && (
+                {group.group_type === "private" && (
                   <Badge variant="secondary" className="gap-1">
                     <Lock className="h-3 w-3" />
                     Private
@@ -1098,11 +1015,11 @@ const GroupDetail = () => {
                 <Badge variant="secondary">{group.category}</Badge>
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {group.memberCount} members
+                  {group.member_count} members
                 </span>
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
-                  Created {group.createdAt.toLocaleDateString()}
+                  Created {new Date(group.created_at).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1 mb-4">
@@ -1116,23 +1033,23 @@ const GroupDetail = () => {
                 {!canManage && (
                   <Button
                     onClick={handleJoinGroup}
-                    variant={group.isJoined ? "outline" : "default"}
+                    variant={group.is_member ? "outline" : "default"}
                     disabled={
                       hasPendingJoinRequest ||
-                      (group.groupType === "project" &&
+                      (group.group_type === "project" &&
                         pendingRoleApplications.length > 0)
                     }
                   >
-                    {group.isJoined ? (
+                    {group.is_member ? (
                       <>
                         <UserMinus className="h-4 w-4 mr-2" />
                         Leave Group
                       </>
                     ) : hasPendingJoinRequest ? (
                       "Request Pending"
-                    ) : group.groupType === "private" ? (
+                    ) : group.group_type === "private" ? (
                       "Request Access"
-                    ) : group.groupType === "project" ? (
+                    ) : group.group_type === "project" ? (
                       pendingRoleApplications.length > 0 ? (
                         `Applied for ${pendingRoleApplications.length} role${
                           pendingRoleApplications.length > 1 ? "s" : ""
@@ -1146,7 +1063,8 @@ const GroupDetail = () => {
                   </Button>
                 )}
                 {(canManage ||
-                  (group?.isJoined && (group?.allowMemberInvites ?? true))) && (
+                  (group?.is_member &&
+                    (group?.allowMemberInvites ?? true))) && (
                   <div className="flex gap-2">
                     {canManage && (
                       <Button
@@ -1168,7 +1086,6 @@ const GroupDetail = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as GroupTab)}
@@ -1180,7 +1097,7 @@ const GroupDetail = () => {
             >
               Members
             </TabsTrigger>
-            {group.groupType === "project" && (
+            {group.group_type === "project" && (
               <TabsTrigger
                 value="roles"
                 className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -1195,7 +1112,7 @@ const GroupDetail = () => {
               Resources
             </TabsTrigger>
             {canManage &&
-              (group?.requireApproval ?? group?.groupType === "private") && (
+              (group?.requireApproval ?? group?.group_type === "private") && (
                 <TabsTrigger
                   value="requests"
                   className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -1224,7 +1141,7 @@ const GroupDetail = () => {
           <div className={` relative`}>
             <div
               className={`${
-                !group?.isJoined && !canManage && activeTab !== "roles"
+                !group?.is_member && !canManage && activeTab !== "roles"
                   ? "blur-sm pointer-events-none"
                   : ""
               } relative`}
@@ -1289,7 +1206,7 @@ const GroupDetail = () => {
                                   @{member.username}
                                 </p>
                                 {member.role &&
-                                  group?.groupType === "project" && (
+                                  group?.group_type === "project" && (
                                     <p className="text-xs text-primary font-medium">
                                       {member.role}
                                     </p>
@@ -1392,14 +1309,14 @@ const GroupDetail = () => {
                 )}
               </TabsContent>
 
-              {group.groupType === "project" && (
+              {group.group_type === "project" && (
                 <TabsContent value="roles" className="mt-0">
                   <div className="p-4 space-y-4">
-                    {group.projectRoles?.map((role) => {
+                    {roles?.map((role) => {
                       const pendingCount = role.applications.filter(
                         (app) => app.status === "pending"
                       ).length;
-                      const isFilled = role.slotsFilled >= role.slotsTotal;
+                      const isFilled = role.slots_filled >= role.slots_total;
 
                       return (
                         <div
@@ -1422,7 +1339,8 @@ const GroupDetail = () => {
                               </p>
                               <div className="flex items-center gap-4 text-sm">
                                 <span className="text-muted-foreground">
-                                  {role.slotsFilled} / {role.slotsTotal} filled
+                                  {role.slots_filled} / {role.slots_total}{" "}
+                                  filled
                                 </span>
                                 {pendingCount > 0 && (
                                   <Badge variant="outline" className="text-xs">
@@ -1443,7 +1361,7 @@ const GroupDetail = () => {
                                     : "View"}
                                 </Button>
                               )}
-                              {!canManage && !group?.isJoined && (
+                              {!canManage && !group?.is_member && (
                                 <Button
                                   variant={
                                     pendingRoleApplications.includes(role.id)
@@ -1469,7 +1387,6 @@ const GroupDetail = () => {
                             </div>
                           </div>
 
-                          {/* Show accepted members for this role */}
                           {role.applications.filter(
                             (app) => app.status === "accepted"
                           ).length > 0 && (
@@ -1505,8 +1422,7 @@ const GroupDetail = () => {
                       );
                     })}
 
-                    {(!group.projectRoles ||
-                      group.projectRoles.length === 0) && (
+                    {(!roles || roles.length === 0) && (
                       <div className="text-center py-8 text-muted-foreground">
                         No roles defined yet
                       </div>
@@ -1553,7 +1469,7 @@ const GroupDetail = () => {
               </TabsContent>
 
               {canManage &&
-                (group?.requireApproval || group?.groupType === "private") && (
+                (group?.requireApproval || group?.group_type === "private") && (
                   <TabsContent value="requests" className="mt-0">
                     <div className="p-6">
                       <h3 className="text-lg font-semibold mb-4">
@@ -1642,7 +1558,6 @@ const GroupDetail = () => {
                         Group Settings
                       </h3>
 
-                      {/* Group Information */}
                       <div className="space-y-4 mb-6">
                         <div className="space-y-2">
                           <Label
@@ -1694,11 +1609,9 @@ const GroupDetail = () => {
                         </div>
                       </div>
 
-                      {/* Group Images */}
                       <div className="space-y-4 mb-6 p-4 border rounded-lg">
                         <h4 className="font-medium">Group Images</h4>
 
-                        {/* Profile Image */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">
                             Profile Image
@@ -1760,7 +1673,6 @@ const GroupDetail = () => {
                           </div>
                         </div>
 
-                        {/* Banner Image */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">
                             Banner Image
@@ -1827,7 +1739,6 @@ const GroupDetail = () => {
                           </div>
                         </div>
 
-                        {/* Save/Cancel buttons for images */}
                         {(editedProfileImage !== null ||
                           editedBannerImage !== null) && (
                           <div className="flex gap-2 pt-2">
@@ -1845,7 +1756,6 @@ const GroupDetail = () => {
                         )}
                       </div>
 
-                      {/* Privacy Settings - Only for Admins */}
                       {isAdmin && (
                         <div className="space-y-4 mb-6 p-4 border rounded-lg">
                           <h4 className="font-medium">Privacy Settings</h4>
@@ -1856,7 +1766,7 @@ const GroupDetail = () => {
                                   Group Type
                                 </Label>
                                 <p className="text-sm text-muted-foreground">
-                                  {group?.groupType === "project"
+                                  {group?.group_type === "project"
                                     ? "Project groups cannot change visibility"
                                     : "Change group visibility"}
                                 </p>
@@ -1868,7 +1778,7 @@ const GroupDetail = () => {
                                     value as "public" | "private" | "project"
                                   )
                                 }
-                                disabled={group?.groupType === "project"}
+                                disabled={group?.group_type === "project"}
                               >
                                 <SelectTrigger className="w-32">
                                   <SelectValue />
@@ -1898,7 +1808,7 @@ const GroupDetail = () => {
                                 checked={requireApproval}
                                 onCheckedChange={(checked) => {
                                   if (
-                                    group?.groupType === "private" &&
+                                    group?.group_type === "private" &&
                                     !checked
                                   ) {
                                     setShowPrivacyChangeConfirm(true);
@@ -1933,7 +1843,6 @@ const GroupDetail = () => {
                         </div>
                       )}
 
-                      {/* Group Tags */}
                       <div className="space-y-4 mb-6 p-4 border rounded-lg">
                         <h4 className="font-medium">Group Tags</h4>
                         <div className="space-y-2">
@@ -1970,7 +1879,6 @@ const GroupDetail = () => {
                         </div>
                       </div>
 
-                      {/* Admin Management */}
                       {isOwner && (
                         <div className="space-y-4 mb-6 p-4 border rounded-lg">
                           <h4 className="font-medium">Admin Management</h4>
@@ -2031,7 +1939,6 @@ const GroupDetail = () => {
                       )}
                     </div>
 
-                    {/* Danger Zone */}
                     <div className="pt-4 border-t border-red-200">
                       <h4 className="text-sm font-medium text-red-600 mb-4">
                         Danger Zone
@@ -2067,8 +1974,7 @@ const GroupDetail = () => {
               )}
             </div>
 
-            {/* Content Overlay for Non-Members */}
-            {!group?.isJoined && !canManage && (
+            {!group?.is_member && !canManage && (
               <div className="absolute inset-0 top-[0px] bg-background/60 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden">
                 <div className="text-center space-y-6 p-8 max-w-md mx-auto z-50 mt-[120px]">
                   <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-full flex items-center justify-center border border-blue-200 dark:border-blue-800">
@@ -2076,14 +1982,14 @@ const GroupDetail = () => {
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-xl font-bold text-foreground">
-                      {group?.groupType === "project"
+                      {group?.group_type === "project"
                         ? "Apply to Join Project"
                         : "Join to View Content"}
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      {group?.groupType === "private"
+                      {group?.group_type === "private"
                         ? "This is a private group. Request access to view members, resources, and participate in discussions."
-                        : group?.groupType === "project"
+                        : group?.group_type === "project"
                         ? "This is a project-based group. Apply for a specific role to join the team and access project resources."
                         : "Join this group to access member lists, shared resources, and participate in group activities."}
                     </p>
@@ -2095,7 +2001,7 @@ const GroupDetail = () => {
                       className="px-8 py-3 text-base font-medium"
                       disabled={
                         hasPendingJoinRequest ||
-                        (group?.groupType === "project" &&
+                        (group?.group_type === "project" &&
                           pendingRoleApplications.length > 0)
                       }
                     >
@@ -2104,12 +2010,12 @@ const GroupDetail = () => {
                           <Clock className="h-4 w-4 mr-2" />
                           Request Pending
                         </>
-                      ) : group?.groupType === "private" ? (
+                      ) : group?.group_type === "private" ? (
                         <>
                           <Lock className="h-4 w-4 mr-2" />
                           Request Access
                         </>
-                      ) : group?.groupType === "project" ? (
+                      ) : group?.group_type === "project" ? (
                         pendingRoleApplications.length > 0 ? (
                           <>
                             <CheckCircle className="h-4 w-4 mr-2" />
@@ -2137,7 +2043,6 @@ const GroupDetail = () => {
         </Tabs>
       </div>
 
-      {/* Modals */}
       {selectedRole && (
         <ProjectRoleApplicationsModal
           open={isApplicationsModalOpen}
@@ -2152,13 +2057,12 @@ const GroupDetail = () => {
         isOpen={isAddMemberModalOpen}
         onClose={() => setIsAddMemberModalOpen(false)}
         followedUsers={followedUsers}
-        groupType={group?.groupType || "public"}
+        groupType={group?.group_type || "public"}
         groupId={group?.id || ""}
-        projectRoles={group?.projectRoles}
+        projectRoles={roles}
         onAddMember={handleAddMemberFromModal}
       />
 
-      {/* Project Role Application Modal */}
       <Dialog
         open={isProjectRoleApplicationModalOpen}
         onOpenChange={setIsProjectRoleApplicationModalOpen}
@@ -2226,7 +2130,6 @@ const GroupDetail = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialogs */}
       <AlertDialog
         open={!!memberToRemove}
         onOpenChange={() => setMemberToRemove(null)}

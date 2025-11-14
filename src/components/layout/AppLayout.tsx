@@ -1,10 +1,10 @@
-import { ReactNode, useState } from 'react';
-import { Sidebar } from './Sidebar';
-import { RightSidebar } from './RightSidebar';
-import { MobileBottomNav } from './MobileBottomNav';
-import { MobileHeader } from './MobileHeader';
-import { MobileSidebar } from './MobileSidebar';
-import { useLocation } from 'react-router-dom';
+import { ReactNode, useState } from "react";
+import { Sidebar } from "./Sidebar";
+import { RightSidebar } from "./RightSidebar";
+import { MobileBottomNav } from "./MobileBottomNav";
+import { MobileHeader } from "./MobileHeader";
+import { MobileSidebar } from "./MobileSidebar";
+import { useLocation } from "react-router-dom";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -12,48 +12,49 @@ interface AppLayoutProps {
   onCreatePost?: (content: string, audience: string) => void;
 }
 
-export function AppLayout({ children, showRightSidebar = true, onCreatePost }: AppLayoutProps) {
+export function AppLayout({
+  children,
+  showRightSidebar = true,
+  onCreatePost,
+}: AppLayoutProps) {
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
- 
-  // Determine which pages should show the right sidebar
+
   const shouldShowRightSidebar = showRightSidebar;
- 
+
   const handleMobileMenuClick = () => {
     setIsMobileSidebarOpen(true);
   };
- 
+
   const handleMobileSidebarClose = () => {
     setIsMobileSidebarOpen(false);
   };
- 
+
   return (
     <div className="min-h-screen bg-background md:px-10">
-      {/* Mobile Header */}
       <MobileHeader onMenuClick={handleMobileMenuClick} />
-     
-      {/* Mobile Sidebar */}
+
       <MobileSidebar
         isOpen={isMobileSidebarOpen}
         onClose={handleMobileSidebarClose}
       />
-     
-      {/* Main Container - Centered with max width constraint */}
+
       <div className="flex justify-center w-full min-h-screen">
         <div className="flex w-full max-w-7xl">
-          {/* Left Sidebar - Positioned within container (keeping as fixed) */}
           <div className="fixed top-0 h-screen w-24 xl:w-72 hidden xl:-ml-4 lg:block z-40">
             <Sidebar onCreatePost={onCreatePost} />
           </div>
-         
-          {/* Main Content Area */}
-          <div className={`flex-1 min-w-0 h-full lg:ml-[6rem] xl:ml-[17rem] ${!shouldShowRightSidebar ? 'lg:border-r border-border' : ''}`}>
+
+          <div
+            className={`flex-1 min-w-0 h-full lg:ml-[6rem] xl:ml-[17rem] ${
+              !shouldShowRightSidebar ? "lg:border-r border-border" : ""
+            }`}
+          >
             <main className="w-full h-full mx-auto pt-16 pb-16 lg:pt-0 lg:pb-0 border-none border-border">
               {children}
             </main>
           </div>
-         
-          {/* Right Sidebar - Scrolls with content until it reaches bottom, then sticks */}
+
           {shouldShowRightSidebar && (
             <div className="w-96 hidden lg:block z-30">
               <div className="sticky top-0 self-start bg-background borderl border-border">
@@ -63,8 +64,7 @@ export function AppLayout({ children, showRightSidebar = true, onCreatePost }: A
           )}
         </div>
       </div>
-     
-      {/* Mobile Bottom Navigation */}
+
       <MobileBottomNav />
     </div>
   );

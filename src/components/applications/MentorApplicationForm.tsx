@@ -1,29 +1,61 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { X, Plus, Clock, Briefcase, Globe } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { X, Plus, Clock, Briefcase, Globe } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { submitMentorApplication } from "@/api/mentorship.api";
+import { toast as sonnerToast } from "sonner";
 
 const industries = [
-  'Technology', 'Business', 'Finance', 'Healthcare', 'Education',
-  'Engineering', 'Marketing', 'Design', 'Entrepreneurship', 'Consulting',
-  'Non-profit', 'Government', 'Media', 'Arts', 'Research'
+  "Technology",
+  "Business",
+  "Finance",
+  "Healthcare",
+  "Education",
+  "Engineering",
+  "Marketing",
+  "Design",
+  "Entrepreneurship",
+  "Consulting",
+  "Non-profit",
+  "Government",
+  "Media",
+  "Arts",
+  "Research",
 ];
 
 const commonSpecialties = [
-  'Career Development', 'Leadership', 'Project Management', 'Networking',
-  'Interview Preparation', 'Resume Building', 'Startup Strategy', 'Sales',
-  'Product Management', 'Data Analysis', 'Digital Marketing', 'UX/UI Design',
-  'Software Development', 'Financial Planning', 'Public Speaking'
+  "Career Development",
+  "Leadership",
+  "Project Management",
+  "Networking",
+  "Interview Preparation",
+  "Resume Building",
+  "Startup Strategy",
+  "Sales",
+  "Product Management",
+  "Data Analysis",
+  "Digital Marketing",
+  "UX/UI Design",
+  "Software Development",
+  "Financial Planning",
+  "Public Speaking",
 ];
 
-const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const daysOfWeek = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 interface AvailabilitySlot {
   day: string;
@@ -35,27 +67,25 @@ export function MentorApplicationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form state
-  const [industry, setIndustry] = useState('');
-  const [company, setCompany] = useState('');
-  const [position, setPosition] = useState('');
-  const [experience, setExperience] = useState('');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
-  const [customSpecialty, setCustomSpecialty] = useState('');
-  const [achievements, setAchievements] = useState('');
-  const [mentorshipExperience, setMentorshipExperience] = useState('');
-  const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
-  const [motivation, setMotivation] = useState('');
-  const [approachDescription, setApproachDescription] = useState('');
-  const [linkedinProfile, setLinkedinProfile] = useState('');
-  const [portfolio, setPortfolio] = useState('');
 
-  // Availability form state
+  const [industry, setIndustry] = useState("");
+  const [company, setCompany] = useState("");
+  const [position, setPosition] = useState("");
+  const [experience, setExperience] = useState("");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [customSpecialty, setCustomSpecialty] = useState("");
+  const [achievements, setAchievements] = useState("");
+  const [mentorshipExperience, setMentorshipExperience] = useState("");
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
+  const [motivation, setMotivation] = useState("");
+  const [approachDescription, setApproachDescription] = useState("");
+  const [linkedinProfile, setLinkedinProfile] = useState("");
+  const [portfolio, setPortfolio] = useState("");
+
   const [newSlot, setNewSlot] = useState<AvailabilitySlot>({
-    day: 'Saturday',
-    startTime: '10:00',
-    endTime: '12:00'
+    day: "Saturday",
+    startTime: "10:00",
+    endTime: "12:00",
   });
 
   const handleSpecialtySelect = (specialty: string) => {
@@ -65,24 +95,28 @@ export function MentorApplicationForm() {
   };
 
   const handleSpecialtyRemove = (specialty: string) => {
-    setSelectedSpecialties(selectedSpecialties.filter(s => s !== specialty));
+    setSelectedSpecialties(selectedSpecialties.filter((s) => s !== specialty));
   };
 
   const handleAddCustomSpecialty = () => {
-    if (customSpecialty.trim() && !selectedSpecialties.includes(customSpecialty.trim())) {
+    if (
+      customSpecialty.trim() &&
+      !selectedSpecialties.includes(customSpecialty.trim())
+    ) {
       setSelectedSpecialties([...selectedSpecialties, customSpecialty.trim()]);
-      setCustomSpecialty('');
+      setCustomSpecialty("");
     }
   };
 
   const handleAddAvailability = () => {
     if (newSlot.day && newSlot.startTime && newSlot.endTime) {
-      const slotExists = availability.some(slot => 
-        slot.day === newSlot.day && 
-        slot.startTime === newSlot.startTime && 
-        slot.endTime === newSlot.endTime
+      const slotExists = availability.some(
+        (slot) =>
+          slot.day === newSlot.day &&
+          slot.startTime === newSlot.startTime &&
+          slot.endTime === newSlot.endTime
       );
-      
+
       if (!slotExists) {
         setAvailability([...availability, { ...newSlot }]);
       }
@@ -95,12 +129,12 @@ export function MentorApplicationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!industry) {
       toast({
         title: "Error",
         description: "Please select your industry.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -109,7 +143,7 @@ export function MentorApplicationForm() {
       toast({
         title: "Error",
         description: "Please select at least one specialty area.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -118,35 +152,68 @@ export function MentorApplicationForm() {
       toast({
         title: "Error",
         description: "Please add at least one availability slot.",
-        variant: "destructive"
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (motivation.trim().length < 50) {
+      toast({
+        title: "Error",
+        description: "Please provide a motivation of at least 50 characters.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const availabilityStrings = availability.map(
+        (slot) => `${slot.day}: ${slot.startTime}-${slot.endTime}`
+      );
 
-    toast({
-      title: "Application Submitted!",
-      description: "Your mentor application has been submitted successfully. We'll review it within 3-5 business days.",
-    });
+      await submitMentorApplication({
+        space_id: "",
+        industry,
+        company: company || undefined,
+        position: position || undefined,
+        experience: parseInt(experience) || 0,
+        specialties: selectedSpecialties,
+        motivation: motivation.trim(),
+        availability: availabilityStrings,
+      });
 
-    setIsSubmitting(false);
-    navigate('/mentors');
+      sonnerToast.success("Application Submitted!", {
+        description:
+          "Your mentor application has been submitted successfully. We'll review it within 3-5 business days.",
+      });
+
+      navigate("/mentors");
+    } catch (err: any) {
+      console.error("Error submitting mentor application:", err);
+      sonnerToast.error("Failed to submit application", {
+        description:
+          err.response?.data?.error?.message ||
+          err.message ||
+          "Please try again later.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Become a Mentor</h1>
-        <p className="text-muted-foreground">Guide the next generation of professionals</p>
+        <p className="text-muted-foreground">
+          Guide the next generation of professionals
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-8">
-          {/* Professional Background */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -165,8 +232,10 @@ export function MentorApplicationForm() {
                   required
                 >
                   <option value="">Select your industry</option>
-                  {industries.map(ind => (
-                    <option key={ind} value={ind}>{ind}</option>
+                  {industries.map((ind) => (
+                    <option key={ind} value={ind}>
+                      {ind}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -208,18 +277,21 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Specialties */}
           <Card>
             <CardHeader>
               <CardTitle>Areas of Expertise</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {commonSpecialties.map(specialty => (
+                {commonSpecialties.map((specialty) => (
                   <Button
                     key={specialty}
                     type="button"
-                    variant={selectedSpecialties.includes(specialty) ? "default" : "outline"}
+                    variant={
+                      selectedSpecialties.includes(specialty)
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                     onClick={() => handleSpecialtySelect(specialty)}
                     className="justify-start text-sm"
@@ -228,13 +300,16 @@ export function MentorApplicationForm() {
                   </Button>
                 ))}
               </div>
-              
+
               <div className="flex gap-2">
                 <Input
                   placeholder="Add custom specialty..."
                   value={customSpecialty}
                   onChange={(e) => setCustomSpecialty(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomSpecialty())}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" &&
+                    (e.preventDefault(), handleAddCustomSpecialty())
+                  }
                 />
                 <Button type="button" onClick={handleAddCustomSpecialty}>
                   <Plus className="h-4 w-4" />
@@ -243,10 +318,16 @@ export function MentorApplicationForm() {
 
               {selectedSpecialties.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Selected Specialties:</Label>
+                  <Label className="text-sm font-medium">
+                    Selected Specialties:
+                  </Label>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedSpecialties.map(specialty => (
-                      <Badge key={specialty} variant="secondary" className="pr-1">
+                    {selectedSpecialties.map((specialty) => (
+                      <Badge
+                        key={specialty}
+                        variant="secondary"
+                        className="pr-1"
+                      >
                         {specialty}
                         <Button
                           type="button"
@@ -265,7 +346,6 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Availability */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -280,10 +360,14 @@ export function MentorApplicationForm() {
                   <select
                     className="w-full p-2 border rounded-md"
                     value={newSlot.day}
-                    onChange={(e) => setNewSlot({...newSlot, day: e.target.value})}
+                    onChange={(e) =>
+                      setNewSlot({ ...newSlot, day: e.target.value })
+                    }
                   >
-                    {daysOfWeek.map(day => (
-                      <option key={day} value={day}>{day}</option>
+                    {daysOfWeek.map((day) => (
+                      <option key={day} value={day}>
+                        {day}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -292,7 +376,9 @@ export function MentorApplicationForm() {
                   <Input
                     type="time"
                     value={newSlot.startTime}
-                    onChange={(e) => setNewSlot({...newSlot, startTime: e.target.value})}
+                    onChange={(e) =>
+                      setNewSlot({ ...newSlot, startTime: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -300,7 +386,9 @@ export function MentorApplicationForm() {
                   <Input
                     type="time"
                     value={newSlot.endTime}
-                    onChange={(e) => setNewSlot({...newSlot, endTime: e.target.value})}
+                    onChange={(e) =>
+                      setNewSlot({ ...newSlot, endTime: e.target.value })
+                    }
                   />
                 </div>
                 <div className="flex items-end">
@@ -312,11 +400,18 @@ export function MentorApplicationForm() {
 
               {availability.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Your Availability:</Label>
+                  <Label className="text-sm font-medium">
+                    Your Availability:
+                  </Label>
                   <div className="space-y-2 mt-2">
                     {availability.map((slot, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <span>{slot.day}: {slot.startTime} - {slot.endTime}</span>
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <span>
+                          {slot.day}: {slot.startTime} - {slot.endTime}
+                        </span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -333,14 +428,15 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Experience & Achievements */}
           <Card>
             <CardHeader>
               <CardTitle>Professional Experience & Achievements</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="achievements">Key Achievements & Accomplishments *</Label>
+                <Label htmlFor="achievements">
+                  Key Achievements & Accomplishments *
+                </Label>
                 <Textarea
                   id="achievements"
                   placeholder="Describe your major professional achievements, awards, promotions, successful projects, or notable contributions to your field..."
@@ -350,9 +446,11 @@ export function MentorApplicationForm() {
                   rows={4}
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="mentorship-experience">Previous Mentoring Experience</Label>
+                <Label htmlFor="mentorship-experience">
+                  Previous Mentoring Experience
+                </Label>
                 <Textarea
                   id="mentorship-experience"
                   placeholder="Describe any formal or informal mentoring, coaching, teaching, or leadership experience you've had..."
@@ -364,14 +462,15 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Mentoring Approach */}
           <Card>
             <CardHeader>
               <CardTitle>Your Mentoring Philosophy</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="motivation">Why do you want to become a mentor? *</Label>
+                <Label htmlFor="motivation">
+                  Why do you want to become a mentor? *
+                </Label>
                 <Textarea
                   id="motivation"
                   placeholder="Share your motivation for mentoring students and how you believe you can make a positive impact on their careers..."
@@ -381,7 +480,7 @@ export function MentorApplicationForm() {
                   rows={4}
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="approach">Your Mentoring Approach *</Label>
                 <Textarea
@@ -396,7 +495,6 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Links & Portfolio */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -415,7 +513,7 @@ export function MentorApplicationForm() {
                   onChange={(e) => setLinkedinProfile(e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="portfolio">Portfolio/Website</Label>
                 <Input
@@ -429,9 +527,12 @@ export function MentorApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Submit */}
           <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/mentors')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/mentors")}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

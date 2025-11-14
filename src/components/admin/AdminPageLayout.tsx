@@ -45,17 +45,13 @@ interface TabConfig {
 }
 
 interface AdminPageLayoutProps {
-  // Header
   title: string;
   actionButtons?: ActionButton[];
 
-  // Statistics Cards
   statsCards?: StatCard[];
 
-  // Content Card
   contentTitle?: string;
 
-  // Search and Filters
   showSearch?: boolean;
   searchPlaceholder?: string;
   searchValue?: string;
@@ -67,15 +63,12 @@ interface AdminPageLayoutProps {
   filterOptions?: FilterOption[];
   filterPlaceholder?: string;
 
-  // Tabs
   tabs?: TabConfig[];
   activeTab?: string;
   onTabChange?: (value: string) => void;
 
-  // Main Content (when not using tabs)
   children?: ReactNode;
 
-  // Loading state
   isLoading?: boolean;
   loadingCardCount?: number;
 }
@@ -125,7 +118,6 @@ export function AdminPageLayout({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">{title}</h1>
         {actionButtons.length > 0 && (
@@ -145,7 +137,6 @@ export function AdminPageLayout({
         )}
       </div>
 
-      {/* Statistics Cards */}
       {statsCards.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {statsCards.map((stat, index) => (
@@ -169,7 +160,6 @@ export function AdminPageLayout({
         </div>
       )}
 
-      {/* Content */}
       <Card>
         {(contentTitle || showSearch || showFilter || tabs) && (
           <CardHeader>

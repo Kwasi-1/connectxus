@@ -1,12 +1,19 @@
-
-import React, { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, Repeat2, Share, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Comment } from './Comment';
-import { Post, Comment as CommentType } from '@/types/global';
-import { mockComments, mockUsers } from '@/data/mockData';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Heart,
+  MessageCircle,
+  Repeat2,
+  Share,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Comment } from "./Comment";
+import { Post, Comment as CommentType } from "@/types/global";
+import { mockComments, mockUsers } from "@/data/mockData";
+import { cn } from "@/lib/utils";
 
 interface FullScreenPostModalProps {
   isOpen: boolean;
@@ -25,39 +32,40 @@ export function FullScreenPostModal({
   onLike,
   onComment,
   onRepost,
-  onShare
+  onShare,
 }: FullScreenPostModalProps) {
   const [comments, setComments] = useState<CommentType[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
-      // Simulate fetching comments
-      const postComments = mockComments.filter(c => c.postId === post.id);
+      const postComments = mockComments.filter((c) => c.postId === post.id);
       setComments(postComments);
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, post.id]);
 
   if (!isOpen) return null;
 
   const handleCommentLike = (commentId: string) => {
-    setComments(comments.map(comment => 
-      comment.id === commentId 
-        ? { 
-            ...comment, 
-            isLiked: !comment.isLiked, 
-            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1 
-          }
-        : comment
-    ));
+    setComments(
+      comments.map((comment) =>
+        comment.id === commentId
+          ? {
+              ...comment,
+              isLiked: !comment.isLiked,
+              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
+            }
+          : comment
+      )
+    );
   };
 
   const handleAddComment = () => {
@@ -74,7 +82,7 @@ export function FullScreenPostModal({
     };
 
     setComments([...comments, comment]);
-    setNewComment('');
+    setNewComment("");
   };
 
   const nextImage = () => {
@@ -93,7 +101,7 @@ export function FullScreenPostModal({
     if (post.video) {
       return (
         <div className="flex-1 flex items-center justify-center bg-black/85 backdrop-blur-sm">
-          <video 
+          <video
             className="max-w-full max-h-full object-contain"
             controls
             autoPlay
@@ -107,12 +115,12 @@ export function FullScreenPostModal({
     if (post.images && post.images.length > 0) {
       return (
         <div className="flex-1 flex items-center justify-center bg-black/85 backdrop-blur-sm relative">
-          <img 
-            src={post.images[currentImageIndex]} 
-            alt="Post content" 
+          <img
+            src={post.images[currentImageIndex]}
+            alt="Post content"
             className="max-w-full max-h-full object-contain"
           />
-          
+
           {post.images.length > 1 && (
             <>
               <Button
@@ -124,7 +132,7 @@ export function FullScreenPostModal({
               >
                 <ChevronLeft className="h-6 w-6" />
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -134,7 +142,7 @@ export function FullScreenPostModal({
               >
                 <ChevronRight className="h-6 w-6" />
               </Button>
-              
+
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                 {post.images.map((_, index) => (
                   <button
@@ -159,9 +167,7 @@ export function FullScreenPostModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/45 lg:bg-background/55 backdrop-blur-md">
       <div className="h-full flex">
-        {/* Media Section */}
         <div className="flex-1 flex flex-col">
-          {/* Header */}
           <div className="absolute z-40 flex items-center justify-between p-4">
             <Button
               variant="ghost"
@@ -173,36 +179,39 @@ export function FullScreenPostModal({
             </Button>
           </div>
 
-          {/* Media Content */}
           {renderMedia()}
         </div>
 
-        {/* Comments Section */}
         <div className="hidden w-80 lg:w-full max-w-md bg-background border-l border-border lg:flex flex-col">
-          {/* Post Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-start space-x-3">
               <Avatar className="w-10 h-10">
                 <AvatarImage src={post.author.avatar} />
                 <AvatarFallback>
-                  {post.author.displayName.split(' ').map(n => n[0]).join('')}
+                  {post.author.displayName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
-              
+
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
-                  <span className="font-bold text-foreground">{post.author.displayName}</span>
+                  <span className="font-bold text-foreground">
+                    {post.author.displayName}
+                  </span>
                   {post.author.verified && (
                     <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                       <span className="text-primary-foreground text-xs">✓</span>
                     </div>
                   )}
-                  <span className="text-muted-foreground">@{post.author.username}</span>
+                  <span className="text-muted-foreground">
+                    @{post.author.username}
+                  </span>
                 </div>
-                
+
                 <p className="text-foreground mt-2">{post.content}</p>
-                
-                {/* Interaction Buttons */}
+
                 <div className="flex items-center space-x-6 mt-3">
                   <Button
                     variant="ghost"
@@ -213,40 +222,39 @@ export function FullScreenPostModal({
                     <MessageCircle className="h-5 w-5" />
                     <span className="text-sm">{post.comments || 0}</span>
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onRepost(post.id)}
                     className={cn(
                       "flex items-center space-x-2 p-2 rounded-full",
-                      post.isReposted 
-                        ? "text-green-500 bg-green-500/10" 
+                      post.isReposted
+                        ? "text-green-500 bg-green-500/10"
                         : "text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
                     )}
                   >
                     <Repeat2 className="h-5 w-5" />
                     <span className="text-sm">{post.reposts || 0}</span>
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onLike(post.id)}
                     className={cn(
                       "flex items-center space-x-2 p-2 rounded-full",
-                      post.isLiked 
-                        ? "text-red-500 bg-red-500/10" 
+                      post.isLiked
+                        ? "text-red-500 bg-red-500/10"
                         : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
                     )}
                   >
-                    <Heart className={cn(
-                      "h-5 w-5",
-                      post.isLiked && "fill-current"
-                    )} />
+                    <Heart
+                      className={cn("h-5 w-5", post.isLiked && "fill-current")}
+                    />
                     <span className="text-sm">{post.likes || 0}</span>
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -260,13 +268,15 @@ export function FullScreenPostModal({
             </div>
           </div>
 
-          {/* Reply Composer */}
           <div className="p-4 border-b border-border">
             <div className="flex space-x-3">
               <Avatar className="w-8 h-8">
                 <AvatarImage src={mockUsers[0].avatar} />
                 <AvatarFallback>
-                  {mockUsers[0].displayName.split(' ').map(n => n[0]).join('')}
+                  {mockUsers[0].displayName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -278,7 +288,7 @@ export function FullScreenPostModal({
                   onChange={(e) => setNewComment(e.target.value)}
                 />
                 <div className="flex justify-end mt-2">
-                  <Button 
+                  <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim()}
                     size="sm"
@@ -291,7 +301,6 @@ export function FullScreenPostModal({
             </div>
           </div>
 
-          {/* Comments List */}
           <div className="flex-1 overflow-y-auto">
             {comments.length > 0 ? (
               comments.map((comment) => (
@@ -299,7 +308,9 @@ export function FullScreenPostModal({
                   key={comment.id}
                   comment={comment}
                   onLike={handleCommentLike}
-                  onReply={(commentId) => console.log('Reply to comment:', commentId)}
+                  onReply={(commentId) =>
+                    console.log("Reply to comment:", commentId)
+                  }
                 />
               ))
             ) : (

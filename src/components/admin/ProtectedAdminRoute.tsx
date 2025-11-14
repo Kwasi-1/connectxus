@@ -29,8 +29,7 @@ export const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
     return <AdminAuthPage />;
   }
 
-  // Check permissions
-  if (requiredPermission && !hasPermission(requiredPermission)) {
+    if (requiredPermission && !hasPermission(requiredPermission)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -41,8 +40,7 @@ export const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
     );
   }
 
-  // Check role
-  if (requiredRole && !hasRole(requiredRole)) {
+    if (requiredRole && !hasRole(requiredRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

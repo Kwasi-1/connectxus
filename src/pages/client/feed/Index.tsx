@@ -22,8 +22,7 @@ const Index = () => {
     fetchPosts();
   }, []);
 
-  // Check for new posts from sessionStorage (from Compose page)
-  useEffect(() => {
+    useEffect(() => {
     const newPostData = sessionStorage.getItem('newPost');
     if (newPostData) {
       const newPost = JSON.parse(newPostData);
@@ -77,8 +76,7 @@ const Index = () => {
       createdAt: new Date(),
     };
     
-    // Update the quoted post's quote count and add new post to top
-    setPosts(prevPosts => [
+        setPosts(prevPosts => [
       newPost,
       ...prevPosts.map(post => 
         post.id === quotedPost.id 

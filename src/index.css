@@ -3,12 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Campus Vibe Net Design System - University Social Media Platform */
+
 
 @font-face {
   font-family: 'HelveticaNeue';
   src: url('./assets/fonts/HelveticaNeueLight.otf') format('opentype');
-  /* url('./assets/fonts/Orpheus Pro.woff') format('woff'); */
+  
   font-weight: 400;
   font-style: normal;
 }
@@ -51,7 +51,7 @@
 
 @layer base {
   :root {
-    /* Campus Light Theme */
+    
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
 
@@ -61,19 +61,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
 
-    /* University Blue Primary */
+    
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
     --primary-hover: 217 91% 55%;
 
-    /* Academic Secondary */
+    
     --secondary: 210 40% 96%;
     --secondary-foreground: 0 0% 0%;
 
     --muted: 220 13% 91%;
     --muted-foreground: 220 9% 46%;
 
-    /* Campus Accent - Academic Green */
+    
     --accent: 210 40% 96%;
     --accent-foreground: 0 0% 0%;
 
@@ -84,13 +84,13 @@
     --input: 220 13% 91%;
     --ring: 217 91% 60%;
 
-    /* Campus-specific colors */
+    
     --campus-orange: 25 95% 53%;
     --campus-purple: 262 83% 58%;
     --sidebar-bg: 0 0% 100%;
     --hover-bg: 220 13% 96%;
     
-    /* Interactive states */
+    
     --like-color: 331 77% 54%;
     --repost-color: 142 76% 36%;
     --comment-color: 217 91% 60%;
@@ -108,7 +108,7 @@
   }
 
   .dark {
-    /* Campus Dark Theme */
+    
     --background: 15 23% 4%;
     --foreground: 0 0% 100%;
 
@@ -118,7 +118,7 @@
     --popover: 15 23% 4%;
     --popover-foreground: 0 0% 100%;
 
-    /* Dark theme primary - lighter blue */
+    
     --primary: 217 91% 65%;
     --primary-foreground: 15 23% 4%;
     --primary-hover: 217 91% 70%;
@@ -129,7 +129,7 @@
     --muted: 15 8% 15%;
     --muted-foreground: 240 5% 64%;
 
-    /* Dark accent - brighter green */
+    
     --accent: 15 8% 15%;
     --accent-foreground: 0 0% 100%;
 
@@ -140,13 +140,13 @@
     --input: 15 8% 15%;
     --ring: 217 91% 65%;
 
-    /* Dark campus colors */
+    
     --campus-orange: 25 95% 58%;
     --campus-purple: 262 83% 65%;
     --sidebar-bg: 15 23% 4%;
     --hover-bg: 15 8% 10%;
 
-    /* Dark interactive states */
+    
     --like-color: 331 77% 60%;
     --repost-color: 142 76% 40%;
     --comment-color: 217 91% 65%;
@@ -173,7 +173,7 @@
   }
 }
 
-/* Ensure buttons use theme colors properly */
+
 @layer components {
   .btn-primary {
     @apply bg-foreground text-background hover:bg-foreground/90;

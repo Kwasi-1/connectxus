@@ -1,85 +1,92 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Users2, 
-  GraduationCap, 
-  BarChart3, 
-  Settings, 
+import { NavLink, useLocation } from "react-router-dom";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Users2,
+  GraduationCap,
+  BarChart3,
+  Settings,
   UserCog,
   FileBarChart,
   Bell,
-  Shield
-} from 'lucide-react';
-import Logo from '@/components/shared/Logo';
+  Shield,
+  Activity,
+} from "lucide-react";
+import Logo from "@/components/shared/Logo";
 
 const navItems = [
   {
-    name: 'Dashboard',
-    href: '/admin',
+    name: "Dashboard",
+    href: "/admin",
     icon: LayoutDashboard,
-    permission: null
+    permission: null,
   },
   {
-    name: 'User Management',
-    href: '/admin/users',
+    name: "User Management",
+    href: "/admin/users",
     icon: Users,
-    permission: 'user_management' as const
+    permission: "user_management" as const,
   },
   {
-    name: 'Content Management',
-    href: '/admin/content',
+    name: "Content Management",
+    href: "/admin/content",
     icon: FileText,
-    permission: 'content_management' as const
+    permission: "content_management" as const,
   },
   {
-    name: 'Communities & Groups',
-    href: '/admin/communities',
+    name: "Communities & Groups",
+    href: "/admin/communities",
     icon: Users2,
-    permission: 'community_management' as const
+    permission: "community_management" as const,
   },
   {
-    name: 'Tutoring & Mentorship',
-    href: '/admin/tutoring',
+    name: "Tutoring & Mentorship",
+    href: "/admin/tutoring",
     icon: GraduationCap,
-    permission: 'tutoring_management' as const
+    permission: "tutoring_management" as const,
   },
   {
-    name: 'Analytics & Reports',
-    href: '/admin/analytics',
+    name: "Analytics & Reports",
+    href: "/admin/analytics",
     icon: BarChart3,
-    permission: 'analytics' as const
+    permission: "analytics" as const,
   },
   {
-    name: 'Reports',
-    href: '/admin/reports',
+    name: "Space Activities",
+    href: "/admin/activities",
+    icon: Activity,
+    permission: null,
+  },
+  {
+    name: "Reports",
+    href: "/admin/reports",
     icon: FileBarChart,
-    permission: 'reports' as const
+    permission: "reports" as const,
   },
   {
-    name: 'Notifications',
-    href: '/admin/notifications',
+    name: "Notifications",
+    href: "/admin/notifications",
     icon: Bell,
-    permission: 'notifications' as const
-  }
+    permission: "notifications" as const,
+  },
 ];
 
 const superAdminItems = [
   {
-    name: 'Admin Management',
-    href: '/admin/admins',
+    name: "Admin Management",
+    href: "/admin/admins",
     icon: UserCog,
-    permission: 'admin_management' as const
+    permission: "admin_management" as const,
   },
   {
-    name: 'System Settings',
-    href: '/admin/settings',
+    name: "System Settings",
+    href: "/admin/settings",
     icon: Settings,
-    permission: 'system_settings' as const
-  }
+    permission: "system_settings" as const,
+  },
 ];
 
 export function AdminSidebar() {
@@ -87,33 +94,33 @@ export function AdminSidebar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
+    if (path === "/admin") {
+      return location.pathname === "/admin";
     }
     return location.pathname.startsWith(path);
   };
 
-  const filteredNavItems = navItems.filter(item => 
-    !item.permission || hasPermission(item.permission)
+  const filteredNavItems = navItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
   );
 
-  const filteredSuperAdminItems = superAdminItems.filter(item => 
-    hasRole('super_admin') && hasPermission(item.permission)
+  const filteredSuperAdminItems = superAdminItems.filter(
+    (item) => hasRole("super_admin") && hasPermission(item.permission)
   );
 
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-24 xl:w-64 bg-card border-r border-border">
       <div className="flex flex-col h-full">
-        {/* Logo */}
         <div className="flex items-center justify-center xl:justify-start h-16 px-6 border-b border-border">
           <Logo className="h-8 w-auto" />
           <div className="flex-col ml-3 hidden xl:flex">
-            <span className="text-lg font-semibold text-foreground custom-font">Connect</span>
+            <span className="text-lg font-semibold text-foreground custom-font">
+              Connect
+            </span>
             <span className="text-xs text-muted-foreground">Admin Portal</span>
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6">
           <div className="px-3 space-y-3 xl:space-y-1">
             {filteredNavItems.map((item) => (
@@ -133,7 +140,6 @@ export function AdminSidebar() {
             ))}
           </div>
 
-          {/* Super Admin Section */}
           {filteredSuperAdminItems.length > 0 && (
             <>
               <div className="px-6 mt-8 mb-3">

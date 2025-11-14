@@ -1,806 +1,672 @@
-
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { GroupChatHeader } from '@/components/messages/GroupChatHeader';
-import { GroupMembersModal } from '@/components/messages/GroupMembersModal';
-import { MessageModal } from '@/components/messages/MessageModal';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { GroupChatCard } from '@/components/messages/GroupChatCard';
-import { 
-  Search, 
-  Plus, 
-  Send, 
-  Smile, 
-  Paperclip, 
-  MoreHorizontal,
-  X,
-  Users,
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  getConversations,
+  getConversationById,
+  getConversationMessages,
+  sendMessage,
+  markConversationAsRead,
+} from "@/api/messaging.api";
+import { getWebSocketClient } from "@/lib/websocket";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Search,
+  Plus,
+  Send,
   MessageCircle,
-  Pin,
-  Archive,
-  Phone,
-  PinOff,
-  Trash2,
-  MessageSquare
-} from 'lucide-react';
-import { mockChats, mockGroupChats } from '@/data/mockGroupChats';
-import { Chat, GroupChat, Message, GroupMessage, MessageTab } from '@/types/messages';
-import { User } from '@/types/global';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { toast } from '@/hooks/use-toast';
+  Check,
+  CheckCheck,
+} from "lucide-react";
+import { NewChatModal } from "@/components/messages/NewChatModal";
+
+type MessageTab = "all" | "groups";
 
 const Messages = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<MessageTab>('all');
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [selectedGroupChat, setSelectedGroupChat] = useState<GroupChat | null>(null);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [messageSearchQuery, setMessageSearchQuery] = useState('');
-  const [newMessage, setNewMessage] = useState('');
-  const [isSearchActive, setIsSearchActive] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { conversationId } = useParams<{ conversationId?: string }>();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<MessageTab>("all");
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(conversationId || null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const wsClient = useRef(getWebSocketClient());
+  const markedAsReadRef = useRef<Set<string>>(new Set());
+  const [wsConnected, setWsConnected] = useState(false);
 
-  const [showMembersModal, setShowMembersModal] = useState(false);
-  const [showMessageModal, setShowMessageModal] = useState(false);
+  const { data: conversations = [], isLoading: loadingConversations } =
+    useQuery({
+      queryKey: ["conversations"],
+      queryFn: () => getConversations({ page: 1, limit: 100 }),
+      staleTime: 30000,
+    });
 
-  const Pageheader = () => (
-    <div className="sticky top-0 z-40 bg-background">
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Messages</h1>
-          <Button size="icon" variant="ghost" onClick={() => setShowMessageModal(true)}>
-            <Plus className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder={activeTab === 'all' ? "Search messages..." : "Search groups..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 rounded-full"
-            onFocus={() => setIsSearchActive(true)}
-            onBlur={() => setIsSearchActive(false)}
-          />
-        </div>
-      </div>
+  const {
+    data: messages = [],
+    isLoading: loadingMessages,
+    refetch: refetchMessages,
+  } = useQuery({
+    queryKey: ["conversation-messages", selectedConversationId],
+    queryFn: () =>
+      selectedConversationId
+        ? getConversationMessages(selectedConversationId, {
+            page: 1,
+            limit: 100,
+          })
+        : Promise.resolve([]),
+    enabled: !!selectedConversationId,
+    staleTime: 5000,
+    refetchOnMount: true,
+  });
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="mb-2 px-4">
-        <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
-          <TabsTrigger className=" rounded-full" value="all">All</TabsTrigger>
-          <TabsTrigger className=" rounded-full" value="groups">Groups</TabsTrigger>
-        </TabsList>
-      </Tabs>
-    </div>
-  );
+  const sendMessageMutation = useMutation({
+    mutationFn: ({
+      conversationId,
+      content,
+    }: {
+      conversationId: string;
+      content: string;
+    }) => sendMessage(conversationId, { content, message_type: "text" }),
+    onMutate: async ({ conversationId, content }) => {
+      await queryClient.cancelQueries({
+        queryKey: ["conversation-messages", conversationId],
+      });
 
+      const previousMessages = queryClient.getQueryData([
+        "conversation-messages",
+        conversationId,
+      ]);
 
-  // Mock recipient for message modal
-  const mockRecipient: User = {
-    id: 'user-1',
-    username: 'johndoe',
-    displayName: 'John Doe',
-    email: 'john@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-    verified: false,
-    followers: 0,
-    following: 0,
-    createdAt: new Date(),
-    roles: ['student']
-  };
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversationId,
+        sender_id: user?.id || "",
+        sender_full_name: user?.full_name || "",
+        sender_username: user?.username || "",
+        sender_avatar: user?.avatar || null,
+        content: content,
+        message_type: "text",
+        created_at: new Date().toISOString(),
+        is_read: true,
+      };
 
-  // Handle navigation from group details page
-  useEffect(() => {
-    if (location.state?.selectedGroupId) {
-      const { selectedGroupId, selectedGroupName, selectedGroupAvatar } = location.state;
-      
-      // Find the group chat or create a mock one if not found
-      let groupChat = groupChats.find(gc => gc.id === selectedGroupId);
-      
-      if (!groupChat) {
-        // Create a temporary group chat object for display
-        groupChat = {
-          id: selectedGroupId,
-          name: selectedGroupName,
-          avatar: selectedGroupAvatar,
-          description: '',
-          memberCount: 1,
-          lastMessage: 'Start a conversation...',
-          timestamp: 'now',
-          unreadCount: 0,
-          messages: [],
-          isPinned: false,
-          lastMessageTime: Date.now(),
-          isAdmin: false,
-          isModerator: false,
-          members: []
-        };
+      queryClient.setQueryData(
+        ["conversation-messages", conversationId],
+        (old: any) => {
+          return old ? [...old, optimisticMessage] : [optimisticMessage];
+        }
+      );
+
+      return { previousMessages, conversationId };
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(
+        ["conversation-messages", variables.conversationId],
+        (old: any) => {
+          if (!old) return [data];
+          return old.map((msg: any) =>
+            msg.id.startsWith("temp-") ? data : msg
+          );
+        }
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setNewMessage("");
+    },
+    onError: (error, variables, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ["conversation-messages", context.conversationId],
+          context.previousMessages
+        );
       }
-      
-      setSelectedGroupChat(groupChat);
-      setActiveTab('groups');
-      setSelectedChat(null);
-      setIsMobileView(true);
-      
-      // Clear the navigation state
-      navigate('/messages', { replace: true });
-    }
-  }, [location.state, groupChats, navigate]);
+      toast.error("Failed to send message");
+    },
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (conversationId: string) =>
+      markConversationAsRead(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
 
   useEffect(() => {
-    const fetchChats = async () => {
-      setIsLoading(true);
+    const initializeWebSocket = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setChats(mockChats);
-        setGroupChats(mockGroupChats);
+        await wsClient.current.connect();
+        setWsConnected(true);
+
+        wsClient.current.on("message.new", (message: any) => {
+          if (message.conversation_id) {
+            queryClient.setQueryData(
+              ["conversation-messages", message.conversation_id],
+              (old: any) => {
+                if (!old) return [message];
+                const exists = old.some((m: any) => m.id === message.id);
+                if (exists) return old;
+                return [...old, message];
+              }
+            );
+
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+            if (
+              message.conversation_id !== selectedConversationId &&
+              message.sender_id !== user?.id
+            ) {
+              toast.info("New message received");
+            }
+          }
+        });
+
+        wsClient.current.on("typing.start", (data: any) => {
+          console.log("User typing:", data);
+        });
       } catch (error) {
-        console.error('Error fetching chats:', error);
-      } finally {
-        setIsLoading(false);
+        console.error("Failed to connect to WebSocket:", error);
+        setWsConnected(false);
       }
     };
 
-    fetchChats();
-  }, []);
+    initializeWebSocket();
 
-  // Sort chats: pinned first (by last message time), then unpinned by latest activity
-  const sortedChats = [...chats].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return b.lastMessageTime - a.lastMessageTime;
-  });
+    return () => {};
+  }, [queryClient, selectedConversationId, user?.id]);
 
-  const filteredChats = sortedChats.filter(chat =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    if (!selectedConversationId || !wsConnected) return;
+
+    const conversationChannel = `conv:${selectedConversationId}`;
+
+    wsClient.current.subscribe(conversationChannel);
+    console.log(`✅ Subscribed to conversation: ${conversationChannel}`);
+
+    return () => {
+      wsClient.current.unsubscribe(conversationChannel);
+      console.log(`❌ Unsubscribed from conversation: ${conversationChannel}`);
+    };
+  }, [selectedConversationId, wsConnected]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (selectedConversationId && !loadingMessages && messages.length >= 0) {
+      setTimeout(() => {
+        messageInputRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedConversationId, loadingMessages, messages.length]);
+
+  useEffect(() => {
+    if (!conversationId) {
+      if (selectedConversationId) {
+        setSelectedConversationId(null);
+      }
+      return;
+    }
+
+    if (loadingConversations) {
+      return;
+    }
+
+    const conversationExists = conversations.some(
+      (c) => c.id === conversationId
+    );
+
+    if (!conversationExists && conversations.length >= 0) {
+      getConversationById(conversationId)
+        .then((conversation) => {
+          queryClient.setQueryData(["conversations"], (oldData: any) => {
+            if (!oldData) return [conversation];
+            if (oldData.some((c: any) => c.id === conversation.id))
+              return oldData;
+            return [conversation, ...oldData];
+          });
+
+          setSelectedConversationId(conversationId);
+
+          if (!markedAsReadRef.current.has(conversationId)) {
+            markedAsReadRef.current.add(conversationId);
+            markReadMutation.mutate(conversationId);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load conversation:", error);
+          toast.error("Conversation not found or you don't have access to it");
+          navigate("/messages", { replace: true });
+        });
+      return;
+    }
+
+    if (conversationId !== selectedConversationId) {
+      setSelectedConversationId(conversationId);
+    }
+
+    if (conversationExists && conversationId === selectedConversationId) {
+      if (!markedAsReadRef.current.has(conversationId)) {
+        markedAsReadRef.current.add(conversationId);
+        markReadMutation.mutate(conversationId);
+      }
+    }
+  }, [
+    conversationId,
+    conversations,
+    loadingConversations,
+    selectedConversationId,
+    navigate,
+    queryClient,
+  ]);
+
+  const selectedConversation = conversations.find(
+    (c) => c.id === selectedConversationId
   );
 
-  // Sort and filter group chats
-  const sortedGroupChats = [...groupChats].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return b.lastMessageTime - a.lastMessageTime;
-  });
+  const handleConversationSelect = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    markReadMutation.mutate(conversationId);
 
-  const filteredGroupChats = sortedGroupChats.filter(groupChat =>
-    groupChat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    groupChat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleChatSelect = (chat: Chat) => {
-    setSelectedChat(chat);
-    setSelectedGroupChat(null);
-    setIsMobileView(true);
-    // Mark chat as read when clicked
-    setChats(prevChats =>
-      prevChats.map(c =>
-        c.id === chat.id ? { ...c, unreadCount: 0 } : c
-      )
-    );
-  };
-
-  const handleGroupChatSelect = (groupChat: GroupChat) => {
-    setSelectedGroupChat(groupChat);
-    setSelectedChat(null);
-    setIsMobileView(true);
-    // Mark group chat as read
-    setGroupChats(prevGroupChats =>
-      prevGroupChats.map(gc =>
-        gc.id === groupChat.id ? { ...gc, unreadCount: 0 } : gc
-      )
-    );
+    navigate(`/messages/${conversationId}`, { replace: true });
   };
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !selectedConversationId) return;
+    sendMessageMutation.mutate({
+      conversationId: selectedConversationId,
+      content: newMessage.trim(),
+    });
+  };
 
-    const message: Message | GroupMessage = {
-      id: Date.now().toString(),
-      content: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      senderId: 'current-user',
-      senderName: 'You',
-      isOwn: true
-    };
-
-    if (selectedChat) {
-      const updatedChat = {
-        ...selectedChat,
-        messages: [...selectedChat.messages, message as Message],
-        lastMessage: newMessage,
-        timestamp: 'now',
-        lastMessageTime: Date.now()
-      };
-      setSelectedChat(updatedChat);
-      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-    } else if (selectedGroupChat) {
-      const updatedGroupChat = {
-        ...selectedGroupChat,
-        messages: [...selectedGroupChat.messages, message as GroupMessage],
-        lastMessage: newMessage,
-        timestamp: 'now',
-        lastMessageTime: Date.now()
-      };
-      setSelectedGroupChat(updatedGroupChat);
-      setGroupChats(groupChats.map(gc => gc.id === selectedGroupChat.id ? updatedGroupChat : gc));
+  const filteredConversations = conversations.filter((conv) => {
+    if (
+      activeTab === "groups" &&
+      conv.conversation_type !== "group" &&
+      conv.conversation_type !== "channel"
+    ) {
+      return false;
     }
+    if (!searchQuery) return true;
 
-    setNewMessage('');
-  };
-
-  const handleGroupProfileClick = () => {
-    if (selectedGroupChat) {
-      navigate(`/groups/${selectedGroupChat.id}`);
-    }
-  };
-
-  const handlePinChat = () => {
-    if (selectedChat) {
-      const pinnedCount = chats.filter(chat => chat.isPinned).length;
-      
-      if (!selectedChat.isPinned && pinnedCount >= 4) {
-        toast({
-          title: "Pin limit reached",
-          description: "You can only pin up to 4 chats. Unpin a chat first.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const updatedChat = {
-        ...selectedChat,
-        isPinned: !selectedChat.isPinned
-      };
-      setSelectedChat(updatedChat);
-      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-
-      toast({
-        title: selectedChat.isPinned ? "Chat unpinned" : "Chat pinned",
-        description: selectedChat.isPinned 
-          ? `${selectedChat.name} has been unpinned` 
-          : `${selectedChat.name} has been pinned to the top`
-      });
-    } else if (selectedGroupChat) {
-      const pinnedCount = groupChats.filter(groupChat => groupChat.isPinned).length;
-      
-      if (!selectedGroupChat.isPinned && pinnedCount >= 4) {
-        toast({
-          title: "Pin limit reached",
-          description: "You can only pin up to 4 group chats. Unpin a chat first.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const updatedGroupChat = {
-        ...selectedGroupChat,
-        isPinned: !selectedGroupChat.isPinned
-      };
-      setSelectedGroupChat(updatedGroupChat);
-      setGroupChats(groupChats.map(gc => gc.id === selectedGroupChat.id ? updatedGroupChat : gc));
-
-      toast({
-        title: selectedGroupChat.isPinned ? "Group unpinned" : "Group pinned",
-        description: selectedGroupChat.isPinned 
-          ? `${selectedGroupChat.name} has been unpinned` 
-          : `${selectedGroupChat.name} has been pinned to the top`
-      });
-    }
-  };
-
-  const handleLeaveGroup = () => {
-    if (selectedGroupChat) {
-      if (window.confirm('Are you sure you want to leave this group?')) {
-        // Remove from group chats list
-        setGroupChats(groupChats.filter(gc => gc.id !== selectedGroupChat.id));
-        setSelectedGroupChat(null);
-        setIsMobileView(false);
-        
-        toast({
-          title: "Left group",
-          description: "You have left the group chat",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  const handleManageGroup = () => {
-    if (selectedGroupChat) {
-      navigate(`/groups/${selectedGroupChat.id}`, { state: { tab: 'settings' } });
-    }
-  };
-
-  const handleAddMembers = () => {
-    // This would typically open a modal to add members
-    console.log('Add members functionality');
-  };
-
-  const handleDeleteMessages = (chatId: string) => {
-    if (window.confirm('Are you sure you want to delete all messages in this chat?')) {
-      setChats(prevChats =>
-        prevChats.map(chat =>
-          chat.id === chatId 
-            ? { 
-                ...chat, 
-                messages: [], 
-                lastMessage: 'No messages yet',
-                timestamp: 'Just now',
-                unreadCount: 0 
-              } 
-            : chat
-        )
-      );
-      
-      toast({
-        title: "Messages deleted",
-        description: "All messages in this chat have been deleted",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleWhatsAppChat = (chatId: string) => {
-    const chat = chats.find(c => c.id === chatId);
-    if (chat?.phone) {
-      const whatsappUrl = `https://wa.me/${chat.phone.replace(/[^0-9]/g, '')}`;
-      window.open(whatsappUrl, '_blank');
-      
-      toast({
-        title: "Opening WhatsApp",
-        description: `Starting WhatsApp chat with ${chat.name}`
-      });
-    }
-  };
-
-  const handlePhoneCall = (phone?: string) => {
-    if (phone) {
-      window.location.href = `tel:${phone}`;
-    }
-  };
-
-  const handleViewMembers = () => {
-    setShowMembersModal(true);
-  };
-
-  const handleBackToChats = () => {
-    setSelectedChat(null);
-    setSelectedGroupChat(null);
-    setIsMobileView(false);
-  };
-
-  // Determine which messages to display based on active chat
-  const displayMessages = selectedChat?.messages || selectedGroupChat?.messages || [];
-  const filteredMessages = displayMessages.filter((message: any) =>
-    message.content.toLowerCase().includes(messageSearchQuery.toLowerCase())
-  );
-  const messagesToShow = messageSearchQuery ? filteredMessages : displayMessages;
-
-  const SearchBar = () => {
+    const searchLower = searchQuery.toLowerCase();
     return (
-      <div>
-        <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search messages..."
-              value={messageSearchQuery}
-              onChange={(e) => setMessageSearchQuery(e.target.value)}
-              className="pl-10 pr-10 rounded-full bg-gray-50"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-              onClick={() => {
-                setIsSearching(false);
-                setMessageSearchQuery('');
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          {messageSearchQuery && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
-            </p>
-          )}
-        </div>
-      </div>
+      conv.name?.toLowerCase().includes(searchLower) ||
+      conv.last_message?.content?.toLowerCase().includes(searchLower)
     );
-  };
+  });
 
-  if (isLoading) {
+  if (loadingConversations) {
     return (
-      <AppLayout showRightSidebar={false}>
-        <div className="h-screen flex">
-          <div className="flex lg:min-w-[450px] lg:max-w-md w-full lg:w-auto border-x border-border flex-col bg-background">
-            <Pageheader />
-            <LoadingSpinner />
+      <AppLayout>
+        <div className="border-r border-border h-full">
+          <div className="p-4 border-b">
+            <h1 className="text-2xl font-bold">Messages</h1>
           </div>
+          <LoadingSpinner />
         </div>
       </AppLayout>
     );
   }
 
+  const getConversationDisplay = (conversation: any) => {
+    if (
+      conversation.conversation_type === "group" ||
+      conversation.conversation_type === "channel"
+    ) {
+      return {
+        name: conversation.name || "Group Chat",
+        avatar: conversation.avatar,
+      };
+    }
+
+    if (conversation.conversation_type === "direct") {
+      if (conversation.participants && conversation.participants.length > 0) {
+        const otherParticipant = conversation.participants.find(
+          (p: any) => p.id !== user?.id
+        );
+        if (otherParticipant) {
+          return {
+            name:
+              otherParticipant.full_name || otherParticipant.username || "User",
+            avatar: otherParticipant.avatar,
+          };
+        }
+      }
+
+      if (
+        conversation.last_sender_full_name ||
+        conversation.last_sender_username
+      ) {
+        return {
+          name:
+            conversation.last_sender_full_name ||
+            conversation.last_sender_username,
+          avatar: null,
+        };
+      }
+
+      return {
+        name: conversation.name || "Direct Message",
+        avatar: conversation.avatar,
+      };
+    }
+
+    return {
+      name: conversation.name || "Conversation",
+      avatar: conversation.avatar,
+    };
+  };
+
+  const ConversationItem = ({ conversation }: { conversation: any }) => {
+    const isSelected = conversation.id === selectedConversationId;
+    const { name: displayName, avatar: displayAvatar } =
+      getConversationDisplay(conversation);
+    const lastMessageContent =
+      conversation.last_message_content ||
+      conversation.last_message?.content ||
+      "No messages yet";
+    const lastMessageTime =
+      conversation.last_message_time || conversation.last_message?.created_at;
+
+    return (
+      <div
+        className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-b ${
+          isSelected ? "bg-muted" : ""
+        }`}
+        onClick={() => handleConversationSelect(conversation.id)}
+      >
+        <div className="flex items-start gap-3">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={displayAvatar} />
+            <AvatarFallback>
+              {displayName[0]?.toUpperCase() || "?"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold truncate">{displayName}</span>
+              {lastMessageTime && (
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDistanceToNow(new Date(lastMessageTime), {
+                    addSuffix: true,
+                  })}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground truncate">
+              {lastMessageContent}
+            </p>
+            {conversation.unread_count > 0 && (
+              <span className="inline-block mt-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                {conversation.unread_count}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="flex h-full">
-        {/* Chat List Sidebar */}
-        <div className={`${(selectedChat || selectedGroupChat) && isMobileView ? 'hidden lg:flex' : 'flex'} w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex-col`}>
-          {/* Header */}
-          <Pageheader />
+      <div className="flex h-[calc(100vh-4rem)] md:h-screen overflow-hidden">
+        <div
+          className={`w-full md:w-96 border-r border-border flex flex-col ${
+            selectedConversationId ? "hidden md:flex" : "flex"
+          }`}
+        >
+          <div className="p-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold">Messages</h1>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsNewChatModalOpen(true)}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MessageTab)} className="flex-1 flex flex-col -mt-2">      
-            <TabsContent value="all" className="flex-1 mt-0">
-              <ScrollArea className="h-full">
-                <div className="p-2">
-                  {filteredChats.map((chat) => (
-                    <div
-                      key={chat.id}
-                      className={`p-4 rounded-md cursor-pointer transition-colors mb-[2px] ${
-                        selectedChat?.id === chat.id
-                          ? 'bg-muted/50 border border-muted/60'
-                          : 'hover:bg-muted/40'
-                      }`}
-                      onClick={() => handleChatSelect(chat)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage src={chat.avatar} alt={chat.name} />
-                            <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          {chat.isOnline && (
-                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 rounded-full"
+              />
+            </div>
+          </div>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as MessageTab)}
+            className="px-4 pt-2 flex-shrink-0"
+          >
+            <TabsList className="grid w-full grid-cols-2 rounded-full">
+              <TabsTrigger className="rounded-full" value="all">
+                All
+              </TabsTrigger>
+              <TabsTrigger className="rounded-full" value="groups">
+                Groups
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <ScrollArea className="flex-1 overflow-y-auto">
+            {filteredConversations.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No conversations yet</p>
+              </div>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <ConversationItem
+                  key={conversation.id}
+                  conversation={conversation}
+                />
+              ))
+            )}
+          </ScrollArea>
+        </div>
+
+        <div
+          className={`flex-1 flex flex-col ${
+            selectedConversationId ? "flex" : "hidden md:flex"
+          } overflow-hidden`}
+        >
+          {loadingConversations && selectedConversationId ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <LoadingSpinner size="lg" />
+                <p className="text-muted-foreground mt-4">
+                  Loading conversation...
+                </p>
+              </div>
+            </div>
+          ) : selectedConversation ? (
+            <>
+              {(() => {
+                const { name: headerName, avatar: headerAvatar } =
+                  getConversationDisplay(selectedConversation);
+                return (
+                  <div className="p-4 border-b flex items-center gap-3 flex-shrink-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={headerAvatar} />
+                      <AvatarFallback>
+                        {headerName[0]?.toUpperCase() || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h2 className="font-semibold">{headerName}</h2>
+                      {selectedConversation.conversation_type && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {selectedConversation.conversation_type}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <ScrollArea className="flex-1 p-4 overflow-y-auto">
+                {loadingMessages ? (
+                  <LoadingSpinner />
+                ) : messages.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => {
+                      const isOwnMessage = message.sender_id === user?.id;
+                      const senderName =
+                        message.sender_full_name ||
+                        message.sender?.full_name ||
+                        message.sender_username ||
+                        message.sender?.username ||
+                        "User";
+                      const senderAvatar =
+                        message.sender_avatar || message.sender?.avatar;
+
+                      return (
+                        <div
+                          key={message.id}
+                          className={`flex items-start gap-3 ${
+                            isOwnMessage ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          {!isOwnMessage && (
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={senderAvatar} />
+                              <AvatarFallback>
+                                {senderName[0]?.toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
                           )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-foreground truncate">{chat.name}</h3>
-                            <div className="flex items-center space-x-2">
-                              {chat.isPinned && <Pin className="h-3 w-3 text-primary" />}
-                              <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
+                          <div
+                            className={`flex-1 max-w-[70%] ${
+                              isOwnMessage ? "flex flex-col items-end" : ""
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center gap-2 ${
+                                isOwnMessage ? "flex-row-reverse" : ""
+                              }`}
+                            >
+                              {!isOwnMessage && (
+                                <span className="font-semibold text-sm">
+                                  {senderName}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(
+                                  new Date(message.created_at),
+                                  { addSuffix: true }
+                                )}
+                              </span>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
-                            {chat.unreadCount > 0 && (
-                              <Badge variant="default" className="ml-2 h-5 min-w-5 flex items-center justify-center text-xs">
-                                {chat.unreadCount}
-                              </Badge>
+                            <div
+                              className={`text-sm mt-1 px-4 py-2 rounded-2xl ${
+                                isOwnMessage
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              {message.content}
+                            </div>
+
+                            {isOwnMessage && (
+                              <div className="flex items-center gap-1 mt-1">
+                                {message.is_read ? (
+                                  <>
+                                    <CheckCheck className="h-3 w-3 text-blue-500" />
+                                    {message.read_at && (
+                                      <span className="text-xs text-muted-foreground">
+                                        Read{" "}
+                                        {formatDistanceToNow(
+                                          new Date(message.read_at),
+                                          { addSuffix: true }
+                                        )}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Check className="h-3 w-3 text-muted-foreground" />
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="groups" className="flex-1 mt-0">
-              <ScrollArea className="h-full">
-                <div className="p-2">
-                  {filteredGroupChats.map((groupChat) => (
-                    <GroupChatCard
-                      key={groupChat.id}
-                      groupChat={groupChat}
-                      isSelected={selectedGroupChat?.id === groupChat.id}
-                      onClick={() => handleGroupChatSelect(groupChat)}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Chat Window */}
-        <div className={`${selectedChat || selectedGroupChat ? 'flex' : 'hidden lg:flex'} h-[calc(100vh-128px)] sm:h-[calc(100vh-138px)] lg:h-screen flex-1 flex-col`}>
-          {selectedChat ? (
-            <>
-              {/* Individual Chat Header */}
-              <div className="p-4 border-b border-border flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="lg:hidden"
-                    onClick={handleBackToChats}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                  <div className="relative">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={selectedChat.avatar} alt={selectedChat.name} />
-                      <AvatarFallback>{selectedChat.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    {selectedChat.isOnline && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-                    )}
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{selectedChat.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedChat.isOnline ? 'Online' : 'Offline'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsSearching(!isSearching)}
-                  >
-                    <Search className="h-5 w-5" />
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handlePhoneCall(selectedChat.phone)}
-                  >
-                    <Phone className="h-5 w-5" />
-                  </Button>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background">
-                      <DropdownMenuItem onClick={handlePinChat}>
-                        {selectedChat.isPinned ? (
-                          <>
-                            <PinOff className="h-4 w-4 mr-2" />
-                            Unpin Chat
-                          </>
-                        ) : (
-                          <>
-                            <Pin className="h-4 w-4 mr-2" />
-                            Pin Chat
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteMessages(selectedChat.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Messages
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleWhatsAppChat(selectedChat.id)}>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Chat on WhatsApp
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              {/* Message Search */}
-              {isSearching && (
-                <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search messages..."
-                      value={messageSearchQuery}
-                      onChange={(e) => setMessageSearchQuery(e.target.value)}
-                      className="pl-10 pr-10 rounded-full bg-gray-50"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                      onClick={() => {
-                        setIsSearching(false);
-                        setMessageSearchQuery('');
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {messageSearchQuery && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Messages */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messagesToShow.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                        message.isOwn
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
-                      }`}>
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                        }`}>
-                          {message.timestamp}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                )}
               </ScrollArea>
-            </>
-          ) : selectedGroupChat ? (
-            <>
-              {/* Group Chat Header */}
-              <GroupChatHeader
-                groupChat={selectedGroupChat}
-                onBack={handleBackToChats}
-                onToggleSearch={() => setIsSearching(!isSearching)}
-                onPinChat={handlePinChat}
-                onLeaveGroup={handleLeaveGroup}
-                onManageGroup={handleManageGroup}
-                onAddMembers={handleAddMembers}
-                onViewMembers={handleViewMembers}
-              />
 
-              {/* Message Search */}
-              {isSearching && (
-                <div className="pt-2 pr-2 w-full max-w-xs ml-auto">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search messages..."
-                      value={messageSearchQuery}
-                      onChange={(e) => setMessageSearchQuery(e.target.value)}
-                      className="pl-10 pr-10 rounded-full bg-gray-50"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                      onClick={() => {
-                        setIsSearching(false);
-                        setMessageSearchQuery('');
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {messageSearchQuery && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Group Messages */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messagesToShow.map((message: any) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className="flex items-start space-x-2 max-w-xs lg:max-w-md">
-                        {!message.isOwn && (
-                          <Avatar 
-                            className="w-8 h-8 cursor-pointer mt-1" 
-                            onClick={handleGroupProfileClick}
-                          >
-                            <AvatarImage src={message.senderAvatar} alt={message.senderName} />
-                            <AvatarFallback>{message.senderName?.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div>
-                        {!message.isOwn && (
-                            <p className="text-xs mb-1 px-1 text-muted-foreground cursor-pointer" onClick={handleGroupProfileClick}>
-                              {message.senderName}
-                            </p>
-                          )}
-                        <div className={`px-3 py-2 rounded-lg ${
-                          message.isOwn
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
-                        }`}>
-                          
-                          <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            message.isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                          }`}>
-                            {message.timestamp}
-                          </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No chat selected</h3>
-                <p className="text-muted-foreground">Choose a conversation to start messaging</p>
-              </div>
-            </div>
-          )}
-
-          {/* Message Input */}
-          {(selectedChat || selectedGroupChat) && (
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="icon">
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <div className="flex-1 relative">
+              <div className="p-4 border-t flex-shrink-0">
+                <div className="flex items-center gap-2">
                   <Input
+                    ref={messageInputRef}
                     placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="pr-10"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    className="flex-1"
                   />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                  <Button
+                    size="icon"
+                    onClick={handleSendMessage}
+                    disabled={
+                      !newMessage.trim() || sendMessageMutation.isPending
+                    }
                   >
-                    <Smile className="h-4 w-4" />
+                    <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">
+                  Select a conversation to start messaging
+                </p>
               </div>
             </div>
           )}
         </div>
-
-        {/* Modals */}
-        {selectedGroupChat && (
-          <GroupMembersModal
-            isOpen={showMembersModal}
-            onClose={() => setShowMembersModal(false)}
-            members={selectedGroupChat.members}
-            isAdmin={selectedGroupChat.isAdmin}
-            isModerator={selectedGroupChat.isModerator}
-          />
-        )}
-
-        <MessageModal
-          isOpen={showMessageModal}
-          onClose={() => setShowMessageModal(false)}
-          recipient={mockRecipient}
-        />
       </div>
+
+      <NewChatModal
+        open={isNewChatModalOpen}
+        onOpenChange={setIsNewChatModalOpen}
+      />
     </AppLayout>
   );
 };

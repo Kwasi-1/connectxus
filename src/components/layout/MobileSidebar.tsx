@@ -1,20 +1,39 @@
-
-import { Home, Search, Bell, Mail, Users, BookOpen, GraduationCap, User, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { UserProfile } from './UserProfile';
+import {
+  Home,
+  Search,
+  Bell,
+  Mail,
+  Users,
+  BookOpen,
+  GraduationCap,
+  User,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useNavigate, useLocation } from "react-router-dom";
+import { UserProfile } from "./UserProfile";
 
 const navigationItems = [
-  { icon: Home, label: 'Home', path: '/', id: 'home' },
-  { icon: Search, label: 'Explore', path: '/search', id: 'search' },
-  { icon: Bell, label: 'Notifications', path: '/notifications', id: 'notifications' },
-  { icon: Mail, label: 'Messages', path: '/messages', id: 'messages' },
-  { icon: Users, label: 'Groups', path: '/hub', id: 'groups' },
-  { icon: BookOpen, label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: GraduationCap, label: 'Mentors', path: '/mentors', id: 'mentors' },
-  { icon: User, label: 'Account', path: '/account', id: 'account' },
+  { icon: Home, label: "Home", path: "/", id: "home" },
+  { icon: Search, label: "Explore", path: "/search", id: "search" },
+  {
+    icon: Bell,
+    label: "Notifications",
+    path: "/notifications",
+    id: "notifications",
+  },
+  { icon: Mail, label: "Messages", path: "/messages", id: "messages" },
+  { icon: Users, label: "Groups", path: "/hub", id: "groups" },
+  { icon: BookOpen, label: "Tutoring", path: "/tutoring", id: "tutoring" },
+  { icon: GraduationCap, label: "Mentors", path: "/mentors", id: "mentors" },
+  { icon: User, label: "Account", path: "/account", id: "account" },
 ];
 
 interface MobileSidebarProps {
@@ -44,7 +63,9 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
                 <span className="text-background font-bold text-sm">CV</span>
               </div>
-              <SheetTitle className="font-semibold text-xl text-foreground">Campus Vibe</SheetTitle>
+              <SheetTitle className="font-semibold text-xl text-foreground">
+                Campus Vibe
+              </SheetTitle>
             </div>
           </SheetHeader>
 
@@ -52,7 +73,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveRoute(item.path);
-              
+
               return (
                 <Button
                   key={item.id}
@@ -77,8 +98,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </Button>
           </div>
 
-          <div className="p-6 pt-2 space-y-4 border-t border-border">       
-            {/* User Profile */}
+          <div className="p-6 pt-2 space-y-4 border-t border-border">
             <UserProfile />
           </div>
         </div>

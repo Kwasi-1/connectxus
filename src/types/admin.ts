@@ -119,8 +119,8 @@ export interface GroupManagement {
 
 export interface TutorApplication {
   id: string;
-  applicantId: string;
-  applicantName: string;
+  applicant_id: string;
+  full: string;
   subjects: string[];
   hourlyRate?: number;
   qualifications: string;

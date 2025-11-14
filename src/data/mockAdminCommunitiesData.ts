@@ -1,7 +1,6 @@
 import { Community, Group } from "@/types/communities";
 import { User } from "@/types/global";
 
-// Admin Group interface for admin management
 export interface AdminGroup extends Group {
   status: "active" | "inactive" | "suspended";
   flags: number;
@@ -14,11 +13,9 @@ export interface AdminGroup extends Group {
   };
 }
 
-// Mock API - replace with real API calls
 export const mockCommunitiesApi = {
   getCommunities: async (): Promise<Community[]> => {
-    // Mock data - replace with actual API call
-    return [
+        return [
       {
         id: "1",
         name: "Computer Science Department",
@@ -88,35 +85,28 @@ export const mockCommunitiesApi = {
   createCommunity: async (
     community: Partial<Community>
   ): Promise<Community> => {
-    // Mock implementation
-    return { ...community, id: Date.now().toString() } as Community;
+        return { ...community, id: Date.now().toString() } as Community;
   },
   updateCommunity: async (
     id: string,
     community: Partial<Community>
   ): Promise<Community> => {
-    // Mock implementation
-    return community as Community;
+        return community as Community;
   },
   deleteCommunity: async (id: string): Promise<void> => {
-    // Mock implementation
-  },
+      },
   assignModerator: async (
     communityId: string,
     userId: string
   ): Promise<void> => {
-    // Mock implementation
-  },
+      },
   exportCommunities: async (): Promise<void> => {
-    // Mock implementation
-  },
+      },
 };
 
-// Mock Groups API
 export const mockGroupsApi = {
   getGroups: async (): Promise<AdminGroup[]> => {
-    // Mock data - replace with actual API call
-    return [
+        return [
       {
         id: "g1",
         name: "Study Squad - Data Structures",
@@ -284,23 +274,19 @@ export const mockGroupsApi = {
     ];
   },
   suspendGroup: async (groupId: string): Promise<void> => {
-    // Mock implementation
-    console.log(`Suspending group ${groupId}`);
+        console.log(`Suspending group ${groupId}`);
   },
   reactivateGroup: async (groupId: string): Promise<void> => {
-    // Mock implementation
-    console.log(`Reactivating group ${groupId}`);
+        console.log(`Reactivating group ${groupId}`);
   },
   exportGroups: async (): Promise<void> => {
-    // Mock implementation
-    console.log("Exporting groups data");
+        console.log("Exporting groups data");
   },
 };
 
 export const mockUsersApi = {
   searchUsers: async (query: string): Promise<User[]> => {
-    // Mock implementation - replace with real API
-    return [
+        return [
       {
         id: "user-1",
         username: "john_doe",

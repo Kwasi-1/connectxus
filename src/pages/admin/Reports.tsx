@@ -67,6 +67,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ContentModerationItem } from "@/types/admin";
+import { adminApi } from "@/api/admin.api";
+import { getDefaultSpaceId } from "@/lib/apiClient";
 
 export function Reports() {
   const { toast } = useToast();
@@ -76,8 +78,9 @@ export function Reports() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50);
 
-  // Modal states
   const [showViewPostModal, setShowViewPostModal] = useState(false);
   const [showWarnUserModal, setShowWarnUserModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -89,207 +92,132 @@ export function Reports() {
   const [warningMessage, setWarningMessage] = useState("");
   const [moderationNotes, setModerationNotes] = useState("");
 
-  useEffect(() => {
-    // Mock data loading
-    setTimeout(() => {
-      const mockReports: ContentModerationItem[] = [
-        {
-          id: "1",
-          type: "post",
-          contentId: "post-123",
-          reporterId: "user-456",
-          reporterName: "Sarah Chen",
-          reason: "Inappropriate content",
-          status: "pending",
-          priority: "high",
-          content: {
-            text: "This is an example of reported content that may contain inappropriate material. The content includes detailed information about the post that was reported by users for violating community guidelines.",
-            images: [
-              "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
-            ],
-            likes: 23,
-            comments: 5,
-            shares: 2,
-            createdAt: new Date("2024-01-15T08:30:00"),
-            author: {
-              id: "user-789",
-              username: "john_doe",
-              displayName: "John Doe",
-              email: "john@university.edu",
-              avatar:
-                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-              verified: false,
-              followers: 234,
-              following: 156,
-              university: "University of Ghana",
-              major: "Computer Science",
-              year: 3,
-              createdAt: new Date(),
-              roles: ["student"],
-            },
-          },
-          createdAt: new Date("2024-01-15T10:30:00"),
-        },
-        {
-          id: "2",
-          type: "comment",
-          contentId: "comment-456",
-          reporterId: "user-789",
-          reporterName: "Mike Johnson",
-          reason: "Harassment",
-          status: "approved",
-          priority: "urgent",
-          reviewedBy: "Admin",
-          reviewedAt: new Date("2024-01-14T15:45:00"),
-          content: {
-            text: "This comment was reported for harassment and inappropriate language targeting another student.",
-            likes: 3,
-            replies: 1,
-            createdAt: new Date("2024-01-14T12:20:00"),
-            author: {
-              id: "user-321",
-              username: "emma_w",
-              displayName: "Emma Wilson",
-              email: "emma@university.edu",
-              avatar:
-                "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
-              verified: true,
-              followers: 189,
-              following: 98,
-              university: "University of Ghana",
-              major: "Mathematics",
-              year: 4,
-              createdAt: new Date(),
-              roles: ["student"],
-            },
-          },
-          createdAt: new Date("2024-01-14T09:15:00"),
-        },
-        {
-          id: "3",
-          type: "group",
-          contentId: "group-789",
-          reporterId: "user-654",
-          reporterName: "Alex Brown",
-          reason: "Spam activity",
-          status: "rejected",
-          priority: "medium",
-          reviewedBy: "Super Admin",
-          reviewedAt: new Date("2024-01-13T11:20:00"),
-          content: {
-            text: "Gaming Community - reported for spam activities and off-topic discussions that violate group guidelines.",
-            members: 156,
-            posts: 234,
-            createdAt: new Date("2024-01-10T14:15:00"),
-            author: {
-              id: "user-987",
-              username: "game_master",
-              displayName: "Game Master",
-              email: "gamemaster@university.edu",
-              avatar:
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
-              verified: false,
-              followers: 456,
-              following: 234,
-              university: "University of Ghana",
-              major: "Engineering",
-              year: 2,
-              createdAt: new Date(),
-              roles: ["student"],
-            },
-          },
-          createdAt: new Date("2024-01-13T08:00:00"),
-        },
-      ];
-      setReports(mockReports);
+  const loadReports = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const spaceId = getDefaultSpaceId();
+      const status = statusFilter === "all" ? undefined : statusFilter;
+      const contentType = typeFilter === "all" ? undefined : typeFilter;
+      const offset = (currentPage - 1) * pageSize;
+
+      const response = await adminApi.getContentReports(
+        spaceId,
+        status,
+        contentType,
+        pageSize,
+        offset
+      );
+      setReports(response as ContentModerationItem[]);
+    } catch (error) {
+      console.error("Error loading reports:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load reports",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [statusFilter, typeFilter, currentPage, pageSize, toast]);
 
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      report.content.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reporterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.content.author.displayName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || report.status === statusFilter;
-    const matchesPriority =
-      priorityFilter === "all" || report.priority === priorityFilter;
-    const matchesType = typeFilter === "all" || report.type === typeFilter;
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesType;
-  });
+  const filteredReports =
+    reports.length > 0 &&
+    reports.filter((report) => {
+      const matchesSearch =
+        report.content.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.reporterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.content.author.displayName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || report.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "all" || report.priority === priorityFilter;
+      const matchesType = typeFilter === "all" || report.type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesType;
+    });
 
   const handleApproveReport = useCallback(
-    (reportId: string) => {
-      setReports((prev) =>
-        prev.map((report) =>
-          report.id === reportId
-            ? {
-                ...report,
-                status: "approved" as const,
-                reviewedBy: "Admin",
-                reviewedAt: new Date(),
-              }
-            : report
-        )
-      );
-      toast({
-        title: "Report Approved",
-        description: "Content has been removed and user has been notified.",
-        variant: "default",
-      });
+    async (reportId: string) => {
+      try {
+        await adminApi.resolveReport(
+          reportId,
+          "remove_content",
+          "Content removed by admin"
+        );
+        await loadReports();
+        toast({
+          title: "Report Approved",
+          description: "Content has been removed and user has been notified.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Error approving report:", error);
+        toast({
+          title: "Error",
+          description: "Failed to approve report",
+          variant: "destructive",
+        });
+      }
     },
-    [toast]
+    [toast, loadReports]
   );
 
   const handleRejectReport = useCallback(
-    (reportId: string) => {
-      setReports((prev) =>
-        prev.map((report) =>
-          report.id === reportId
-            ? {
-                ...report,
-                status: "rejected" as const,
-                reviewedBy: "Admin",
-                reviewedAt: new Date(),
-              }
-            : report
-        )
-      );
-      toast({
-        title: "Report Rejected",
-        description: "No action taken. Content remains published.",
-        variant: "default",
-      });
+    async (reportId: string) => {
+      try {
+        await adminApi.resolveReport(
+          reportId,
+          "no_action",
+          "Report rejected by admin"
+        );
+        await loadReports();
+        toast({
+          title: "Report Rejected",
+          description: "No action taken. Content remains published.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Error rejecting report:", error);
+        toast({
+          title: "Error",
+          description: "Failed to reject report",
+          variant: "destructive",
+        });
+      }
     },
-    [toast]
+    [toast, loadReports]
   );
 
   const handleWarnUser = useCallback(
-    (reportId: string, message: string) => {
-      setReports((prev) =>
-        prev.map((report) =>
-          report.id === reportId
-            ? {
-                ...report,
-                status: "rejected" as const,
-                reviewedBy: "Admin",
-                reviewedAt: new Date(),
-                moderationNotes: `User warned: ${message}`,
-              }
-            : report
-        )
-      );
-      toast({
-        title: "User Warned",
-        description: "Warning has been sent to the user.",
-        variant: "default",
-      });
+    async (reportId: string, message: string) => {
+      try {
+        await adminApi.resolveReport(
+          reportId,
+          "warn_user",
+          `User warned: ${message}`
+        );
+        await loadReports();
+        toast({
+          title: "User Warned",
+          description: "Warning has been sent to the user.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Error warning user:", error);
+        toast({
+          title: "Error",
+          description: "Failed to warn user",
+          variant: "destructive",
+        });
+      }
     },
-    [toast]
+    [toast, loadReports]
   );
 
   const handleViewPost = (report: ContentModerationItem) => {
@@ -377,12 +305,20 @@ export function Reports() {
     }
   };
 
-  const reportStats = {
-    total: reports.length,
-    pending: reports.filter((r) => r.status === "pending").length,
-    approved: reports.filter((r) => r.status === "approved").length,
-    rejected: reports.filter((r) => r.status === "rejected").length,
-  };
+  const reportStats =
+    reports.length > 0
+      ? {
+          total: reports.length,
+          pending: reports.filter((r) => r.status === "pending").length,
+          approved: reports.filter((r) => r.status === "approved").length,
+          rejected: reports.filter((r) => r.status === "rejected").length,
+        }
+      : {
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+        };
 
   if (isLoading) {
     return (
@@ -410,12 +346,10 @@ export function Reports() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">Reports & Moderation</h1>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -457,7 +391,6 @@ export function Reports() {
         </Card>
       </div>
 
-      {/* Filters and Content */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -510,105 +443,106 @@ export function Reports() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Mobile-first responsive layout */}
           <div className="block md:hidden space-y-4">
-            {filteredReports.map((report) => (
-              <Card key={report.id} className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage
-                        src={report.content.author.avatar}
-                        alt={report.content.author.displayName}
-                      />
-                      <AvatarFallback>
-                        {report.content.author.displayName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium text-sm">
-                        {report.content.author.displayName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {report.createdAt.toLocaleDateString()}
+            {filteredReports.length > 0 &&
+              filteredReports.map((report) => (
+                <Card key={report.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage
+                          src={report.content.author.avatar}
+                          alt={report.content.author.displayName}
+                        />
+                        <AvatarFallback>
+                          {report.content.author.displayName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm">
+                          {report.content.author.displayName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {report.createdAt.toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewPost(report)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      {report.status === "pending" && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleModerationAction(report, "approve")
-                            }
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve & Remove
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleModerationAction(report, "reject")
-                            }
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject Report
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleModerationAction(report, "warn")
-                            }
-                          >
-                            <UserX className="mr-2 h-4 w-4" />
-                            Warn User
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    {getTypeIcon(report.type)}
-                    <span className="capitalize text-sm">{report.type}</span>
-                    {getPriorityBadge(report.priority)}
-                    {getStatusBadge(report.status)}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleViewPost(report)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        {report.status === "pending" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleModerationAction(report, "approve")
+                              }
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve & Remove
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleModerationAction(report, "reject")
+                              }
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Reject Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleModerationAction(report, "warn")
+                              }
+                            >
+                              <UserX className="mr-2 h-4 w-4" />
+                              Warn User
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
-                  <div className="text-sm text-muted-foreground line-clamp-2">
-                    {report.content.text}
-                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      {getTypeIcon(report.type)}
+                      <span className="capitalize text-sm">{report.type}</span>
+                      {getPriorityBadge(report.priority)}
+                      {getStatusBadge(report.status)}
+                    </div>
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Reported by: {report.reporterName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {report.reason}
-                    </Badge>
-                  </div>
+                    <div className="text-sm text-muted-foreground line-clamp-2">
+                      {report.content.text}
+                    </div>
 
-                  {report.content.images &&
-                    report.content.images.length > 0 && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Reported by: {report.reporterName}</span>
                       <Badge variant="outline" className="text-xs">
-                        {report.content.images.length} image(s)
+                        {report.reason}
                       </Badge>
-                    )}
-                </div>
-              </Card>
-            ))}
+                    </div>
+
+                    {report.content.images &&
+                      report.content.images.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {report.content.images.length} image(s)
+                        </Badge>
+                      )}
+                  </div>
+                </Card>
+              ))}
           </div>
 
-          {/* Desktop table layout */}
           <div className="hidden md:block">
             <Table>
               <TableHeader>
@@ -624,111 +558,114 @@ export function Reports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>
-                      <div className="flex items-start space-x-3">
-                        <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-                          <AvatarImage
-                            src={report.content.author.avatar}
-                            alt={report.content.author.displayName}
-                          />
-                          <AvatarFallback>
-                            {report.content.author.displayName.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-sm truncate">
-                            {report.content.author.displayName}
+                {filteredReports.length > 0 &&
+                  filteredReports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell>
+                        <div className="flex items-start space-x-3">
+                          <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+                            <AvatarImage
+                              src={report.content.author.avatar}
+                              alt={report.content.author.displayName}
+                            />
+                            <AvatarFallback>
+                              {report.content.author.displayName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-sm truncate">
+                              {report.content.author.displayName}
+                            </div>
+                            <div className="text-sm text-muted-foreground line-clamp-2">
+                              {report.content.text}
+                            </div>
+                            {report.content.images &&
+                              report.content.images.length > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="mt-1 text-xs"
+                                >
+                                  {report.content.images.length} image(s)
+                                </Badge>
+                              )}
                           </div>
-                          <div className="text-sm text-muted-foreground line-clamp-2">
-                            {report.content.text}
-                          </div>
-                          {report.content.images &&
-                            report.content.images.length > 0 && (
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                {report.content.images.length} image(s)
-                              </Badge>
-                            )}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        {getTypeIcon(report.type)}
-                        <span className="capitalize">{report.type}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="truncate">{report.reporterName}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {report.reason}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getPriorityBadge(report.priority)}</TableCell>
-                    <TableCell>{getStatusBadge(report.status)}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {report.createdAt.toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleViewPost(report)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          {report.status === "pending" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleModerationAction(report, "approve")
-                                }
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Approve & Remove
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleModerationAction(report, "reject")
-                                }
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Reject Report
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleModerationAction(report, "warn")
-                                }
-                              >
-                                <UserX className="mr-2 h-4 w-4" />
-                                Warn User
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          {getTypeIcon(report.type)}
+                          <span className="capitalize">{report.type}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="truncate">{report.reporterName}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {report.reason}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getPriorityBadge(report.priority)}</TableCell>
+                      <TableCell>{getStatusBadge(report.status)}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {report.createdAt.toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleViewPost(report)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            {report.status === "pending" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleModerationAction(report, "approve")
+                                  }
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Approve & Remove
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleModerationAction(report, "reject")
+                                  }
+                                >
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  Reject Report
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleModerationAction(report, "warn")
+                                  }
+                                >
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Warn User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* View Post Modal */}
       <Dialog open={showViewPostModal} onOpenChange={setShowViewPostModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -740,7 +677,6 @@ export function Reports() {
 
           {selectedReport && (
             <div className="space-y-6">
-              {/* Report Information */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <Label className="text-sm font-medium">Report ID</Label>
@@ -774,7 +710,6 @@ export function Reports() {
                 </div>
               </div>
 
-              {/* Content Preview */}
               <div className="border rounded-lg p-4">
                 <div className="flex items-start space-x-3 mb-3">
                   <Avatar className="w-10 h-10">
@@ -828,7 +763,6 @@ export function Reports() {
                     </div>
                   )}
 
-                {/* Post engagement stats */}
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground border-t pt-3">
                   {selectedReport.content.likes !== undefined && (
                     <div className="flex items-center space-x-1">
@@ -851,7 +785,6 @@ export function Reports() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               {selectedReport.status === "pending" && (
                 <div className="flex justify-end space-x-2">
                   <Button
@@ -891,7 +824,6 @@ export function Reports() {
         </DialogContent>
       </Dialog>
 
-      {/* Warn User Modal */}
       <Dialog open={showWarnUserModal} onOpenChange={setShowWarnUserModal}>
         <DialogContent>
           <DialogHeader>
@@ -927,7 +859,6 @@ export function Reports() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

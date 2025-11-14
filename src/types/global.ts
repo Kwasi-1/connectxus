@@ -1,4 +1,3 @@
-// Global types for Campus Vibe Net
 
 export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
@@ -17,8 +16,7 @@ export interface User {
   major?: string;
   year?: number;
   createdAt: Date;
-  // New authentication fields
-  roles: UserRole[];
+    roles: UserRole[];
   department?: string;
   level?: string;
   mentorStatus?: ApprovalStatus;
@@ -144,8 +142,7 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  relatedId?: string; // ID of related post, message, etc.
-}
+  relatedId?: string; }
 
 export interface TrendingTopic {
   id: string;
@@ -185,7 +182,6 @@ export interface TutoringRequest {
   createdAt: Date;
 }
 
-// Public page types for footer links
 export interface PublicPageProps {
   title: string;
   description?: string;

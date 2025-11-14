@@ -74,7 +74,9 @@ import {
   CampusEvent,
 } from "@/types/admin";
 import { useToast } from "@/hooks/use-toast";
-import { contentApi } from "@/lib/adminApi";
+import { adminApi } from "@/api/admin.api";
+import { getDefaultSpaceId } from "@/lib/apiClient";
+import moment from "moment";
 
 export function ContentManagement() {
   const { toast } = useToast();
@@ -90,7 +92,6 @@ export function ContentManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  // Modal states
   const [showCreateAnnouncementModal, setShowCreateAnnouncementModal] =
     useState(false);
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
@@ -98,7 +99,6 @@ export function ContentManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  // Selected items for actions
   const [selectedItem, setSelectedItem] = useState<
     ContentModerationItem | CampusAnnouncement | CampusEvent | null
   >(null);
@@ -107,7 +107,6 @@ export function ContentManagement() {
   >(null);
   const [reviewNotes, setReviewNotes] = useState("");
 
-  // Form states
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
@@ -133,24 +132,45 @@ export function ContentManagement() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      const spaceId = getDefaultSpaceId();
+
       const [moderationData, announcementData, eventData] = await Promise.all([
-        contentApi.getModerationItems(),
-        contentApi.getAnnouncements(),
-        contentApi.getEvents(),
+        adminApi.getContentReports(
+          spaceId,
+          statusFilter === "all" ? undefined : statusFilter
+        ),
+        adminApi.getAnnouncements(
+          spaceId,
+          statusFilter === "all" ? undefined : statusFilter,
+          priorityFilter === "all" ? undefined : priorityFilter
+        ),
+        adminApi.getEvents(
+          spaceId,
+          statusFilter === "all" ? undefined : statusFilter
+        ),
       ]);
-      setModerationItems(moderationData);
-      setAnnouncements(announcementData);
-      setEvents(eventData);
+
+      const moderationItems =
+        moderationData.length > 0 &&
+        moderationData.map((report: any) => ({
+          id: report.id,
+          type: report.content_type as "post" | "comment" | "message",
+          content: report.description || "",
+          reportedBy: report.reporter_id,
+          reason: report.reason,
+          status: report.status,
+          createdAt: new Date(report.created_at),
+        }));
+
+      setModerationItems([]);
+      setAnnouncements(announcementData.announcements || []);
+      setEvents(eventData.events || []);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch content data.",
-        variant: "destructive",
-      });
+      console.error("Failed to fetch content data:", error);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, statusFilter, priorityFilter]);
 
   useEffect(() => {
     fetchData();
@@ -158,14 +178,22 @@ export function ContentManagement() {
 
   const handleCreateAnnouncement = useCallback(async () => {
     try {
-      await contentApi.createAnnouncement({
-        ...newAnnouncement,
-        scheduledFor: newAnnouncement.scheduledFor
+      const spaceId = getDefaultSpaceId();
+      await adminApi.createAnnouncement({
+        space_id: spaceId,
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
+        type: newAnnouncement.type,
+        target_audience: newAnnouncement.targetAudience,
+        priority: newAnnouncement.priority,
+        scheduled_for: newAnnouncement.scheduledFor
           ? new Date(newAnnouncement.scheduledFor)
           : undefined,
-        expiresAt: newAnnouncement.expiresAt
+        expires_at: newAnnouncement.expiresAt
           ? new Date(newAnnouncement.expiresAt)
           : undefined,
+        attachments: undefined,
+        is_pinned: false,
       });
       toast({
         title: "Success",
@@ -183,6 +211,7 @@ export function ContentManagement() {
       });
       fetchData();
     } catch (error) {
+      console.error("Failed to create announcement:", error);
       toast({
         title: "Error",
         description: "Failed to create announcement.",
@@ -193,19 +222,27 @@ export function ContentManagement() {
 
   const handleCreateEvent = useCallback(async () => {
     try {
-      await contentApi.createEvent({
-        ...newEvent,
-        startDate: new Date(newEvent.startDate),
-        endDate: new Date(newEvent.endDate),
-        maxAttendees: newEvent.maxAttendees
+      const spaceId = getDefaultSpaceId();
+      await adminApi.createEvent({
+        space_id: spaceId,
+        title: newEvent.title,
+        description: newEvent.description,
+        category: newEvent.category,
+        location: newEvent.location,
+        venue_details: "",
+        start_date: new Date(newEvent.startDate),
+        end_date: new Date(newEvent.endDate),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        tags: [],
+        image_url: "",
+        max_attendees: newEvent.maxAttendees
           ? parseInt(newEvent.maxAttendees)
           : undefined,
-        registrationDeadline: newEvent.registrationDeadline
+        registration_required: newEvent.registrationRequired,
+        registration_deadline: newEvent.registrationDeadline
           ? new Date(newEvent.registrationDeadline)
           : undefined,
-        currentAttendees: 0,
-        organizer: "Admin",
-        tags: [],
+        is_public: true,
       });
       toast({
         title: "Success",
@@ -225,6 +262,7 @@ export function ContentManagement() {
       });
       fetchData();
     } catch (error) {
+      console.error("Failed to create event:", error);
       toast({
         title: "Error",
         description: "Failed to create event.",
@@ -237,9 +275,9 @@ export function ContentManagement() {
     if (!selectedItem || !reviewDecision || !("status" in selectedItem)) return;
 
     try {
-      await contentApi.reviewContent(
+      await adminApi.resolveReport(
         selectedItem.id,
-        reviewDecision,
+        reviewDecision === "approve" ? "approved" : "rejected",
         reviewNotes
       );
       toast({
@@ -252,6 +290,7 @@ export function ContentManagement() {
       setReviewNotes("");
       fetchData();
     } catch (error) {
+      console.error("Failed to review content:", error);
       toast({
         title: "Error",
         description: "Failed to review content.",
@@ -265,14 +304,16 @@ export function ContentManagement() {
 
     try {
       if ("status" in selectedItem && "reason" in selectedItem) {
-        // It's a moderation item
-        await contentApi.deleteModerationItem(selectedItem.id);
+        toast({
+          title: "Cannot Delete",
+          description: "Moderation items can only be resolved, not deleted.",
+          variant: "destructive",
+        });
+        return;
       } else if ("authorId" in selectedItem) {
-        // It's an announcement
-        await contentApi.deleteAnnouncement(selectedItem.id);
+        await adminApi.deleteAnnouncement(selectedItem.id);
       } else {
-        // It's an event
-        await contentApi.deleteEvent(selectedItem.id);
+        await adminApi.deleteEvent(selectedItem.id);
       }
 
       toast({
@@ -283,6 +324,7 @@ export function ContentManagement() {
       setSelectedItem(null);
       fetchData();
     } catch (error) {
+      console.error("Failed to delete item:", error);
       toast({
         title: "Error",
         description: "Failed to delete item.",
@@ -304,11 +346,45 @@ export function ContentManagement() {
 
       try {
         if (activeTab === "moderation") {
-          await contentApi.bulkReviewContent(selectedItems, action);
+          await Promise.all(
+            selectedItems.map((id) =>
+              adminApi.resolveReport(
+                id,
+                action === "approve" ? "approved" : "rejected",
+                `Bulk ${action}`
+              )
+            )
+          );
         } else if (activeTab === "announcements") {
-          await contentApi.bulkActionAnnouncements(selectedItems, action);
+          if (action === "delete") {
+            await Promise.all(
+              selectedItems.map((id) => adminApi.deleteAnnouncement(id))
+            );
+          } else {
+            await Promise.all(
+              selectedItems.map((id) =>
+                adminApi.updateAnnouncementStatus(
+                  id,
+                  action === "publish" ? "active" : "draft"
+                )
+              )
+            );
+          }
         } else {
-          await contentApi.bulkActionEvents(selectedItems, action);
+          if (action === "delete") {
+            await Promise.all(
+              selectedItems.map((id) => adminApi.deleteEvent(id))
+            );
+          } else {
+            await Promise.all(
+              selectedItems.map((id) =>
+                adminApi.updateEventStatus(
+                  id,
+                  action === "cancel" ? "cancelled" : "completed"
+                )
+              )
+            );
+          }
         }
 
         toast({
@@ -318,6 +394,7 @@ export function ContentManagement() {
         setSelectedItems([]);
         fetchData();
       } catch (error) {
+        console.error("Failed to perform bulk action:", error);
         toast({
           title: "Error",
           description: `Failed to perform bulk ${action}.`,
@@ -330,19 +407,32 @@ export function ContentManagement() {
 
   const handleExport = useCallback(async () => {
     try {
+      let dataType: string;
       if (activeTab === "moderation") {
-        await contentApi.exportModerationData();
+        dataType = "reports";
       } else if (activeTab === "announcements") {
-        await contentApi.exportAnnouncements();
+        dataType = "announcements";
       } else {
-        await contentApi.exportEvents();
+        dataType = "events";
       }
+
+      const blob = await adminApi.exportData("csv", dataType);
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${dataType}-export-${new Date().toISOString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
         title: "Success",
         description: "Data exported successfully.",
       });
     } catch (error) {
+      console.error("Failed to export data:", error);
       toast({
         title: "Error",
         description: "Failed to export data.",
@@ -352,32 +442,44 @@ export function ContentManagement() {
   }, [activeTab, toast]);
 
   const getFilteredModerationItems = () => {
-    return moderationItems.filter((item) => {
-      const matchesSearch =
-        item.content.text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.reporterName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || item.status === statusFilter;
-      const matchesPriority =
-        priorityFilter === "all" || item.priority === priorityFilter;
+    return (
+      moderationItems.length > 0 &&
+      moderationItems.filter((item) => {
+        const matchesSearch =
+          item.content.text
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          item.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.reporterName.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus =
+          statusFilter === "all" || item.status === statusFilter;
+        const matchesPriority =
+          priorityFilter === "all" || item.priority === priorityFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
+        return matchesSearch && matchesStatus && matchesPriority;
+      })
+    );
   };
 
   const getFilteredAnnouncements = () => {
-    return announcements.filter((announcement) => {
-      const matchesSearch =
-        announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        announcement.content.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || announcement.status === statusFilter;
-      const matchesPriority =
-        priorityFilter === "all" || announcement.priority === priorityFilter;
+    return (
+      announcements.length > 0 &&
+      announcements.filter((announcement) => {
+        const matchesSearch =
+          announcement.title
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          announcement.content
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        const matchesStatus =
+          statusFilter === "all" || announcement.status === statusFilter;
+        const matchesPriority =
+          priorityFilter === "all" || announcement.priority === priorityFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
+        return matchesSearch && matchesStatus && matchesPriority;
+      })
+    );
   };
 
   const getFilteredEvents = () => {
@@ -806,7 +908,6 @@ export function ContentManagement() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -817,10 +918,9 @@ export function ContentManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {
+              {moderationItems.length > 0 &&
                 moderationItems.filter((item) => item.status === "pending")
-                  .length
-              }
+                  .length}
             </div>
             <p className="text-xs text-muted-foreground">Awaiting moderation</p>
           </CardContent>
@@ -834,7 +934,9 @@ export function ContentManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {announcements.filter((a) => a.status === "published").length}
+              {announcements.length > 0
+                ? announcements.filter((a) => a.status === "published").length
+                : 0}
             </div>
             <p className="text-xs text-muted-foreground">Currently published</p>
           </CardContent>
@@ -848,11 +950,11 @@ export function ContentManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {
-                events.filter(
-                  (e) => e.status === "published" && e.startDate > new Date()
-                ).length
-              }
+              {events.length > 0
+                ? events.filter(
+                    (e) => e.status === "published" && e.startDate > new Date()
+                  ).length
+                : 0}
             </div>
             <p className="text-xs text-muted-foreground">Scheduled events</p>
           </CardContent>
@@ -869,7 +971,6 @@ export function ContentManagement() {
         </Card>
       </div>
 
-      {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <div className="relative flex-1">
@@ -966,7 +1067,6 @@ export function ContentManagement() {
         )}
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="moderation">Content Moderation</TabsTrigger>
@@ -974,7 +1074,6 @@ export function ContentManagement() {
           <TabsTrigger value="events">Events</TabsTrigger>
         </TabsList>
 
-        {/* Moderation Tab */}
         <TabsContent value="moderation" className="space-y-4">
           <Card>
             <CardContent className="p-0">
@@ -1042,6 +1141,7 @@ export function ContentManagement() {
                       </TableCell>
                     </TableRow>
                   ) : (
+                    getFilteredModerationItems().length > 0 &&
                     getFilteredModerationItems().map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
@@ -1132,7 +1232,6 @@ export function ContentManagement() {
           </Card>
         </TabsContent>
 
-        {/* Announcements Tab */}
         <TabsContent value="announcements" className="space-y-4">
           <Card>
             <CardContent className="p-0">
@@ -1232,13 +1331,15 @@ export function ContentManagement() {
                         <TableCell>
                           <div className="text-sm">
                             {announcement.scheduledFor
-                              ? announcement.scheduledFor.toLocaleDateString()
+                              ? moment(announcement.scheduledFor).format(
+                                  "Do MMMM"
+                                )
                               : "Immediate"}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            {announcement.createdAt.toLocaleDateString()}
+                            {moment(announcement.createdAt).format("")}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -1285,7 +1386,6 @@ export function ContentManagement() {
           </Card>
         </TabsContent>
 
-        {/* Events Tab */}
         <TabsContent value="events" className="space-y-4">
           <Card>
             <CardContent className="p-0">
@@ -1374,12 +1474,9 @@ export function ContentManagement() {
                         <TableCell>{event.location}</TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            {event.startDate.toLocaleDateString()}
+                            {moment(event.startDate).format("")}
                             <div className="text-muted-foreground">
-                              {event.startDate.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {moment(event.startDate).format("")}
                             </div>
                           </div>
                         </TableCell>
@@ -1440,7 +1537,6 @@ export function ContentManagement() {
         </TabsContent>
       </Tabs>
 
-      {/* Review Content Modal */}
       <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
         <DialogContent>
           <DialogHeader>
@@ -1477,7 +1573,6 @@ export function ContentManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

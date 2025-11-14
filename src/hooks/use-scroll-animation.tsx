@@ -58,8 +58,7 @@ export const useStaggeredScrollAnimation = (
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // Stagger the animation of items
-          for (let i = 0; i < itemCount; i++) {
+                    for (let i = 0; i < itemCount; i++) {
             setTimeout(() => {
               setVisibleItems((prev) => {
                 const newState = [...prev];

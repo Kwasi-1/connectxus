@@ -1,8 +1,8 @@
-import { Briefcase, MessageCircle, Star, UserCheck } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { Badge } from "../ui/badge"
-import { Card, CardContent } from "../ui/card"
-import { Button } from "../ui/button"
+import { Briefcase, MessageCircle, Star, UserCheck } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Badge } from "../ui/badge";
+import { Card, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
 
 type Mentor = {
   id: string;
@@ -36,17 +36,25 @@ function MentoringCard({
     <Card key={mentor.id} className="hover:shadow-lg transition-shadow">
       <CardContent className="p-6">
         <div className="space-y-4">
-          {/* Mentor Header */}
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={mentor.user.avatar} alt={mentor.user.displayName} />
-              <AvatarFallback>{mentor.user.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage
+                src={mentor.user.avatar}
+                alt={mentor.user.username}
+              />
+              <AvatarFallback>
+                {mentor.user.username.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-xl font-semibold">{mentor.user.displayName}</h3>
+                <h3 className="text-xl font-semibold">
+                  {mentor.user.username}
+                </h3>
                 {mentor.verified && (
-                  <Badge variant="default" className="text-xs">Verified</Badge>
+                  <Badge variant="default" className="text-xs">
+                    Verified
+                  </Badge>
                 )}
               </div>
               {mentor.position && mentor.company && (
@@ -61,10 +69,8 @@ function MentoringCard({
             </div>
           </div>
 
-          {/* Description */}
           <p className="text-sm text-muted-foreground">{mentor.description}</p>
 
-          {/* Specialties */}
           <div className="flex flex-wrap gap-1">
             {mentor.specialties.map((specialty: string, index: number) => (
               <Badge key={index} variant="secondary" className="text-xs">
@@ -73,14 +79,13 @@ function MentoringCard({
             ))}
           </div>
 
-          {/* Rating and Actions */}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center text-sm text-muted-foreground">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
               {mentor.rating} ({mentor.reviewCount} reviews)
             </div>
             <div className="flex space-x-2">
-              <Button 
+              <Button
                 onClick={() => handleContactMentor(mentor)}
                 size="sm"
                 variant="outline"
@@ -88,7 +93,7 @@ function MentoringCard({
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden md:inline ml-2">Contact</span>
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleFollowMentor(mentor)}
                 size="sm"
                 variant="outline"
@@ -103,4 +108,4 @@ function MentoringCard({
     </Card>
   );
 }
-export default MentoringCard
+export default MentoringCard;

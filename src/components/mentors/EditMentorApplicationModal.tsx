@@ -65,8 +65,7 @@ export function EditMentorApplicationModal({
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
     const updatedApplication: MentorApplication = {
       ...application,

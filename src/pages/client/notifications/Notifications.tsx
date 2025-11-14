@@ -1,59 +1,65 @@
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/api/notifications.api";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { CheckCheck } from "lucide-react";
 
-import { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { NotificationTab } from '@/types/global';
+type NotificationTab = "all" | "unread" | "mentions";
 
 const Notifications = () => {
-  const [activeTab, setActiveTab] = useState<NotificationTab>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [notifications, setNotifications] = useState([]);
+  const [activeTab, setActiveTab] = useState<NotificationTab>("all");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      setIsLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock notifications data
-        const mockNotifications = [
-          {
-            id: '1',
-            type: 'like' as const,
-            user: 'Sarah Johnson',
-            action: 'liked your post',
-            time: '2h',
-            content: 'Great insights on machine learning!',
-          },
-          {
-            id: '2',
-            type: 'follow' as const,
-            user: 'Mike Chen',
-            action: 'started following you',
-            time: '4h',
-          },
-          {
-            id: '3',
-            type: 'comment' as const,
-            user: 'Emma Davis',
-            action: 'commented on your post',
-            time: '6h',
-            content: 'Thanks for sharing this!',
-          },
-        ];
-        
-        setNotifications(mockNotifications);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => getNotifications({ page: 1, limit: 100 }),
+    staleTime: 30000,
+  });
 
-    fetchNotifications();
-  }, []);
+  const markReadMutation = useMutation({
+    mutationFn: (notificationId: string) =>
+      markNotificationAsRead(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("All notifications marked as read");
+    },
+    onError: () => {
+      toast.error("Failed to mark notifications as read");
+    },
+  });
+
+  const handleNotificationClick = (notificationId: string, isRead: boolean) => {
+    if (!isRead) {
+      markReadMutation.mutate(notificationId);
+    }
+  };
+
+  const filteredNotifications = notifications.filter((notification) => {
+    if (activeTab === "unread") {
+      return !notification.is_read;
+    }
+    return true;
+  });
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   if (isLoading) {
     return (
@@ -61,7 +67,9 @@ const Notifications = () => {
         <div className="border-r border-border h-full">
           <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="px-4 py-3">
-              <h1 className="text-xl font-bold text-foreground">Notifications</h1>
+              <h1 className="text-xl font-bold text-foreground">
+                Notifications
+              </h1>
             </div>
           </div>
           <LoadingSpinner />
@@ -70,78 +78,366 @@ const Notifications = () => {
     );
   }
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "like":
+        return "❤️";
+      case "comment":
+        return "💬";
+      case "follow":
+        return "👤";
+      case "mention":
+        return "@";
+      case "post":
+        return "📝";
+      case "group":
+        return "👥";
+      default:
+        return "🔔";
+    }
+  };
+
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
-          <div className="px-4 py-3">
+          <div className="px-4 py-3 flex items-center justify-between">
             <h1 className="text-xl font-bold text-foreground">Notifications</h1>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="gap-2"
+              >
+                <CheckCheck className="h-4 w-4" />
+                Mark all read
+              </Button>
+            )}
           </div>
-          
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as NotificationTab)}>
-            <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
-              <TabsTrigger 
-                value="all" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                All
-              </TabsTrigger>
-              <TabsTrigger 
-                value="verified" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                Verified
-              </TabsTrigger>
-              <TabsTrigger 
-                value="mentions" 
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-              >
-                Mentions
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="mt-0">
+        </div>
+
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as NotificationTab)}
+        >
+          <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
+            <TabsTrigger
+              value="all"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              All
+            </TabsTrigger>
+            <TabsTrigger
+              value="unread"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              Unread {unreadCount > 0 && `(${unreadCount})`}
+            </TabsTrigger>
+            <TabsTrigger
+              value="mentions"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              Mentions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-0">
+            {filteredNotifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg mb-2">No notifications</p>
+                <p className="text-sm">
+                  When you get notifications, they'll show up here
+                </p>
+              </div>
+            ) : (
               <div className="divide-y divide-border">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="p-4 hover:bg-muted/50 cursor-pointer transition-colors">
+                {filteredNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                      !notification.is_read
+                        ? "bg-blue-50/10 dark:bg-blue-950/10"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      handleNotificationClick(
+                        notification.id,
+                        notification.is_read
+                      )
+                    }
+                  >
                     <div className="flex space-x-3">
-                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                        <span className="font-semibold text-xs">
-                          {notification.user.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-foreground">{notification.user}</span>
-                          <span className="text-muted-foreground">{notification.action}</span>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="text-muted-foreground">{notification.time}</span>
-                        </div>
-                        {notification.content && (
-                          <p className="text-muted-foreground mt-1">{notification.content}</p>
+                      <div className="flex-shrink-0">
+                        {notification.from_user?.avatar ? (
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={notification.from_user.avatar} />
+                            <AvatarFallback>
+                              {notification.from_user.full_name?.[0]?.toUpperCase() ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-lg">
+                            {getNotificationIcon(notification.type)}
+                          </div>
                         )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {notification.from_user && (
+                                <span className="font-semibold text-foreground">
+                                  {notification.from_user.full_name ||
+                                    "Someone"}
+                                </span>
+                              )}
+                              {notification.title && (
+                                <span className="text-muted-foreground">
+                                  {notification.title}
+                                </span>
+                              )}
+                            </div>
+                            {notification.message && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {notification.message}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {notification.type}
+                              </Badge>
+                              {notification.priority &&
+                                notification.priority !== "normal" && (
+                                  <Badge
+                                    variant={
+                                      notification.priority === "urgent"
+                                        ? "destructive"
+                                        : "default"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {notification.priority}
+                                  </Badge>
+                                )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(
+                                  new Date(notification.created_at),
+                                  { addSuffix: true }
+                                )}
+                              </span>
+                              {!notification.is_read && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </TabsContent>
-            
-            <TabsContent value="verified" className="mt-0">
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No verified notifications yet</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="unread" className="mt-0">
+            {filteredNotifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg mb-2">No notifications</p>
+                <p className="text-sm">You're all caught up!</p>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="mentions" className="mt-0">
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No mentions yet</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {filteredNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                      !notification.is_read
+                        ? "bg-blue-50/10 dark:bg-blue-950/10"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      handleNotificationClick(
+                        notification.id,
+                        notification.is_read
+                      )
+                    }
+                  >
+                    <div className="flex space-x-3">
+                      <div className="flex-shrink-0">
+                        {notification.from_user?.avatar ? (
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={notification.from_user.avatar} />
+                            <AvatarFallback>
+                              {notification.from_user.full_name?.[0]?.toUpperCase() ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-lg">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {notification.from_user && (
+                                <span className="font-semibold text-foreground">
+                                  {notification.from_user.full_name ||
+                                    "Someone"}
+                                </span>
+                              )}
+                              {notification.title && (
+                                <span className="text-muted-foreground">
+                                  {notification.title}
+                                </span>
+                              )}
+                            </div>
+                            {notification.message && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {notification.message}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {notification.type}
+                              </Badge>
+                              {notification.priority &&
+                                notification.priority !== "normal" && (
+                                  <Badge
+                                    variant={
+                                      notification.priority === "urgent"
+                                        ? "destructive"
+                                        : "default"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {notification.priority}
+                                  </Badge>
+                                )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(
+                                  new Date(notification.created_at),
+                                  { addSuffix: true }
+                                )}
+                              </span>
+                              {!notification.is_read && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="mentions" className="mt-0">
+            {filteredNotifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg mb-2">No mentions</p>
+                <p className="text-sm">
+                  When someone mentions you, it'll show up here
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {filteredNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                      !notification.is_read
+                        ? "bg-blue-50/10 dark:bg-blue-950/10"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      handleNotificationClick(
+                        notification.id,
+                        notification.is_read
+                      )
+                    }
+                  >
+                    <div className="flex space-x-3">
+                      <div className="flex-shrink-0">
+                        {notification.from_user?.avatar ? (
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={notification.from_user.avatar} />
+                            <AvatarFallback>
+                              {notification.from_user.full_name?.[0]?.toUpperCase() ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-lg">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {notification.from_user && (
+                                <span className="font-semibold text-foreground">
+                                  {notification.from_user.full_name ||
+                                    "Someone"}
+                                </span>
+                              )}
+                              {notification.title && (
+                                <span className="text-muted-foreground">
+                                  {notification.title}
+                                </span>
+                              )}
+                            </div>
+                            {notification.message && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {notification.message}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {notification.type}
+                              </Badge>
+                              {notification.priority &&
+                                notification.priority !== "normal" && (
+                                  <Badge
+                                    variant={
+                                      notification.priority === "urgent"
+                                        ? "destructive"
+                                        : "default"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {notification.priority}
+                                  </Badge>
+                                )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(
+                                  new Date(notification.created_at),
+                                  { addSuffix: true }
+                                )}
+                              </span>
+                              {!notification.is_read && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

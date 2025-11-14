@@ -71,6 +71,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AdminUser, AdminRole, AdminPermission } from "@/types/admin";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { adminApi } from "@/api/admin.api";
 
 export function AdminManagement() {
   const { toast } = useToast();
@@ -82,14 +83,12 @@ export function AdminManagement() {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
 
-  // Add lifecycle logging
   useEffect(() => {
     console.log("AdminManagement component mounted");
     return () => {
@@ -106,19 +105,17 @@ export function AdminManagement() {
     });
   }, [showCreateModal, showEditModal, showPermissionsModal, showDeleteDialog]);
 
-  // Form states
   const [newAdmin, setNewAdmin] = useState({
     name: "",
     email: "",
     role: "admin" as AdminRole,
     permissions: [] as AdminPermission[],
     department: "",
-    university: "University of Ghana", // Default university
+    university: "University of Ghana",
   });
 
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
 
-  // Available permissions
   const availablePermissions: {
     value: AdminPermission;
     label: string;
@@ -171,7 +168,6 @@ export function AdminManagement() {
     },
   ];
 
-  // Available departments
   const departments = [
     "Student Affairs",
     "Academic Affairs",
@@ -184,70 +180,45 @@ export function AdminManagement() {
   ];
 
   useEffect(() => {
-    // Mock data loading
-    setTimeout(() => {
-      const mockAdmins: AdminUser[] = [
-        {
-          id: "1",
-          email: "admin@university.edu",
-          name: "John Admin",
-          role: "admin",
-          permissions: [
-            "user_management",
-            "content_management",
-            "community_management",
-            "tutoring_management",
-            "analytics",
-            "reports",
-          ],
-          avatar:
-            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-          university: "University of Ghana",
-          department: "Student Affairs",
-          createdAt: new Date("2023-08-15"),
-          lastLogin: new Date("2024-01-15T09:30:00"),
-          isActive: true,
-          createdBy: "super@university.edu",
-        },
-        {
-          id: "2",
-          email: "sarah.admin@university.edu",
-          name: "Sarah Admin",
-          role: "admin",
-          permissions: [
-            "content_management",
-            "community_management",
-            "reports",
-          ],
-          avatar:
-            "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop",
-          university: "University of Ghana",
-          department: "Communications",
-          createdAt: new Date("2023-10-20"),
-          lastLogin: new Date("2024-01-14T16:45:00"),
-          isActive: true,
-          createdBy: "super@university.edu",
-        },
-        {
-          id: "3",
-          email: "mike.admin@university.edu",
-          name: "Mike Admin",
-          role: "admin",
-          permissions: ["user_management", "tutoring_management", "analytics"],
-          avatar:
-            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
-          university: "University of Ghana",
-          department: "Academic Affairs",
-          createdAt: new Date("2023-12-01"),
-          lastLogin: new Date("2024-01-13T11:20:00"),
-          isActive: false,
-          createdBy: "super@university.edu",
-        },
-      ];
-      setAdmins(mockAdmins);
+    loadAdmins();
+  }, [statusFilter]);
+
+  const loadAdmins = async () => {
+    try {
+      setIsLoading(true);
+      const data = await adminApi.getAdmins(
+        statusFilter === "all" ? undefined : statusFilter,
+        1,
+        100
+      );
+
+      const transformedAdmins: AdminUser[] = data.admins.map((item: any) => ({
+        id: item.id,
+        email: item.email,
+        name: item.full_name || item.username,
+        role: item.roles?.[0] || "admin",
+        permissions: item.roles || [],
+        avatar: item.avatar,
+        university: "University of Ghana",
+        department: item.department,
+        createdAt: new Date(item.created_at),
+        lastLogin: item.last_login ? new Date(item.last_login) : undefined,
+        isActive: item.status === "active",
+        createdBy: item.created_by,
+      }));
+
+      setAdmins(transformedAdmins);
+    } catch (error) {
+      console.error("Failed to load admins:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load administrators. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   const filteredAdmins = admins.filter((admin) => {
     const matchesSearch =
@@ -285,7 +256,6 @@ export function AdminManagement() {
         return;
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(newAdmin.email)) {
         toast({
@@ -296,7 +266,6 @@ export function AdminManagement() {
         return;
       }
 
-      // Check for duplicate email
       if (
         admins.some(
           (admin) => admin.email.toLowerCase() === newAdmin.email.toLowerCase()
@@ -361,7 +330,6 @@ export function AdminManagement() {
       return;
     }
 
-    // Check for duplicate email (excluding current admin)
     if (
       admins.some(
         (admin) =>
@@ -399,42 +367,65 @@ export function AdminManagement() {
   }, [editingAdmin, admins, toast]);
 
   const handleUpdatePermissions = useCallback(
-    (adminId: string, newPermissions: AdminPermission[]) => {
-      setAdmins((prev) =>
-        prev.map((admin) =>
-          admin.id === adminId
-            ? { ...admin, permissions: newPermissions }
-            : admin
-        )
-      );
+    async (adminId: string, newPermissions: AdminPermission[]) => {
+      try {
+        await adminApi.updateAdminRole(adminId, newPermissions);
 
-      const admin = admins.find((a) => a.id === adminId);
-      toast({
-        title: "Permissions Updated",
-        description: `${admin?.name}'s permissions have been updated.`,
-      });
+        setAdmins((prev) =>
+          prev.map((admin) =>
+            admin.id === adminId
+              ? { ...admin, permissions: newPermissions }
+              : admin
+          )
+        );
+
+        const admin = admins.find((a) => a.id === adminId);
+        toast({
+          title: "Permissions Updated",
+          description: `${admin?.name}'s permissions have been updated.`,
+        });
+      } catch (error) {
+        console.error("Failed to update permissions:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update permissions. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
     [admins, toast]
   );
 
   const handleToggleStatus = useCallback(
-    (adminId: string) => {
-      setAdmins((prev) =>
-        prev.map((admin) =>
-          admin.id === adminId ? { ...admin, isActive: !admin.isActive } : admin
-        )
-      );
+    async (adminId: string) => {
+      try {
+        const admin = admins.find((a) => a.id === adminId);
+        const newStatus = !admin?.isActive;
+        const statusValue = newStatus ? "active" : "inactive";
 
-      const admin = admins.find((a) => a.id === adminId);
-      const newStatus = !admin?.isActive;
+        await adminApi.updateAdminStatus(adminId, statusValue);
 
-      toast({
-        title: newStatus ? "Admin Activated" : "Admin Deactivated",
-        description: `${admin?.name} has been ${
-          newStatus ? "activated" : "deactivated"
-        }.`,
-        variant: newStatus ? "default" : "destructive",
-      });
+        setAdmins((prev) =>
+          prev.map((admin) =>
+            admin.id === adminId ? { ...admin, isActive: newStatus } : admin
+          )
+        );
+
+        toast({
+          title: newStatus ? "Admin Activated" : "Admin Deactivated",
+          description: `${admin?.name} has been ${
+            newStatus ? "activated" : "deactivated"
+          }.`,
+          variant: newStatus ? "default" : "destructive",
+        });
+      } catch (error) {
+        console.error("Failed to update status:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update status. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
     [admins, toast]
   );
@@ -597,7 +588,6 @@ export function AdminManagement() {
     }
   };
 
-  // Only super admins can access this page
   if (!hasRole("super_admin")) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -687,7 +677,6 @@ export function AdminManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">Admin Management</h1>
         <div className="flex gap-2">
@@ -859,7 +848,6 @@ export function AdminManagement() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -899,7 +887,6 @@ export function AdminManagement() {
         </Card>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <div className="relative flex-1">
@@ -948,7 +935,6 @@ export function AdminManagement() {
         </div>
       </div>
 
-      {/* Admins Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -1083,7 +1069,6 @@ export function AdminManagement() {
         </CardContent>
       </Card>
 
-      {/* Edit Admin Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -1208,7 +1193,6 @@ export function AdminManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Permissions Management Modal */}
       <Dialog
         open={showPermissionsModal}
         onOpenChange={setShowPermissionsModal}
@@ -1305,7 +1289,6 @@ export function AdminManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

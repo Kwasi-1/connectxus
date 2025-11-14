@@ -1,7 +1,6 @@
 
 import { AuthUser, SignInFormData, SignUpFormData, UserRole } from '@/types/auth';
 
-// Mock users database (replace with real backend later)
 const MOCK_USERS: AuthUser[] = [
   {
     id: '1',
@@ -29,16 +28,14 @@ const MOCK_USERS: AuthUser[] = [
 ];
 
 export const signIn = async (data: SignInFormData): Promise<AuthUser> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
   
   const user = MOCK_USERS.find(u => u.email === data.email);
   if (!user) {
     throw new Error('Invalid email or password');
   }
   
-  // In real implementation, verify password hash
-  if (data.password !== 'password123') {
+    if (data.password !== 'password123') {
     throw new Error('Invalid email or password');
   }
   
@@ -46,17 +43,14 @@ export const signIn = async (data: SignInFormData): Promise<AuthUser> => {
 };
 
 export const signUp = async (data: SignUpFormData): Promise<AuthUser> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Check if user already exists
-  const existingUser = MOCK_USERS.find(u => u.email === data.email);
+    const existingUser = MOCK_USERS.find(u => u.email === data.email);
   if (existingUser) {
     throw new Error('User with this email already exists');
   }
   
-  // Determine user roles based on registration
-  const roles: UserRole[] = [data.role];
+    const roles: UserRole[] = [data.role];
   if (data.role === 'student') {
     if (data.wantsToBeTutor) roles.push('tutor');
     if (data.wantsToBeMapMentor) roles.push('mentor');
@@ -80,13 +74,11 @@ export const signUp = async (data: SignUpFormData): Promise<AuthUser> => {
     createdAt: new Date(),
   };
   
-  // Add to mock database
-  MOCK_USERS.push(newUser);
+    MOCK_USERS.push(newUser);
   
   return newUser;
 };
 
 export const signOut = async (): Promise<void> => {
-  // Clear local storage or perform logout operations
-  localStorage.removeItem('auth-user');
+    localStorage.removeItem('auth-user');
 };

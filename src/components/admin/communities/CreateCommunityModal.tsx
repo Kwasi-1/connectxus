@@ -39,8 +39,7 @@ export function CreateCommunityModal({
   });
 
   const handleCreate = () => {
-    // Convert File to a string (object URL) so it matches Community.coverImage:type string
-    const coverImageUrl = newCommunity.coverImage
+        const coverImageUrl = newCommunity.coverImage
       ? URL.createObjectURL(newCommunity.coverImage)
       : undefined;
 
@@ -53,8 +52,7 @@ export function CreateCommunityModal({
 
     onCreateCommunity(payload);
     onOpenChange(false);
-    // Reset form
-    setNewCommunity({
+        setNewCommunity({
       name: "",
       description: "",
       category: "" as Community["category"],

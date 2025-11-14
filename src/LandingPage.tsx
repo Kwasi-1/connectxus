@@ -12,13 +12,10 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p4">
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-8 lg:gap-16">
-          {/* Left Section - Phone Mockups */}
           <div className="hidden lg:flex w-full justify-center items-center  h-[calc(100vh-7.8rem)] min-h-full">
             <div className="relative flex-1 pr-4 pb-4 h-full">
-              {/* Phone mockup container */}
               <div className="w[100%] flex-1 max-wmd xl:maxw-lg h-full bg-black rounded-br-full p4 shadow-2xl relative overflow-hidden">
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center">
                   <div className="text-center text-white/80 scale-110">
@@ -33,14 +30,12 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Second phone mockup (stacked behind) */}
               <div className="absolute -right-8 -top-4 w-80 h-96 bg-black/80 rounded-3xl p-4 shadow-xl -z-10">
                 <div className="w-full h-full bg-gradient-to-br from-accent/20 to-primary/20 rounded-2xl"></div>
               </div>
             </div>
           </div>
 
-          {/* Right Section - Auth Form */}
           <div className="flex-1 w-full max-w-md mx-auto lg:mx-0">
             <div className="text-center mb-4">
               <Logo className="w-auto h-12 mx-auto mb-6" />
@@ -67,7 +62,6 @@ export const LandingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <FooterLinks />
     </div>
   );

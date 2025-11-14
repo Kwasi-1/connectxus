@@ -1,27 +1,26 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
   ArrowLeft,
-  ImageIcon, 
-  Calendar, 
-  MapPin, 
+  ImageIcon,
+  Calendar,
+  MapPin,
   Smile,
   Globe,
   Users,
   Lock,
-  ChevronDown
-} from 'lucide-react';
+  ChevronDown,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useNavigate } from 'react-router-dom';
+} from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 interface MobilePostPageProps {
   onPost: (content: string, audience: string) => void;
@@ -29,15 +28,15 @@ interface MobilePostPageProps {
 
 export function MobilePostPage({ onPost }: MobilePostPageProps) {
   const navigate = useNavigate();
-  const [content, setContent] = useState('');
-  const [audience, setAudience] = useState('everyone');
+  const [content, setContent] = useState("");
+  const [audience, setAudience] = useState("everyone");
   const maxChars = 280;
 
   const handlePost = () => {
     if (content.trim()) {
       onPost(content, audience);
-      setContent('');
-      setAudience('everyone');
+      setContent("");
+      setAudience("everyone");
       navigate(-1);
     }
   };
@@ -49,16 +48,17 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
   const isDisabled = !content.trim() || content.length > maxChars;
 
   const audienceOptions = [
-    { value: 'everyone', label: 'Everyone', icon: Globe },
-    { value: 'following', label: 'Following', icon: Users },
-    { value: 'private', label: 'Private', icon: Lock }
+    { value: "everyone", label: "Everyone", icon: Globe },
+    { value: "following", label: "Following", icon: Users },
+    { value: "private", label: "Private", icon: Lock },
   ];
 
-  const selectedAudienceOption = audienceOptions.find(opt => opt.value === audience);
+  const selectedAudienceOption = audienceOptions.find(
+    (opt) => opt.value === audience
+  );
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center space-x-4">
           <Button
@@ -80,16 +80,14 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
         </Button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 p-4">
         <div className="flex space-x-3">
           <Avatar className="w-12 h-12 flex-shrink-0">
             <AvatarImage src="/api/placeholder/48/48" />
             <AvatarFallback>YU</AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 space-y-4">
-            {/* Audience Selector */}
             <Select value={audience} onValueChange={setAudience}>
               <SelectTrigger className="w-fit border-none p-0 h-auto">
                 <SelectValue>
@@ -116,7 +114,6 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
               </SelectContent>
             </Select>
 
-            {/* Text Area */}
             <Textarea
               placeholder="What's happening?"
               value={content}
@@ -128,24 +125,39 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
         </div>
       </div>
 
-      {/* Bottom Actions */}
       <div className="p-4 border-t">
         <div className="flex items-center justify-between">
           <div className="flex space-x-1">
-            <Button variant="ghost" size="sm" className="p-2 h-auto hover:bg-primary/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-auto hover:bg-primary/10"
+            >
               <ImageIcon className="h-5 w-5 text-primary" />
             </Button>
-            <Button variant="ghost" size="sm" className="p-2 h-auto hover:bg-primary/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-auto hover:bg-primary/10"
+            >
               <Calendar className="h-5 w-5 text-primary" />
             </Button>
-            <Button variant="ghost" size="sm" className="p-2 h-auto hover:bg-primary/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-auto hover:bg-primary/10"
+            >
               <MapPin className="h-5 w-5 text-primary" />
             </Button>
-            <Button variant="ghost" size="sm" className="p-2 h-auto hover:bg-primary/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-auto hover:bg-primary/10"
+            >
               <Smile className="h-5 w-5 text-primary" />
             </Button>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <div className="text-sm text-primary">
               <Globe className="h-4 w-4 inline mr-1" />
@@ -153,9 +165,15 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="flex justify-end mt-2">
-          <span className={`text-sm ${content.length > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
+          <span
+            className={`text-sm ${
+              content.length > maxChars
+                ? "text-destructive"
+                : "text-muted-foreground"
+            }`}
+          >
             {content.length}/{maxChars}
           </span>
         </div>

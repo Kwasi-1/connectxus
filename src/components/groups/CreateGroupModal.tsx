@@ -71,11 +71,9 @@ export function CreateGroupModal({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
-  // Image upload states
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
 
-  // Project-specific fields
   const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([]);
   const [projectDeadline, setProjectDeadline] = useState("");
   const [currentRole, setCurrentRole] = useState({
@@ -95,14 +93,12 @@ export function CreateGroupModal({
     setTags(tags.filter((t) => t !== tag));
   };
 
-  // Image upload handlers
   const handleProfileImageUpload = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
         toast({
           title: "File too large",
           description: "Profile image must be less than 5MB",
@@ -125,7 +121,6 @@ export function CreateGroupModal({
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
         toast({
           title: "File too large",
           description: "Banner image must be less than 10MB",
@@ -233,7 +228,6 @@ export function CreateGroupModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Group Type Selection */}
           <div className="space-y-2">
             <Label>Group Type</Label>
             <Select
@@ -257,7 +251,6 @@ export function CreateGroupModal({
             </Select>
           </div>
 
-          {/* Basic Information */}
           <div className="space-y-2">
             <Label htmlFor="name">Group Name *</Label>
             <Input
@@ -298,7 +291,6 @@ export function CreateGroupModal({
             </Select>
           </div>
 
-          {/* Tags */}
           <div className="space-y-2">
             <Label>Tags</Label>
             <div className="flex gap-2">
@@ -327,11 +319,9 @@ export function CreateGroupModal({
             </div>
           </div>
 
-          {/* Group Images */}
           <div className="space-y-4">
             <h3 className="font-semibold">Group Images</h3>
 
-            {/* Profile Image */}
             <div className="space-y-2">
               <Label>Profile Image</Label>
               <div className="flex items-center gap-4">
@@ -385,7 +375,6 @@ export function CreateGroupModal({
               </div>
             </div>
 
-            {/* Banner Image */}
             <div className="space-y-2">
               <Label>Banner Image (Optional)</Label>
               <div className="space-y-2">
@@ -440,7 +429,6 @@ export function CreateGroupModal({
             </div>
           </div>
 
-          {/* Project-Based Group Fields */}
           {groupType === "project" && (
             <>
               <div className="border-t pt-4 space-y-4">
@@ -501,7 +489,6 @@ export function CreateGroupModal({
                   </Button>
                 </div>
 
-                {/* Display Added Roles */}
                 {projectRoles.length > 0 && (
                   <div className="space-y-2">
                     {projectRoles.map((role) => (
@@ -550,7 +537,6 @@ export function CreateGroupModal({
             </>
           )}
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={handleClose}>
               Cancel

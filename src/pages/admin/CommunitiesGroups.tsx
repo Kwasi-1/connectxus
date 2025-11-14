@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +28,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Search,
   MoreHorizontal,
@@ -39,36 +56,455 @@ import {
   XCircle,
   AlertTriangle,
   Plus,
-  Filter,
   Download,
   Edit,
   Trash2,
   UserPlus,
   Eye,
   Flag,
-  Calendar,
-  Crown,
   Lock,
   Globe,
   Briefcase,
   Ban,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Community, Group } from "@/types/communities";
+import { Community } from "@/types/communities";
 import { User } from "@/types/global";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
-import {
-  mockCommunitiesApi,
-  mockGroupsApi,
-  mockUsersApi,
-  type AdminGroup,
-} from "@/data/mockAdminCommunitiesData";
-import {
-  CreateCommunityModal,
-  GroupDetailsModal,
-  SuspendGroupDialog,
-} from "@/components/admin/communities";
+import { adminApi } from "@/api/admin.api";
+import { groupsApi } from "@/api/groups.api";
+import { getDefaultSpaceId } from "@/lib/apiClient";
+import { type AdminGroup } from "@/data/mockAdminCommunitiesData";
+import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
+
+interface CreateCommunityModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateCommunity: (communityData: Partial<Community>) => Promise<void>;
+}
+
+function CreateCommunityModal({
+  open,
+  onOpenChange,
+  onCreateCommunity,
+}: CreateCommunityModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    category: "Academic",
+    coverImage: "",
+    isPublic: true,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const settings = {
+        theme: {
+          accent_color: "#3B82F6",
+          primary_color: "#1F2937",
+          dark_mode_enabled: false,
+        },
+        branding: {
+          favicon: "",
+          tagline: formData.description || "",
+          short_name: formData.name.substring(0, 3).toUpperCase(),
+        },
+        features: {
+          enable_events: true,
+          enable_mentorship: true,
+          enable_marketplace: false,
+          enable_social_feed: true,
+          enable_learning_portal: false,
+        },
+        access_policies: {
+          moderation_level: "moderate",
+          allow_guest_users: false,
+          require_verified_email: true,
+        },
+      };
+
+      const settingsJson = JSON.stringify(settings);
+      const settingsBytes = new TextEncoder().encode(settingsJson);
+
+      await onCreateCommunity({
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        coverImage: formData.coverImage,
+        isPublic: formData.isPublic,
+      });
+
+      setFormData({
+        name: "",
+        description: "",
+        category: "Academic",
+        coverImage: "",
+        isPublic: true,
+      });
+    } catch (error) {
+      console.error("Error in form submission:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      setFormData({
+        name: "",
+        description: "",
+        category: "Academic",
+        coverImage: "",
+        isPublic: true,
+      });
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Community</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to create a new community. All fields
+            marked with * are required.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Community Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="e.g., Computer Science Students"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+                disabled={loading}
+                minLength={3}
+                maxLength={100}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must be between 3 and 100 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe the purpose and goals of this community..."
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                rows={4}
+                disabled={loading}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                {formData.description.length}/500 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category: value })
+                }
+                disabled={loading}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                  <SelectItem value="Department">Department</SelectItem>
+                  <SelectItem value="Level">Level</SelectItem>
+                  <SelectItem value="Hostel">Hostel</SelectItem>
+                  <SelectItem value="Faculty">Faculty</SelectItem>
+                  <SelectItem value="Sports">Sports</SelectItem>
+                  <SelectItem value="Arts">Arts</SelectItem>
+                  <SelectItem value="Technology">Technology</SelectItem>
+                  <SelectItem value="Social">Social</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="coverImage">Cover Image URL</Label>
+              <Input
+                id="coverImage"
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                value={formData.coverImage}
+                onChange={(e) =>
+                  setFormData({ ...formData, coverImage: e.target.value })
+                }
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional: Provide a URL for the community cover image
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="isPublic" className="text-base">
+                  Public Community
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {formData.isPublic
+                    ? "Anyone can discover and join this community"
+                    : "Only invited members can join this community"}
+                </p>
+              </div>
+              <Switch
+                id="isPublic"
+                checked={formData.isPublic}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isPublic: checked })
+                }
+                disabled={loading}
+              />
+            </div>
+
+            {formData.name && (
+              <div className="rounded-lg border p-4 space-y-2 bg-muted/50">
+                <Label className="text-sm font-medium">Preview</Label>
+                <div className="space-y-1">
+                  <p className="font-medium">{formData.name}</p>
+                  {formData.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {formData.description}
+                    </p>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                      {formData.category}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                        formData.isPublic
+                          ? "bg-green-50 text-green-700 ring-green-600/20"
+                          : "bg-orange-50 text-orange-700 ring-orange-600/20"
+                      }`}
+                    >
+                      {formData.isPublic ? "Public" : "Private"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading || !formData.name || formData.name.length < 3}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Community"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface GroupDetailsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  group: AdminGroup | null;
+}
+
+function GroupDetailsModal({
+  open,
+  onOpenChange,
+  group,
+}: GroupDetailsModalProps) {
+  if (!group) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Group Details</DialogTitle>
+          <DialogDescription>
+            Detailed information about {group.name}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={group.avatar} />
+              <AvatarFallback>
+                {group.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold">{group.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {group.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm text-muted-foreground">Type</Label>
+              <p className="text-sm font-medium capitalize">
+                {group.groupType}
+              </p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">Status</Label>
+              <p className="text-sm font-medium capitalize">{group.status}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">Members</Label>
+              <p className="text-sm font-medium">{group.memberCount}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">Flags</Label>
+              <p className="text-sm font-medium">{group.flags}</p>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm text-muted-foreground mb-2 block">
+              Creator
+            </Label>
+            <div className="flex items-center space-x-3 p-3 rounded-lg border">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={group.creatorInfo.avatar} />
+                <AvatarFallback>
+                  {group.creatorInfo.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{group.creatorInfo.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {group.creatorInfo.email}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {group.tags.length > 0 && (
+            <div>
+              <Label className="text-sm text-muted-foreground mb-2 block">
+                Tags
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {group.tags.map((tag) => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm text-muted-foreground">Created</Label>
+              <p className="text-sm font-medium">
+                {new Date(group.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">
+                Last Activity
+              </Label>
+              <p className="text-sm font-medium">
+                {new Date(group.lastActivity).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface SuspendGroupDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  group: AdminGroup | null;
+  onConfirm: () => void;
+}
+
+function SuspendGroupDialog({
+  open,
+  onOpenChange,
+  group,
+  onConfirm,
+}: SuspendGroupDialogProps) {
+  if (!group) return null;
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Suspend Group</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to suspend "{group.name}"? This will prevent
+            members from accessing the group until it is reactivated.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Suspend Group
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 export function CommunitiesGroups() {
   const { toast } = useToast();
@@ -76,8 +512,8 @@ export function CommunitiesGroups() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [groupTypeFilter, setGroupTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Communities state
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -89,25 +525,55 @@ export function CommunitiesGroups() {
     null
   );
 
-  // Groups state
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showGroupDetailsModal, setShowGroupDetailsModal] = useState(false);
   const [showSuspendGroupDialog, setShowSuspendGroupDialog] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
 
-  // Common state
   const [loading, setLoading] = useState(true);
   const [searchUsers, setSearchUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalGroups, setTotalGroups] = useState(0);
+  const [totalCommunities, setTotalCommunities] = useState(0);
+
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    description: "",
+    category: "",
+    coverImage: "",
+    isPublic: true,
+  });
 
   const fetchCommunities = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await mockCommunitiesApi.getCommunities();
-      setCommunities(data);
+      const spaceId = getDefaultSpaceId();
+
+      if (!spaceId) {
+        throw new Error("No space ID available");
+      }
+
+      const categoryParam =
+        categoryFilter === "all" ? undefined : categoryFilter;
+      const statusParam = statusFilter === "all" ? undefined : statusFilter;
+
+      const response = await adminApi.getCommunities(
+        spaceId,
+        categoryParam,
+        statusParam,
+        currentPage,
+        pageSize
+      );
+
+      setCommunities(response.communities || []);
+      setTotalCommunities(response.communities?.length || 0);
     } catch (error) {
+      console.error("Failed to fetch communities:", error);
       toast({
         title: "Error",
         description: "Failed to fetch communities.",
@@ -116,14 +582,28 @@ export function CommunitiesGroups() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, categoryFilter, statusFilter, currentPage, pageSize]);
 
   const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await mockGroupsApi.getGroups();
-      setGroups(data);
+      const spaceId = getDefaultSpaceId();
+
+      if (!spaceId) {
+        throw new Error("No space ID available");
+      }
+
+      const status = statusFilter === "all" ? undefined : statusFilter;
+      const response = await adminApi.getGroups(
+        spaceId,
+        status,
+        currentPage,
+        pageSize
+      );
+      setGroups(response.groups as AdminGroup[]);
+      setTotalGroups(response.total);
     } catch (error) {
+      console.error("Error fetching groups:", error);
       toast({
         title: "Error",
         description: "Failed to fetch groups.",
@@ -132,7 +612,7 @@ export function CommunitiesGroups() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, statusFilter, currentPage, pageSize]);
 
   const searchUsersForModerator = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -142,8 +622,20 @@ export function CommunitiesGroups() {
 
     try {
       setUserSearchLoading(true);
-      const users = await mockUsersApi.searchUsers(query);
-      setSearchUsers(users);
+      const spaceId = getDefaultSpaceId();
+
+      if (!spaceId) {
+        throw new Error("No space ID available");
+      }
+
+      const response = await adminApi.getUsers(spaceId, 1, 50);
+      const filteredUsers = response.users.filter(
+        (user: any) =>
+          user.full_name?.toLowerCase().includes(query.toLowerCase()) ||
+          user.username?.toLowerCase().includes(query.toLowerCase()) ||
+          user.email?.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchUsers(filteredUsers as User[]);
     } catch (error) {
       console.error("Failed to search users:", error);
       setSearchUsers([]);
@@ -171,26 +663,52 @@ export function CommunitiesGroups() {
   const handleCreateCommunity = useCallback(
     async (communityData: Partial<Community>) => {
       try {
-        await mockCommunitiesApi.createCommunity({
+        const spaceId = getDefaultSpaceId();
+
+        if (!spaceId) {
+          toast({
+            title: "Error",
+            description: "No space ID available. Please log in again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const payload = {
+          space_id: spaceId,
           name: communityData.name || "",
           description: communityData.description || "",
           category: communityData.category || "Academic",
-          memberCount: 0,
-          isJoined: false,
-          createdAt: new Date(),
-          admins: ["current-admin-id"], // Replace with actual admin ID
-          moderators: [],
-        });
+          cover_image: communityData.coverImage || "",
+          is_public: communityData.isPublic ?? true,
+          settings: communityData.settings || [],
+        };
+
+        console.log("Creating community with payload:", payload);
+
+        await adminApi.createCommunity(payload);
+
         toast({
           title: "Success",
           description: "Community created successfully.",
         });
         setShowCreateModal(false);
         fetchCommunities();
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Failed to create community:", error);
+        const errorCode = error?.response?.data?.error?.code;
+        let errorMessage =
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          "Failed to create community.";
+
+        if (errorCode === "space_not_found") {
+          errorMessage = `${errorMessage}\n\nTo fix this:\n1. Run: psql -d connect_db -f backend/scripts/create-default-space.sql\n2. Add the space_id to frontend/.env.local as VITE_DEFAULT_SPACE_ID`;
+        }
+
         toast({
           title: "Error",
-          description: "Failed to create community.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -202,10 +720,45 @@ export function CommunitiesGroups() {
     if (!selectedCommunity) return;
 
     try {
-      await mockCommunitiesApi.updateCommunity(
-        selectedCommunity.id,
-        selectedCommunity
-      );
+      const settings = {
+        theme: {
+          accent_color: "#3B82F6",
+          primary_color: "#1F2937",
+          dark_mode_enabled: false,
+        },
+        branding: {
+          favicon: "",
+          tagline: editFormData.description || "",
+          short_name: editFormData.name.substring(0, 3).toUpperCase(),
+        },
+        features: {
+          enable_events: true,
+          enable_mentorship: true,
+          enable_marketplace: false,
+          enable_social_feed: true,
+          enable_learning_portal: false,
+        },
+        access_policies: {
+          moderation_level: "moderate",
+          allow_guest_users: false,
+          require_verified_email: true,
+        },
+      };
+
+      const settingsJson = JSON.stringify(settings);
+      const settingsBytes = new TextEncoder().encode(settingsJson);
+
+      const payload = {
+        name: editFormData.name,
+        description: editFormData.description,
+        category: editFormData.category,
+        cover_image: editFormData.coverImage,
+        is_public: editFormData.isPublic,
+        settings: Array.from(settingsBytes),
+      };
+
+      await adminApi.updateCommunity(selectedCommunity.id, payload);
+
       toast({
         title: "Success",
         description: "Community updated successfully.",
@@ -213,20 +766,26 @@ export function CommunitiesGroups() {
       setShowEditModal(false);
       setSelectedCommunity(null);
       fetchCommunities();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Failed to update community:", error);
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        "Failed to update community.";
+
       toast({
         title: "Error",
-        description: "Failed to update community.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
-  }, [selectedCommunity, toast, fetchCommunities]);
+  }, [selectedCommunity, editFormData, toast, fetchCommunities]);
 
   const handleDeleteCommunity = useCallback(async () => {
     if (!selectedCommunity) return;
 
     try {
-      await mockCommunitiesApi.deleteCommunity(selectedCommunity.id);
+      await adminApi.deleteCommunity(selectedCommunity.id);
       toast({
         title: "Success",
         description: "Community deleted successfully.",
@@ -234,10 +793,16 @@ export function CommunitiesGroups() {
       setShowDeleteDialog(false);
       setSelectedCommunity(null);
       fetchCommunities();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Failed to delete community:", error);
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        "Failed to delete community.";
+
       toast({
         title: "Error",
-        description: "Failed to delete community.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -246,7 +811,10 @@ export function CommunitiesGroups() {
   const handleAssignModerator = useCallback(
     async (communityId: string, userId: string) => {
       try {
-        await mockCommunitiesApi.assignModerator(communityId, userId);
+        await adminApi.assignCommunityModerator(communityId, userId, [
+          "moderate_posts",
+          "manage_members",
+        ]);
         toast({
           title: "Success",
           description: "Moderator assigned successfully.",
@@ -256,10 +824,16 @@ export function CommunitiesGroups() {
         setUserSearchQuery("");
         setSearchUsers([]);
         fetchCommunities();
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Failed to assign moderator:", error);
+        const errorMessage =
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          "Failed to assign moderator.";
+
         toast({
           title: "Error",
-          description: "Failed to assign moderator.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -269,63 +843,58 @@ export function CommunitiesGroups() {
 
   const handleExport = useCallback(async () => {
     try {
-      if (activeTab === "communities") {
-        await mockCommunitiesApi.exportCommunities();
-        toast({
-          title: "Success",
-          description: "Communities data exported successfully.",
-        });
-      } else {
-        await mockGroupsApi.exportGroups();
-        toast({
-          title: "Success",
-          description: "Groups data exported successfully.",
-        });
-      }
-    } catch (error) {
+      const dataType = activeTab === "communities" ? "communities" : "groups";
+      const blob = await adminApi.exportData("csv", dataType);
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${dataType}-export-${new Date().toISOString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: `${
+          activeTab === "communities" ? "Communities" : "Groups"
+        } data exported successfully.`,
+      });
+    } catch (error: any) {
+      console.error("Failed to export data:", error);
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        "Failed to export data.";
+
       toast({
         title: "Error",
-        description: "Failed to export data.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   }, [activeTab, toast]);
 
-  // Groups handlers
-  const handleSuspendGroup = useCallback(async () => {
-    if (!selectedGroup) return;
-
-    try {
-      await mockGroupsApi.suspendGroup(selectedGroup.id);
-      toast({
-        title: "Success",
-        description: `Group "${selectedGroup.name}" has been suspended.`,
-      });
-      setShowSuspendGroupDialog(false);
-      setSelectedGroup(null);
-      fetchGroups();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to suspend group.",
-        variant: "destructive",
-      });
-    }
-  }, [selectedGroup, toast, fetchGroups]);
-
-  const handleReactivateGroup = useCallback(
-    async (group: AdminGroup) => {
+  const handleApproveGroup = useCallback(
+    async (groupId: string) => {
       try {
-        await mockGroupsApi.reactivateGroup(group.id);
+        await adminApi.approveGroup(groupId);
         toast({
           title: "Success",
-          description: `Group "${group.name}" has been reactivated.`,
+          description: "Group has been approved.",
         });
         fetchGroups();
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Error approving group:", error);
+        const errorMessage =
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          "Failed to approve group.";
+
         toast({
           title: "Error",
-          description: "Failed to reactivate group.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -333,19 +902,87 @@ export function CommunitiesGroups() {
     [toast, fetchGroups]
   );
 
-  // Selection handlers
+  const handleRejectGroup = useCallback(
+    async (groupId: string, reason: string) => {
+      try {
+        await adminApi.rejectGroup(groupId, reason);
+        toast({
+          title: "Success",
+          description: "Group has been rejected.",
+          variant: "destructive",
+        });
+        fetchGroups();
+      } catch (error: any) {
+        console.error("Error rejecting group:", error);
+        const errorMessage =
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          "Failed to reject group.";
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    },
+    [toast, fetchGroups]
+  );
+
+  const handleDeleteGroup = useCallback(
+    async (groupId: string) => {
+      try {
+        await adminApi.deleteGroup(groupId);
+        toast({
+          title: "Success",
+          description: "Group has been deleted.",
+        });
+        fetchGroups();
+      } catch (error: any) {
+        console.error("Error deleting group:", error);
+        const errorMessage =
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          "Failed to delete group.";
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    },
+    [toast, fetchGroups]
+  );
+
+  const handleSuspendGroup = useCallback(async () => {
+    if (!selectedGroup) return;
+    toast({
+      title: "Feature Not Available",
+      description: "Group suspension feature is not yet implemented.",
+      variant: "destructive",
+    });
+    setShowSuspendGroupDialog(false);
+    setSelectedGroup(null);
+  }, [selectedGroup, toast]);
+
+  const handleReactivateGroup = useCallback(
+    async (group: AdminGroup) => {
+      toast({
+        title: "Feature Not Available",
+        description: "Group reactivation feature is not yet implemented.",
+        variant: "destructive",
+      });
+    },
+    [toast]
+  );
 
   const filteredCommunities = communities.filter((community) => {
     const matchesSearch =
       community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       community.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      statusFilter === "all" ||
-      (statusFilter === "academic" && community.category === "Academic") ||
-      (statusFilter === "department" && community.category === "Department") ||
-      (statusFilter === "level" && community.category === "Level") ||
-      (statusFilter === "hostel" && community.category === "Hostel") ||
-      (statusFilter === "faculty" && community.category === "Faculty");
+      categoryFilter === "all" || community.category === categoryFilter;
 
     return matchesSearch && matchesCategory;
   });
@@ -461,16 +1098,6 @@ export function CommunitiesGroups() {
     }
   };
 
-  const handleSelectAll = () => {
-    if (selectedCommunities.length === filteredCommunities.length) {
-      setSelectedCommunities([]);
-    } else {
-      setSelectedCommunities(
-        filteredCommunities.map((community) => community.id)
-      );
-    }
-  };
-
   const getCategoryBadge = (category: string) => {
     const colors: Record<string, string> = {
       Academic: "bg-blue-100 text-blue-800",
@@ -478,6 +1105,10 @@ export function CommunitiesGroups() {
       Level: "bg-purple-100 text-purple-800",
       Hostel: "bg-orange-100 text-orange-800",
       Faculty: "bg-indigo-100 text-indigo-800",
+      Sports: "bg-red-100 text-red-800",
+      Arts: "bg-pink-100 text-pink-800",
+      Technology: "bg-cyan-100 text-cyan-800",
+      Social: "bg-yellow-100 text-yellow-800",
     };
     return (
       <Badge className={colors[category] || "bg-gray-100 text-gray-800"}>
@@ -486,7 +1117,6 @@ export function CommunitiesGroups() {
     );
   };
 
-  // Calculate statistics based on active tab
   const communityStats = {
     total: communities.length,
     academic: communities.filter((c) => c.category === "Academic").length,
@@ -504,7 +1134,6 @@ export function CommunitiesGroups() {
     totalMembers: groups.reduce((acc, group) => acc + group.memberCount, 0),
   };
 
-  // Create stats cards data based on active tab
   const statsCards =
     activeTab === "communities"
       ? [
@@ -560,7 +1189,6 @@ export function CommunitiesGroups() {
           },
         ];
 
-  // Create action buttons
   const actionButtons = [
     {
       label: `Export ${activeTab === "communities" ? "Communities" : "Groups"}`,
@@ -577,19 +1205,29 @@ export function CommunitiesGroups() {
             onClick: () => setShowCreateModal(true),
           },
         ]
-      : []),
+      : [
+          {
+            label: "Create Group",
+            icon: <Plus className="h-4 w-4 mr-2" />,
+            variant: "default" as const,
+            onClick: () => setShowCreateGroupModal(true),
+          },
+        ]),
   ];
 
-  // Create filter options
   const filterOptions =
     activeTab === "communities"
       ? [
           { value: "all", label: "All Categories" },
-          { value: "academic", label: "Academic" },
-          { value: "department", label: "Department" },
-          { value: "level", label: "Level" },
-          { value: "hostel", label: "Hostel" },
-          { value: "faculty", label: "Faculty" },
+          { value: "Academic", label: "Academic" },
+          { value: "Department", label: "Department" },
+          { value: "Level", label: "Level" },
+          { value: "Hostel", label: "Hostel" },
+          { value: "Faculty", label: "Faculty" },
+          { value: "Sports", label: "Sports" },
+          { value: "Arts", label: "Arts" },
+          { value: "Technology", label: "Technology" },
+          { value: "Social", label: "Social" },
         ]
       : [
           { value: "all", label: "All Status" },
@@ -605,10 +1243,8 @@ export function CommunitiesGroups() {
     { value: "project", label: "Project" },
   ];
 
-  // Create communities table content
   const communitiesTableContent = (
     <div className="space-y-4">
-      {/* Communities Table with header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">
           Communities ({filteredCommunities.length})
@@ -649,13 +1285,19 @@ export function CommunitiesGroups() {
           {loading ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8">
-                Loading communities...
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Loading communities...
+                </p>
               </TableCell>
             </TableRow>
           ) : filteredCommunities.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8">
-                No communities found.
+                <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No communities found.
+                </p>
               </TableCell>
             </TableRow>
           ) : (
@@ -677,15 +1319,13 @@ export function CommunitiesGroups() {
                     </Avatar>
                     <div>
                       <div className="font-medium">{community.name}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground line-clamp-1">
                         {community.description}
                       </div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{community.category}</Badge>
-                </TableCell>
+                <TableCell>{getCategoryBadge(community.category)}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Users className="h-4 w-4 mr-1 text-muted-foreground" />
@@ -693,7 +1333,7 @@ export function CommunitiesGroups() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {community.createdAt.toLocaleDateString()}
+                  {new Date(community.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -706,6 +1346,13 @@ export function CommunitiesGroups() {
                       <DropdownMenuItem
                         onClick={() => {
                           setSelectedCommunity(community);
+                          setEditFormData({
+                            name: community.name,
+                            description: community.description,
+                            category: community.category,
+                            coverImage: community.coverImage || "",
+                            isPublic: community.isPublic ?? true,
+                          });
                           setShowEditModal(true);
                         }}
                       >
@@ -743,10 +1390,8 @@ export function CommunitiesGroups() {
     </div>
   );
 
-  // Create groups table content
   const groupsTableContent = (
     <div className="space-y-4">
-      {/* Additional filter for groups */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <h3 className="text-lg font-medium">
@@ -803,13 +1448,19 @@ export function CommunitiesGroups() {
           {loading ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8">
-                Loading groups...
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Loading groups...
+                </p>
               </TableCell>
             </TableRow>
           ) : filteredGroups.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8">
-                No groups found.
+                <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No groups found.
+                </p>
               </TableCell>
             </TableRow>
           ) : (
@@ -891,9 +1542,10 @@ export function CommunitiesGroups() {
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    <div>{group.createdAt.toLocaleDateString()}</div>
+                    <div>{new Date(group.createdAt).toLocaleDateString()}</div>
                     <div className="text-xs text-muted-foreground">
-                      Last active: {group.lastActivity.toLocaleDateString()}
+                      Last active:{" "}
+                      {new Date(group.lastActivity).toLocaleDateString()}
                     </div>
                   </div>
                 </TableCell>
@@ -915,6 +1567,27 @@ export function CommunitiesGroups() {
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      {group.status === "pending" && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => handleApproveGroup(group.id)}
+                            className="text-green-600"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve Group
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleRejectGroup(group.id, "Rejected by admin")
+                            }
+                            className="text-red-600"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject Group
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
                       {group.status === "active" ? (
                         <DropdownMenuItem
                           onClick={() => {
@@ -935,6 +1608,13 @@ export function CommunitiesGroups() {
                           Reactivate Group
                         </DropdownMenuItem>
                       ) : null}
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteGroup(group.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Group
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -946,7 +1626,6 @@ export function CommunitiesGroups() {
     </div>
   );
 
-  // Create tabs configuration
   const tabs = [
     {
       value: "communities",
@@ -972,8 +1651,12 @@ export function CommunitiesGroups() {
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         showFilter={true}
-        filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        filterValue={
+          activeTab === "communities" ? categoryFilter : statusFilter
+        }
+        onFilterChange={
+          activeTab === "communities" ? setCategoryFilter : setStatusFilter
+        }
         filterOptions={filterOptions}
         filterPlaceholder={activeTab === "communities" ? "Category" : "Status"}
         tabs={tabs}
@@ -983,12 +1666,219 @@ export function CommunitiesGroups() {
         loadingCardCount={4}
       />
 
-      {/* Modular Components */}
       <CreateCommunityModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onCreateCommunity={handleCreateCommunity}
       />
+
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Community</DialogTitle>
+            <DialogDescription>
+              Update the community information below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">
+                Community Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editFormData.description}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    description: e.target.value,
+                  })
+                }
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={editFormData.category}
+                onValueChange={(value) =>
+                  setEditFormData({ ...editFormData, category: value })
+                }
+              >
+                <SelectTrigger id="edit-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                  <SelectItem value="Department">Department</SelectItem>
+                  <SelectItem value="Level">Level</SelectItem>
+                  <SelectItem value="Hostel">Hostel</SelectItem>
+                  <SelectItem value="Faculty">Faculty</SelectItem>
+                  <SelectItem value="Sports">Sports</SelectItem>
+                  <SelectItem value="Arts">Arts</SelectItem>
+                  <SelectItem value="Technology">Technology</SelectItem>
+                  <SelectItem value="Social">Social</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-coverImage">Cover Image URL</Label>
+              <Input
+                id="edit-coverImage"
+                type="url"
+                value={editFormData.coverImage}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    coverImage: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleEditCommunity} disabled={!editFormData.name}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              community "{selectedCommunity?.name}" and remove all associated
+              data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCommunity}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog
+        open={showAssignModeratorModal}
+        onOpenChange={setShowAssignModeratorModal}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Moderator</DialogTitle>
+            <DialogDescription>
+              Search and select a user to assign as moderator for "
+              {selectedCommunity?.name}".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-search">Search Users</Label>
+              <Input
+                id="user-search"
+                placeholder="Search by name, username, or email..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {userSearchLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : searchUsers.length > 0 ? (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {searchUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      if (selectedCommunity) {
+                        handleAssignModerator(selectedCommunity.id, user.id);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>
+                          {user.fullName?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm">
+                          {user.fullName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      Assign
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : userSearchQuery ? (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                No users found.
+              </p>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                Start typing to search for users.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAssignModeratorModal(false);
+                setUserSearchQuery("");
+                setSearchUsers([]);
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <GroupDetailsModal
         open={showGroupDetailsModal}
@@ -1001,6 +1891,52 @@ export function CommunitiesGroups() {
         onOpenChange={setShowSuspendGroupDialog}
         group={selectedGroup}
         onConfirm={handleSuspendGroup}
+      />
+
+      <CreateGroupModal
+        open={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onCreateGroup={async (groupData) => {
+          try {
+            const payload: any = {
+              name: groupData.name,
+              description: groupData.description,
+              category: groupData.category,
+              group_type: groupData.groupType,
+              avatar: groupData.avatar || undefined,
+              banner: groupData.banner || undefined,
+              tags: groupData.tags,
+            };
+
+            if (
+              groupData.groupType === "project" &&
+              groupData.projectRoles &&
+              groupData.projectRoles.length > 0
+            ) {
+              payload.roles = groupData.projectRoles.map((role: any) => ({
+                name: role.name,
+                description: role.description,
+                slots_total: role.slots,
+                skills_required: [],
+              }));
+            }
+
+            await groupsApi.createGroup(payload);
+            toast({
+              title: "Success",
+              description: "Group created successfully!",
+            });
+            setShowCreateGroupModal(false);
+            fetchGroups();
+          } catch (error) {
+            console.error("Failed to create group:", error);
+            toast({
+              title: "Error",
+              description: "Failed to create group.",
+              variant: "destructive",
+            });
+          }
+        }}
       />
     </>
   );

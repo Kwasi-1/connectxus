@@ -27,15 +27,13 @@ import {
   Crown,
   UserCheck,
 } from "lucide-react";
-import {
-  mockCommunities,
-  mockCommunityPosts,
-  mockAnnouncements,
-  mockUsers,
-} from "@/data/mockCommunitiesData";
 import { Community, CommunityPost, Announcement } from "@/types/communities";
 import { Post, User } from "@/types/global";
 import { useToast } from "@/hooks/use-toast";
+import { useCommunity, useCommunityMembers, useJoinCommunity, useLeaveCommunity } from "@/hooks/useCommunities";
+import { useQuery } from "@tanstack/react-query";
+import { getPostsByCommunity } from "@/api/posts.api";
+import { mockAnnouncements } from "@/data/mockCommunitiesData";
 
 type CommunityTab = "posts" | "announcements" | "members" | "settings";
 
@@ -45,137 +43,53 @@ const CommunityDetail = () => {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<CommunityTab>("posts");
-  const [isLoading, setIsLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(false);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
-  const [membersLoading, setMembersLoading] = useState(false);
-
-  const [community, setCommunity] = useState<Community | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [members, setMembers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Post composer state
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
+    const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [newPostContent, setNewPostContent] = useState("");
 
-  // Announcement creation state
-  const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
+    const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
   const [newAnnouncementContent, setNewAnnouncementContent] = useState("");
   const [isPinned, setIsPinned] = useState(false);
 
-  // Settings state
-  const [isEditingSettings, setIsEditingSettings] = useState(false);
+    const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [communityDescription, setCommunityDescription] = useState("");
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  const currentUserId = "user-1"; // Mock current user ID
+    const { data: community, isLoading } = useCommunity(id || '');
+  const { data: posts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ['community-posts', id],
+    queryFn: () => getPostsByCommunity(id || ''),
+    enabled: !!id && activeTab === 'posts',
+  });
+  const { data: members = [], isLoading: membersLoading } = useCommunityMembers(id || '', { page: 1, limit: 100 });
 
-  useEffect(() => {
-    const fetchCommunity = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+  const joinMutation = useJoinCommunity();
+  const leaveMutation = useLeaveCommunity();
 
-        const foundCommunity = mockCommunities.find((c) => c.id === id);
-        if (foundCommunity) {
-          setCommunity(foundCommunity);
-          setCommunityDescription(foundCommunity.description);
-        }
-      } catch (error) {
-        console.error("Error fetching community:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchCommunity();
+    useEffect(() => {
+    if (community?.description) {
+      setCommunityDescription(community.description);
     }
-  }, [id]);
+  }, [community]);
 
-  const fetchPosts = useCallback(async () => {
-    setPostsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const communityPosts = mockCommunityPosts
-        .filter((p) => p.communityId === id)
-        .map(
-          (p) =>
-            ({
-              ...p,
-              images: p.images || [],
-              video: undefined,
-              updatedAt: undefined,
-              quotes: 0,
-            } as Post)
-        );
-
-      setPosts(communityPosts);
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    } finally {
-      setPostsLoading(false);
-    }
-  }, [id]);
-
-  const fetchAnnouncements = useCallback(async () => {
-    setAnnouncementsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+    useEffect(() => {
+    if (activeTab === "announcements" && id) {
       const communityAnnouncements = mockAnnouncements.filter(
         (a) => a.communityId === id
       );
       setAnnouncements(communityAnnouncements);
-    } catch (error) {
-      console.error("Error fetching announcements:", error);
-    } finally {
-      setAnnouncementsLoading(false);
     }
-  }, [id]);
-
-  const fetchMembers = useCallback(async () => {
-    setMembersLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      // Mock members - in real app this would fetch actual community members
-      setMembers(mockUsers);
-    } catch (error) {
-      console.error("Error fetching members:", error);
-    } finally {
-      setMembersLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "posts" && id) {
-      fetchPosts();
-    } else if (activeTab === "announcements" && id) {
-      fetchAnnouncements();
-    } else if (activeTab === "members" && id) {
-      fetchMembers();
-    }
-  }, [activeTab, id, fetchPosts, fetchAnnouncements, fetchMembers]);
+  }, [activeTab, id]);
 
   const handleJoinCommunity = () => {
-    // In communities, joining/leaving might be restricted based on criteria
-    // For now, allow manual join/leave, but in real app this would be automatic
-    if (community) {
-      setCommunity({
-        ...community,
-        isJoined: !community.isJoined,
-        memberCount: community.isJoined
-          ? community.memberCount - 1
-          : community.memberCount + 1,
-      });
+    if (!community || !id) return;
 
-      toast({
-        title: community.isJoined ? "Left community" : "Joined community",
-        description: community.isJoined
-          ? `You've left ${community.name}`
-          : `You've joined ${community.name}`,
-      });
+    if (community.is_member) {
+      leaveMutation.mutate(id);
+    } else {
+      joinMutation.mutate(id);
     }
   };
 
@@ -280,14 +194,12 @@ const CommunityDetail = () => {
     );
   };
 
-  // Placeholder for quote functionality
-  const handleQuote = (postId: string) => {
-    // Implement quote logic here
-    console.log("Quote post:", postId);
+    const handleQuote = (postId: string) => {
+        console.log("Quote post:", postId);
   };
 
-  const isAdmin = community?.admins.includes(currentUserId);
-  const isModerator = community?.moderators.includes(currentUserId);
+  const isAdmin = community?.role === 'admin' || community?.role === 'owner';
+  const isModerator = community?.role === 'moderator';
   const canManage = isAdmin || isModerator;
 
   if (isLoading) {
@@ -328,7 +240,7 @@ const CommunityDetail = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Header */}
+        {}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -346,7 +258,7 @@ const CommunityDetail = () => {
                     {community.name}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {community.memberCount.toLocaleString()} members
+                    {community.member_count.toLocaleString()} members
                   </p>
                 </div>
               </div>
@@ -363,11 +275,11 @@ const CommunityDetail = () => {
           </div>
         </div>
 
-        {/* Community Info */}
+        {}
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={community.coverImage} alt={community.name} />
+              <AvatarImage src={community.cover_image || undefined} alt={community.name} />
               <AvatarFallback className="text-lg">
                 {community.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -378,7 +290,7 @@ const CommunityDetail = () => {
                 {community.description}
               </p>
 
-              {/* Community Type Information */}
+              {}
               <div className="flex items-center gap-4 mt-3">
                 <Badge variant="secondary" className="gap-1">
                   {community.category === "Academic" && (
@@ -396,17 +308,17 @@ const CommunityDetail = () => {
                   {community.category}
                 </Badge>
 
-                {community.level && community.level !== "All" && (
+                {(community.settings as any)?.level && (community.settings as any)?.level !== "All" && (
                   <Badge variant="outline" className="gap-1">
                     <GraduationCap className="h-3 w-3" />
-                    Level {community.level}
+                    Level {(community.settings as any).level}
                   </Badge>
                 )}
 
-                {community.department && community.department !== "All" && (
+                {(community.settings as any)?.department && (community.settings as any)?.department !== "All" && (
                   <Badge variant="outline" className="gap-1">
                     <Building className="h-3 w-3" />
-                    {community.department}
+                    {(community.settings as any).department}
                   </Badge>
                 )}
               </div>
@@ -414,17 +326,17 @@ const CommunityDetail = () => {
               <div className="flex items-center gap-3 mt-3">
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {community.memberCount.toLocaleString()} members
+                  {community.member_count.toLocaleString()} members
                 </span>
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
-                  Created {community.createdAt.toLocaleDateString()}
+                  Created {new Date(community.created_at).toLocaleDateString()}
                 </span>
               </div>
 
-              {/* Join Status - Note: In real communities, this would be automatic */}
+              {}
               <div className="mt-4">
-                {community.isJoined ? (
+                {community.is_member ? (
                   <div className="flex items-center gap-2">
                     <Badge variant="default" className="gap-1">
                       <UserCheck className="h-3 w-3" />
@@ -456,7 +368,7 @@ const CommunityDetail = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {}
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as CommunityTab)}
@@ -493,8 +405,8 @@ const CommunityDetail = () => {
           </TabsList>
 
           <TabsContent value="posts" className="mt-0">
-            {/* Post Composer for Community Members */}
-            {community.isJoined && (
+            {}
+            {community.is_member && (
               <div className="p-4 border-b border-border">
                 {isComposerOpen ? (
                   <Card>
@@ -557,7 +469,7 @@ const CommunityDetail = () => {
                 {posts.length === 0 ? (
                   <div className="p-8 text-center">
                     <p className="text-muted-foreground">
-                      {community.isJoined
+                      {community.is_member
                         ? "No posts yet. Be the first to share something!"
                         : "No posts yet in this community"}
                     </p>
@@ -580,7 +492,7 @@ const CommunityDetail = () => {
           </TabsContent>
 
           <TabsContent value="announcements" className="mt-0">
-            {/* Announcement Creator for Moderators/Admins */}
+            {}
             {canManage && (
               <div className="p-4 border-b border-border">
                 {isCreatingAnnouncement ? (
@@ -719,7 +631,7 @@ const CommunityDetail = () => {
             <>
               <TabsContent value="members" className="mt-0">
                 <div className="p-4 space-y-4">
-                  {/* Member Search */}
+                  {}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
@@ -730,7 +642,7 @@ const CommunityDetail = () => {
                     />
                   </div>
 
-                  {/* Members List */}
+                  {}
                   {membersLoading ? (
                     <LoadingSpinner />
                   ) : (
@@ -827,7 +739,7 @@ const CommunityDetail = () => {
                       Community Settings
                     </h3>
 
-                    {/* Basic Information */}
+                    {}
                     <Card>
                       <CardHeader>
                         <CardTitle>Basic Information</CardTitle>
@@ -921,7 +833,7 @@ const CommunityDetail = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Community Statistics */}
+                    {}
                     <Card>
                       <CardHeader>
                         <CardTitle>Community Statistics</CardTitle>
@@ -960,7 +872,7 @@ const CommunityDetail = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Management Team */}
+                    {}
                     <Card>
                       <CardHeader>
                         <CardTitle>Management Team</CardTitle>

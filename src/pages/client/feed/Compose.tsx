@@ -22,11 +22,9 @@ const Compose = () => {
       createdAt: new Date(),
     };
 
-    // Store the new post in sessionStorage so the feed can pick it up
-    sessionStorage.setItem('newPost', JSON.stringify(newPost));
+        sessionStorage.setItem('newPost', JSON.stringify(newPost));
     
-    // Navigate back to the feed
-    navigate('/', { replace: true });
+        navigate('/', { replace: true });
   };
 
   return <MobilePostPage onPost={handleCreatePost} />;

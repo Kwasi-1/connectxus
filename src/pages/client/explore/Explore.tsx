@@ -1,75 +1,107 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { PostCard } from '@/components/feed/PostCard';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { mockPosts, mockUsers } from '@/data/mockData';
-import { Post, User } from '@/types/global';
+import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Search as SearchIcon, ArrowLeft } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { PostCard } from "@/components/feed/PostCard";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { searchApi } from "@/api/search.api";
+import { toggleLikePost, repostPost } from "@/api/posts.api";
+import { toast } from "sonner";
 
-type SearchTab = 'top' | 'latest' | 'people' | 'media';
+type SearchTab = "top" | "latest" | "people" | "media";
 
 const Explore = () => {
-  const [activeTab, setActiveTab] = useState<SearchTab>('top');
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<SearchTab>("top");
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Simulate API call with useEffect
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setPosts([]);
-      setUsers([]);
-      return;
-    }
+  const { data: searchResults, isLoading } = useQuery({
+    queryKey: ["explore", searchQuery, activeTab],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return null;
 
-    const fetchData = async () => {
-      setLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Filter data based on active tab and search query
-      const query = searchQuery.toLowerCase();
-      
-      if (activeTab === 'people') {
-        const filteredUsers = mockUsers.filter(user => 
-          user.displayName.toLowerCase().includes(query) ||
-          user.username.toLowerCase().includes(query) ||
-          (user.bio && user.bio.toLowerCase().includes(query))
-        );
-        setUsers(filteredUsers);
+      if (activeTab === "people") {
+        const users = await searchApi.searchUsers({
+          query: searchQuery,
+          page: 1,
+          limit: 50,
+        });
+        return { users, posts: [] };
       } else {
-        let filteredPosts = mockPosts.filter(post => 
-          post.content.toLowerCase().includes(query) ||
-          post.author.displayName.toLowerCase().includes(query) ||
-          post.author.username.toLowerCase().includes(query)
-        );
-        
-        if (activeTab === 'latest') {
-          filteredPosts = filteredPosts.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        } else if (activeTab === 'media') {
-          filteredPosts = filteredPosts.filter(post => post.images && post.images.length > 0);
-        } else if (activeTab === 'top') {
-          filteredPosts = filteredPosts.sort((a, b) => 
-            (b.likes + b.comments + b.reposts) - (a.likes + a.comments + a.reposts)
-          );
-        }
-        
-        setPosts(filteredPosts);
+        const posts = await searchApi.searchPosts({
+          query: searchQuery,
+          page: 1,
+          limit: 50,
+        });
+        return { posts, users: [] };
       }
-      
-      setLoading(false);
-    };
+    },
+    enabled: !!searchQuery.trim(),
+    staleTime: 30000,
+  });
 
-    fetchData();
-  }, [activeTab, searchQuery]);
+  const likeMutation = useMutation({
+    mutationFn: (postId: string) => toggleLikePost(postId),
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({
+        queryKey: ["explore", searchQuery, activeTab],
+      });
+      const previousData = queryClient.getQueryData([
+        "explore",
+        searchQuery,
+        activeTab,
+      ]);
+
+      queryClient.setQueryData(
+        ["explore", searchQuery, activeTab],
+        (old: any) => {
+          if (!old || !old.posts) return old;
+          return {
+            ...old,
+            posts: old.posts.map((post: any) =>
+              post.id === postId
+                ? {
+                    ...post,
+                    is_liked: !post.is_liked,
+                    likes_count: post.is_liked
+                      ? post.likes_count - 1
+                      : post.likes_count + 1,
+                  }
+                : post
+            ),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (err, postId, context: any) => {
+      queryClient.setQueryData(
+        ["explore", searchQuery, activeTab],
+        context?.previousData
+      );
+      toast.error("Failed to like post");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["explore"] });
+    },
+  });
+
+  const repostMutation = useMutation({
+    mutationFn: (postId: string) => repostPost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["explore"] });
+      toast.success("Post reposted!");
+    },
+    onError: () => {
+      toast.error("Failed to repost");
+    },
+  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +113,7 @@ const Explore = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     if (value.trim()) {
       setSearchParams({ q: value });
     } else {
@@ -94,59 +126,88 @@ const Explore = () => {
   };
 
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { 
-            ...post, 
-            isLiked: !post.isLiked, 
-            likes: post.isLiked ? post.likes - 1 : post.likes + 1 
-          }
-        : post
-    ));
+    likeMutation.mutate(postId);
   };
 
   const handleComment = (postId: string) => {
-    console.log('Comment on post:', postId);
+    navigate(`/post/${postId}`);
   };
 
   const handleRepost = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { 
-            ...post, 
-            isReposted: !post.isReposted, 
-            reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1 
-          }
-        : post
-    ));
+    repostMutation.mutate(postId);
   };
 
   const handleShare = (postId: string) => {
-    console.log('Share post:', postId);
+    const shareUrl = `${window.location.origin}/post/${postId}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied to clipboard!");
   };
 
   const handleQuote = (postId: string) => {
-    console.log('Quote post:', postId);
+    navigate(`/compose?quote=${postId}`);
   };
 
   const handleUserClick = (username: string) => {
     navigate(`/profile/${username}`);
   };
 
+  const processedPosts = searchResults?.posts
+    ? (() => {
+        let posts = [...searchResults.posts];
+
+        if (activeTab === "latest") {
+          posts.sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          );
+        } else if (activeTab === "media") {
+          posts = posts.filter((post) => post.media && post.media.length > 0);
+        } else if (activeTab === "top") {
+          posts.sort(
+            (a, b) =>
+              b.likes_count +
+              b.comments_count +
+              b.reposts_count -
+              (a.likes_count + a.comments_count + a.reposts_count)
+          );
+        }
+
+        return posts;
+      })()
+    : [];
+
+  const transformedPosts = processedPosts.map((post: any) => ({
+    id: post.id,
+    content: post.content,
+    author: {
+      id: post.author_id,
+      username: post.author?.username || post.username || "unknown",
+      displayName: post.author?.full_name || post.full_name || "Unknown User",
+      avatar: post.author?.avatar || post.author_avatar,
+      verified: post.author?.verified || false,
+    },
+    createdAt: post.created_at,
+    likes: post.likes_count || 0,
+    comments: post.comments_count || 0,
+    reposts: post.reposts_count || 0,
+    isLiked: post.is_liked || false,
+    isReposted: false,
+    images: post.media || [],
+  }));
+
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Sticky Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
-          {/* Search Bar */}
           <div className="flex items-center gap-4 px-4 py-3">
-            <button 
+            <button
               onClick={handleBack}
               className="p-2 rounded-full hover:bg-hover transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            
+
             <form onSubmit={handleSearch} className="flex-1">
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -159,31 +220,33 @@ const Explore = () => {
               </div>
             </form>
           </div>
-          
-          {/* Search Tabs */}
+
           {searchQuery && (
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SearchTab)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as SearchTab)}
+            >
               <TabsList className="w-full justify-evenly rounded-none pb-0 h-auto bg-transparent border-none">
-                <TabsTrigger 
-                  value="top" 
+                <TabsTrigger
+                  value="top"
                   className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Top
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="latest" 
+                <TabsTrigger
+                  value="latest"
                   className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Latest
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="people" 
+                <TabsTrigger
+                  value="people"
                   className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   People
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="media" 
+                <TabsTrigger
+                  value="media"
                   className="flex1 px-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
                 >
                   Media
@@ -193,21 +256,25 @@ const Explore = () => {
           )}
         </div>
 
-        {/* Content */}
         <div className="mt-0">
           {!searchQuery ? (
             <div className="p-8 text-center">
-              <p className="text-muted-foreground text-lg">Try searching for people, topics, or keywords</p>
+              <p className="text-muted-foreground text-lg">
+                Try searching for people, topics, or keywords
+              </p>
             </div>
           ) : (
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SearchTab)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as SearchTab)}
+            >
               <TabsContent value="top" className="mt-0">
-                {loading ? (
+                {isLoading ? (
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {posts.length > 0 ? (
-                      posts.map((post) => (
+                    {transformedPosts.length > 0 ? (
+                      transformedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
@@ -220,20 +287,22 @@ const Explore = () => {
                       ))
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+                        <p className="text-muted-foreground">
+                          No results found for "{searchQuery}"
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="latest" className="mt-0">
-                {loading ? (
+                {isLoading ? (
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {posts.length > 0 ? (
-                      posts.map((post) => (
+                    {transformedPosts.length > 0 ? (
+                      transformedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
@@ -246,20 +315,22 @@ const Explore = () => {
                       ))
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-muted-foreground">No recent results found for "{searchQuery}"</p>
+                        <p className="text-muted-foreground">
+                          No recent results found for "{searchQuery}"
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="people" className="mt-0">
-                {loading ? (
+                {isLoading ? (
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {users.length > 0 ? (
-                      users.map((user) => (
+                    {searchResults?.users && searchResults.users.length > 0 ? (
+                      searchResults.users.map((user: any) => (
                         <div
                           key={user.id}
                           onClick={() => handleUserClick(user.username)}
@@ -267,27 +338,34 @@ const Explore = () => {
                         >
                           <div className="flex items-start gap-3">
                             <img
-                              src={user.avatar || '/placeholder.svg'}
-                              alt={user.displayName}
+                              src={user.avatar || "/placeholder.svg"}
+                              alt={user.username}
                               className="w-12 h-12 rounded-full object-cover"
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">
                                 <p className="font-semibold text-foreground truncate">
-                                  {user.displayName}
+                                  {user.full_name || user.username}
                                 </p>
                                 {user.verified && (
                                   <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-xs">✓</span>
+                                    <span className="text-white text-xs">
+                                      ✓
+                                    </span>
                                   </div>
                                 )}
                               </div>
-                              <p className="text-muted-foreground text-sm">@{user.username}</p>
+                              <p className="text-muted-foreground text-sm">
+                                @{user.username}
+                              </p>
                               {user.bio && (
-                                <p className="text-foreground text-sm mt-1 line-clamp-2">{user.bio}</p>
+                                <p className="text-foreground text-sm mt-1 line-clamp-2">
+                                  {user.bio}
+                                </p>
                               )}
                               <p className="text-muted-foreground text-sm mt-1">
-                                {user.followers.toLocaleString()} followers
+                                {(user.followers_count || 0).toLocaleString()}{" "}
+                                followers
                               </p>
                             </div>
                           </div>
@@ -295,20 +373,22 @@ const Explore = () => {
                       ))
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-muted-foreground">No people found for "{searchQuery}"</p>
+                        <p className="text-muted-foreground">
+                          No people found for "{searchQuery}"
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="media" className="mt-0">
-                {loading ? (
+                {isLoading ? (
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {posts.length > 0 ? (
-                      posts.map((post) => (
+                    {transformedPosts.length > 0 ? (
+                      transformedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
@@ -321,7 +401,9 @@ const Explore = () => {
                       ))
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-muted-foreground">No media found for "{searchQuery}"</p>
+                        <p className="text-muted-foreground">
+                          No media found for "{searchQuery}"
+                        </p>
                       </div>
                     )}
                   </div>

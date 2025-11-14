@@ -1,12 +1,19 @@
-
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { TutorProfile } from '@/types/global';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { TutorProfile } from "@/types/global";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { createTutoringSession } from "@/api/mentorship.api";
+import { getValidatedSpaceId } from "@/lib/apiClient";
 
 interface TutoringRequestModalProps {
   isOpen: boolean;
@@ -14,32 +21,57 @@ interface TutoringRequestModalProps {
   tutor: TutorProfile;
 }
 
-export function TutoringRequestModal({ isOpen, onClose, tutor }: TutoringRequestModalProps) {
+export function TutoringRequestModal({
+  isOpen,
+  onClose,
+  tutor,
+}: TutoringRequestModalProps) {
   const { toast } = useToast();
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [preferredTimes, setPreferredTimes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [preferredTimes, setPreferredTimes] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [duration, setDuration] = useState(60);
+
+  const createSessionMutation = useMutation({
+    mutationFn: (data: {
+      tutor_id: string;
+      scheduled_at: string;
+      duration_minutes: number;
+      subject?: string;
+    }) => createTutoringSession(data),
+    onSuccess: () => {
+      toast({
+        title: "Request Sent!",
+        description: `Your tutoring request has been sent to ${tutor.username || tutor.user?.username}. They will respond soon.`,
+      });
+      onClose();
+            setSubject("");
+      setMessage("");
+      setPreferredTimes("");
+      setScheduledDate("");
+      setDuration(60);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to send tutoring request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+        const scheduledAt = scheduledDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    toast({
-      title: "Request Sent!",
-      description: `Your tutoring request has been sent to ${tutor.user.displayName}. They will respond within 24 hours.`,
+    createSessionMutation.mutate({
+      tutor_id: tutor.user_id || tutor.user?.id || '',
+      scheduled_at: scheduledAt,
+      duration_minutes: duration,
+      subject: subject || undefined,
     });
-
-    setIsSubmitting(false);
-    onClose();
-    
-    // Reset form
-    setSubject('');
-    setMessage('');
-    setPreferredTimes('');
   };
 
   return (
@@ -48,7 +80,7 @@ export function TutoringRequestModal({ isOpen, onClose, tutor }: TutoringRequest
         <DialogHeader>
           <DialogTitle>Request Tutoring Session</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="subject">Subject</Label>
@@ -60,18 +92,33 @@ export function TutoringRequestModal({ isOpen, onClose, tutor }: TutoringRequest
               required
             />
           </div>
-          
+
           <div>
-            <Label htmlFor="times">Preferred Times</Label>
+            <Label htmlFor="scheduled">Scheduled Date & Time</Label>
             <Input
-              id="times"
-              value={preferredTimes}
-              onChange={(e) => setPreferredTimes(e.target.value)}
-              placeholder="e.g., Monday 2-4 PM, Tuesday 10-12 AM"
+              id="scheduled"
+              type="datetime-local"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
               required
             />
           </div>
-          
+
+          <div>
+            <Label htmlFor="duration">Duration (minutes)</Label>
+            <Input
+              id="duration"
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value))}
+              placeholder="60"
+              min="30"
+              max="180"
+              step="15"
+              required
+            />
+          </div>
+
           <div>
             <Label htmlFor="message">Message</Label>
             <Textarea
@@ -83,13 +130,13 @@ export function TutoringRequestModal({ isOpen, onClose, tutor }: TutoringRequest
               required
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Sending..." : "Send Request"}
+            <Button type="submit" disabled={createSessionMutation.isPending}>
+              {createSessionMutation.isPending ? "Sending..." : "Send Request"}
             </Button>
           </div>
         </form>

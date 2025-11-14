@@ -1,10 +1,9 @@
-
-import { useState, useEffect } from 'react';
-import { X, Search, Clock, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useNavigate } from 'react-router-dom';
-import { mockTrendingTopics } from '@/data/mockData';
+import { useState, useEffect } from "react";
+import { X, Search, Clock, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { mockTrendingTopics } from "@/data/mockData";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -12,13 +11,12 @@ interface SearchOverlayProps {
 }
 
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load search history from localStorage
-    const history = localStorage.getItem('searchHistory');
+    const history = localStorage.getItem("searchHistory");
     if (history) {
       setSearchHistory(JSON.parse(history));
     }
@@ -26,41 +24,36 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
   const handleSearch = (query: string = searchQuery) => {
     if (query.trim()) {
-      // Add to search history
-      const updatedHistory = [query, ...searchHistory.filter(item => item !== query)].slice(0, 3);
+      const updatedHistory = [
+        query,
+        ...searchHistory.filter((item) => item !== query),
+      ].slice(0, 3);
       setSearchHistory(updatedHistory);
-      localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
-      
-      // Navigate to explore with search query
+      localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+
       navigate(`/explore?q=${encodeURIComponent(query)}`);
       onClose();
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
 
   const clearHistory = () => {
     setSearchHistory([]);
-    localStorage.removeItem('searchHistory');
+    localStorage.removeItem("searchHistory");
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-border">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="mr-3"
-        >
+        <Button variant="ghost" size="icon" onClick={onClose} className="mr-3">
           <X className="h-5 w-5" />
         </Button>
         <div className="flex-1 relative">
@@ -76,9 +69,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {/* Recent Searches */}
         {searchHistory.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -105,7 +96,6 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
           </div>
         )}
 
-        {/* Trending */}
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center">
             <TrendingUp className="h-5 w-5 mr-2" />
@@ -123,7 +113,9 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     <p className="text-sm text-muted-foreground">
                       {index + 1} · Trending in {topic.category}
                     </p>
-                    <p className="font-semibold text-foreground">{topic.name}</p>
+                    <p className="font-semibold text-foreground">
+                      {topic.name}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {topic.posts.toLocaleString()} posts
                     </p>
