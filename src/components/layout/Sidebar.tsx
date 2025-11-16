@@ -1,14 +1,3 @@
-import {
-  Home,
-  Search,
-  Bell,
-  Mail,
-  Users,
-  BookOpen,
-  GraduationCap,
-  User,
-  MoreHorizontal,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PostModal } from "@/components/post/PostModal";
 import { cn } from "@/lib/utils";
@@ -17,21 +6,29 @@ import { useState } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { UserProfile } from "./UserProfile";
 import Logo from "../shared/Logo";
+import HomeIcon from "@/assets/icons/HomeIcon.svg?react";
+import ExploreIcon from "@/assets/icons/ExploreIcon.svg?react";
+import NotificationsIcon from "@/assets/icons/NotificationsIcon.svg?react";
+import MessagesIcon from "@/assets/icons/MessagesIcon.svg?react";
+import GroupsIcon from "@/assets/icons/GroupsIcon.svg?react";
+import TutoringIcon from "@/assets/icons/TutoringIcon.svg?react";
+import MentorsIcon from "@/assets/icons/MentorsIcon.svg?react";
+import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 
 const navigationItems = [
-  { icon: Home, label: "Home", path: "/feed", id: "home" },
-  { icon: Search, label: "Explore", path: "/search", id: "explore" },
+  { icon: HomeIcon, label: "Home", path: "/feed", id: "home" },
+  { icon: ExploreIcon, label: "Explore", path: "/search", id: "explore" },
   {
-    icon: Bell,
+    icon: NotificationsIcon,
     label: "Notifications",
     path: "/notifications",
     id: "notifications",
   },
-  { icon: Mail, label: "Messages", path: "/messages", id: "messages" },
-  { icon: Users, label: "Groups", path: "/hub", id: "groups" },
-  { icon: BookOpen, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: GraduationCap, label: "Mentors", path: "/mentors", id: "mentors" },
-  { icon: User, label: "Account", path: "/account", id: "account" },
+  { icon: MessagesIcon, label: "Messages", path: "/messages", id: "messages" },
+  { icon: GroupsIcon, label: "Groups", path: "/hub", id: "groups" },
+  { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
+  { icon: MentorsIcon, label: "Mentors", path: "/mentors", id: "mentors" },
+  { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
 ];
 
 interface SidebarProps {
@@ -84,7 +81,12 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
                   isActive && "font-bold"
                 )}
               >
-                <Icon className="h-6 w-6 text-3xl xl:h-5 xl:w-5" />
+                <Icon
+                  className={cn(
+                    "h-6 w-6 text-3xl xl:h-[22px] xl:w-[22px] transtion duration-300",
+                    isActive ? "fill-transparent scale-110" : "stroke-current"
+                  )}
+                />
                 <span className="ml-4 hidden xl:block">{item.label}</span>
               </Link>
             );
