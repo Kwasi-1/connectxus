@@ -1,55 +1,45 @@
-
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MentoringRequest } from '@/types/mentoring';
-import { Calendar, Check, X, User } from 'lucide-react';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MentorshipRequest as ApiMentorshipRequest } from "@/api/mentorship.api";
+import { Calendar, Check, X, User } from "lucide-react";
+import { format } from "date-fns";
 
 interface MentoringRequestCardProps {
-  request: MentoringRequest;
+  request: ApiMentorshipRequest;
   onAccept?: (requestId: string) => void;
   onDecline?: (requestId: string) => void;
   showActions?: boolean;
 }
 
-export function MentoringRequestCard({ 
-  request, 
-  onAccept, 
-  onDecline, 
-  showActions = true 
+export function MentoringRequestCard({
+  request,
+  onAccept,
+  onDecline,
+  showActions = true,
 }: MentoringRequestCardProps) {
-  const { toast } = useToast();
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted':
-        return 'bg-green-500';
-      case 'declined':
-        return 'bg-red-500';
+      case "accepted":
+      case "approved":
+        return "bg-green-500";
+      case "declined":
+      case "rejected":
+        return "bg-red-500";
       default:
-        return 'bg-yellow-500';
+        return "bg-yellow-500";
     }
   };
 
   const handleAccept = () => {
     if (onAccept) {
       onAccept(request.id);
-      toast({
-        title: "Request Accepted",
-        description: "You have accepted the mentoring request. The student will be notified.",
-      });
     }
   };
 
   const handleDecline = () => {
     if (onDecline) {
       onDecline(request.id);
-      toast({
-        title: "Request Declined",
-        description: "You have declined the mentoring request. The student will be notified.",
-      });
     }
   };
 
@@ -63,8 +53,16 @@ export function MentoringRequestCard({
               Mentoring Request
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Topic: {request.topic}
+              From:{" "}
+              {request.requester_full_name ||
+                request.requester_username ||
+                "Student"}
             </p>
+            {request.industry && (
+              <p className="text-sm text-muted-foreground">
+                Industry: {request.industry}
+              </p>
+            )}
           </div>
           <Badge className={getStatusColor(request.status)}>
             {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
@@ -72,17 +70,47 @@ export function MentoringRequestCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center text-sm">
-          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-          Submitted: {format(request.createdAt, 'MMM dd, yyyy')}
-        </div>
+        {request.created_at && (
+          <div className="flex items-center text-sm">
+            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+            Submitted: {format(new Date(request.created_at), "MMM dd, yyyy")}
+          </div>
+        )}
 
-        <div>
-          <h4 className="font-medium mb-2">Message:</h4>
-          <p className="text-sm text-muted-foreground">{request.message}</p>
-        </div>
+        {request.specialties && request.specialties.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Specialties:</h4>
+            <div className="flex flex-wrap gap-1">
+              {request.specialties.map((specialty, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {specialty}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {showActions && request.status === 'pending' && (
+        {request.message && (
+          <div>
+            <h4 className="font-medium mb-2">Message:</h4>
+            <p className="text-sm text-muted-foreground">{request.message}</p>
+          </div>
+        )}
+
+        {request.availability && request.availability.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Availability:</h4>
+            <div className="flex flex-wrap gap-1">
+              {request.availability.map((slot, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {slot}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showActions && request.status === "pending" && (
           <div className="flex justify-end space-x-2 pt-4">
             <Button
               variant="outline"
