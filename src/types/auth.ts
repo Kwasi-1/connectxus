@@ -29,8 +29,6 @@ export interface SignUpFormData {
   department?: string;
   level?: string;
   interests?: UserInterest[];
-  wantsToBeTutor?: boolean;
-  wantsToBeMapMentor?: boolean;
 }
 
 export interface SignInFormData {

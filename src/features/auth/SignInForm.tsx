@@ -1,20 +1,26 @@
-
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
-import { SignInFormData } from '@/types/auth';
-import { toast } from 'sonner';
-import { Mail, Lock } from 'lucide-react';
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { SignInFormData } from "@/types/auth";
+import { toast } from "sonner";
+import { Mail, Lock } from "lucide-react";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 interface SignInFormProps {
@@ -23,47 +29,43 @@ interface SignInFormProps {
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
   const { signIn, isLoading } = useAuth();
-  const navigate = useNavigate();
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
 
   const onSubmit = async (data: SignInFormData) => {
     try {
       await signIn(data);
-      toast.success('Signed in successfully!');
-            navigate('/feed');
+      toast.success("Signed in successfully!");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to sign in');
+      toast.error(error instanceof Error ? error.message : "Failed to sign in");
     }
   };
 
   return (
-    <div className="space-y-8">
-
+    <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-foreground font-medium">
+                  Email
+                </FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="email" 
-                      placeholder="Enter your email" 
-                      className="pl-10" 
-                      {...field} 
-                    />
-                  </div>
+                  <Input
+                    type="email"
+                    placeholder="Enter your email address"
+                    className="h-12 rounded-lg border-input bg-background"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -75,15 +77,27 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex items-center justify-between mb-2">
+                  <FormLabel>Password</FormLabel>
+                  <a
+                    href="/forget-password"
+                    className="text-sm text-foreground hover:underline font-medium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toast.info("Password reset functionality coming soon!");
+                    }}
+                  >
+                    Forget password?
+                  </a>
+                </div>
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="password" 
-                      placeholder="Enter your password" 
-                      className="pl-10" 
-                      {...field} 
+                    <Input
+                      type="password"
+                      placeholder="Enter your password here"
+                      className="pl-10"
+                      {...field}
                     />
                   </div>
                 </FormControl>
@@ -92,19 +106,44 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
             )}
           />
 
-          <Button type="submit" className="w-full h-11" disabled={isLoading}>
-            {isLoading ? 'Signing In...' : 'Sign In'}
+          <Button
+            type="submit"
+            className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 rounded-lg text-base font-medium"
+            disabled={isLoading}
+          >
+            {isLoading ? "Signing In..." : "Sign in"}
           </Button>
         </form>
       </Form>
+
+      {/* Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border"></div>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">OR</span>
+        </div>
+      </div>
+
+      {/* Google Sign In */}
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full h-11 rounded-lg border-input hover:bg-accent/50 transition-colors"
+        onClick={() => toast.info("Google sign-in coming soon!")}
+      >
+        <Icon icon="devicon:google" className="w-5 h-5 mr-2" />
+        Continue with Google
+      </Button>
 
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Don't have an account? </span>
         <button
           onClick={onToggleMode}
-          className="text-primary hover:underline font-medium"
+          className="text-foreground hover:underline font-semibold"
         >
-          Sign up
+          Create account
         </button>
       </div>
 

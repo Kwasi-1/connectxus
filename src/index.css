@@ -3,12 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
-
+/* Campus Vibe Net Design System - University Social Media Platform */
 
 @font-face {
   font-family: 'HelveticaNeue';
   src: url('./assets/fonts/HelveticaNeueLight.otf') format('opentype');
-  
+  /* url('./assets/fonts/Orpheus Pro.woff') format('woff'); */
   font-weight: 400;
   font-style: normal;
 }
@@ -48,10 +48,46 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Gellix';
+  src: url('./assets/fonts/Gellix-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gellix';
+  src: url('./assets/fonts/Gellix-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gellix';
+  src: url('./assets/fonts/Gellix-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gellix';
+  src: url('./assets/fonts/Gellix-SemiBold.woff') format('woff'), url('./assets/fonts/Gellix-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gellix';
+  src: url('./assets/fonts/Gellix-SemiBold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
+
+
 
 @layer base {
   :root {
-    
+    /* Campus Light Theme */
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
 
@@ -61,19 +97,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
 
-    
+    /* University Blue Primary */
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
     --primary-hover: 217 91% 55%;
 
-    
+    /* Academic Secondary */
     --secondary: 210 40% 96%;
     --secondary-foreground: 0 0% 0%;
 
     --muted: 220 13% 91%;
     --muted-foreground: 220 9% 46%;
 
-    
+    /* Campus Accent - Academic Green */
     --accent: 210 40% 96%;
     --accent-foreground: 0 0% 0%;
 
@@ -84,13 +120,13 @@
     --input: 220 13% 91%;
     --ring: 217 91% 60%;
 
-    
+    /* Campus-specific colors */
     --campus-orange: 25 95% 53%;
     --campus-purple: 262 83% 58%;
     --sidebar-bg: 0 0% 100%;
     --hover-bg: 220 13% 96%;
     
-    
+    /* Interactive states */
     --like-color: 331 77% 54%;
     --repost-color: 142 76% 36%;
     --comment-color: 217 91% 60%;
@@ -108,7 +144,7 @@
   }
 
   .dark {
-    
+    /* Campus Dark Theme */
     --background: 15 23% 4%;
     --foreground: 0 0% 100%;
 
@@ -118,7 +154,7 @@
     --popover: 15 23% 4%;
     --popover-foreground: 0 0% 100%;
 
-    
+    /* Dark theme primary - lighter blue */
     --primary: 217 91% 65%;
     --primary-foreground: 15 23% 4%;
     --primary-hover: 217 91% 70%;
@@ -129,7 +165,7 @@
     --muted: 15 8% 15%;
     --muted-foreground: 240 5% 64%;
 
-    
+    /* Dark accent - brighter green */
     --accent: 15 8% 15%;
     --accent-foreground: 0 0% 100%;
 
@@ -140,13 +176,13 @@
     --input: 15 8% 15%;
     --ring: 217 91% 65%;
 
-    
+    /* Dark campus colors */
     --campus-orange: 25 95% 58%;
     --campus-purple: 262 83% 65%;
     --sidebar-bg: 15 23% 4%;
     --hover-bg: 15 8% 10%;
 
-    
+    /* Dark interactive states */
     --like-color: 331 77% 60%;
     --repost-color: 142 76% 40%;
     --comment-color: 217 91% 65%;
@@ -171,9 +207,12 @@
     @apply bg-background text-foreground tracking-wide;
     font-family: 'HelveticaNeue', sans-serif;
   }
+  p {
+    @apply tracking-[0.04rem];
+  }
 }
 
-
+/* Ensure buttons use theme colors properly */
 @layer components {
   .btn-primary {
     @apply bg-foreground text-background hover:bg-foreground/90;
@@ -195,5 +234,169 @@
   .custom-font {
     font-family: 'IvyOraDisplay', sans-serif;
     @apply tracking-wide font-[300];
+  }
+  .landing-fonts {
+    * {
+      font-family: 'Gellix', sans-serif;
+      @apply tracking-[0.15px];
+    }
+  }
+
+  .gradient-bg {
+    background: 
+  radial-gradient(at 100% 0%, rgba(125, 211, 192, 0.5) 0%, transparent 50%),
+  radial-gradient(at 0% 100%, rgba(96, 165, 250, 0.6) 0%, transparent 50%),
+  radial-gradient(at 50% 0%, rgba(229, 243, 245, 1) 0%, transparent 40%),
+  linear-gradient(135deg, #F0F4F8 0%, #BFDBF7 100%);
+  }
+
+}
+
+.bg-image {
+  background-image: url('./assets/login-left.png');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Custom animations for micro-interactions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40%, 43% {
+    transform: translateY(-8px);
+  }
+  70% {
+    transform: translateY(-4px);
+  }
+  90% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(79, 70, 229, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(79, 70, 229, 0.2);
+  }
+}
+
+/* Utility classes for animations */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.6s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-bounce-gentle {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Intersection Observer animation classes */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-animate.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced focus states for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

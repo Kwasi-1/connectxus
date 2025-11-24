@@ -1,19 +1,34 @@
-
-import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { UserRole } from '@/types/auth';
-import { getRoleDisplayName } from '@/lib/role';
-import { Control } from 'react-hook-form';
+import React from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Control } from "react-hook-form";
 
 interface RoleSelectorProps {
   control: Control<any>;
   name: string;
 }
 
-const availableRoles: UserRole[] = ['student', 'ta', 'lecturer'];
+const roleOptions = [
+  { value: "student", label: "Student" },
+  { value: "staff", label: "Not a Student" },
+];
 
-export const RoleSelector: React.FC<RoleSelectorProps> = ({ control, name }) => {
+export const RoleSelector: React.FC<RoleSelectorProps> = ({
+  control,
+  name,
+}) => {
   return (
     <FormField
       control={control}
@@ -28,9 +43,9 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ control, name }) => 
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {availableRoles.map((role) => (
-                <SelectItem key={role} value={role}>
-                  {getRoleDisplayName(role)}
+              {roleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,16 +1,22 @@
 
 import React from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Control } from 'react-hook-form';
+import SelectInput from '@/components/shared/SelectInput';
 
 interface StudentFieldsProps {
   control: Control<any>;
 }
 
 const levels = ['100', '200', '300', '400', '400+'];
+const departments = [
+    { value: 'Computer Science', label: 'Computer Science' },
+    { value: 'Information Technology', label: 'Information Technology' },
+    { value: 'Business Administration', label: 'Business Administration' },
+    { value: 'Economics', label: 'Economics' },
+    { value: 'Psychology', label: 'Psychology' },
+];
 
 export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
   return (
@@ -43,56 +49,17 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
       <FormField
         control={control}
         name="department"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Department</FormLabel>
-            <FormControl>
-              <Input placeholder="Enter your department" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={control}
-        name="wantsToBeTutor"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel className="cursor-pointer">I want to be a Tutor</FormLabel>
-              <p className="text-xs text-muted-foreground">
-                Help other students with academic subjects
-              </p>
-            </div>
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={control}
-        name="wantsToBeMapMentor"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel className="cursor-pointer">I want to be a Mentor</FormLabel>
-              <p className="text-xs text-muted-foreground">
-                Guide students in career and personal development
-              </p>
-            </div>
-          </FormItem>
+        render={({ field, fieldState: { error } }) => (
+            <SelectInput
+                id="department"
+                label="Department"
+                placeholder="Select your department"
+                items={departments}
+                onChange={field.onChange}
+                errors={{ department: error?.message || '' }}
+                touched={{ department: true }}
+                values={{ department: field.value }}
+            />
         )}
       />
     </div>

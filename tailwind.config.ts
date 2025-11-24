@@ -23,6 +23,8 @@ export default {
 				sans: ['Figtree', 'sans-serif'],
 			},
 			colors: {
+				'ash-text': 'rgba(146, 146, 146, 1)',
+				'form-bg': 'rgba(224, 230, 233, 0.34)',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -76,7 +78,10 @@ export default {
 					repost: 'hsl(var(--repost-color))',
 					comment: 'hsl(var(--comment-color))'
 				},
-				hover: 'hsl(var(--hover-bg))'
+				// form: {
+        //   bg: 'rgba(224, 230, 233, 0.34)',
+        // },
+				hover: 'hsl(var(--hover-bg))',			
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
