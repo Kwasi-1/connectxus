@@ -17,6 +17,7 @@ export interface Group {
   category: string;                  group_type: 'project' | 'study' | 'social';    avatar?: string | null;
   banner?: string | null;            allow_invites: boolean;
   allow_member_posts: boolean;
+  created_by?: string | null;
   tags?: string[];
   settings?: any | null;             member_count: number;
   created_at: string;
@@ -34,15 +35,18 @@ export interface ProjectRole {
 }
 
 export interface CreateGroupRequest {
-  space_id: string;
   community_id?: string | null;
   name: string;
   description?: string | null;
-  category: string;                  group_type: 'project' | 'study' | 'social';    avatar?: string | null;
-  banner?: string | null;            allow_invites?: boolean;
+  category: string;
+  group_type: 'project' | 'study' | 'social';
+  avatar?: string | null;
+  banner?: string | null;
+  allow_invites?: boolean;
   allow_member_posts?: boolean;
   tags?: string[];
   settings?: any | null;
+  roles?: CreateRoleRequest[];
 }
 
 export interface UpdateGroupRequest {
@@ -67,10 +71,30 @@ export interface RoleApplication {
   id: string;
   role_id: string;
   user_id: string;
-  message?: string | null;           status: 'pending' | 'accepted' | 'rejected';
-  created_at: string;
-  updated_at?: string | null;
-    user?: any;                        role?: ProjectRole;              }
+  message?: string | null;
+  status: string;
+  applied_at?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  review_notes?: string | null;
+  username: string;
+  full_name: string;
+  avatar?: string | null;
+  role_name: string;
+}
+
+export interface GroupMember {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar?: string | null;
+  level?: string | null;
+  department?: string | null;
+  verified: boolean;
+  role: string;
+  joined_at?: string | null;
+  permissions: string[];
+}
 
 export interface ListGroupsParams extends PaginationParams {
   space_id?: string;                 community_id?: string;
@@ -80,10 +104,15 @@ export interface ListGroupsParams extends PaginationParams {
 }
 
 export const getGroups = async (params?: Omit<ListGroupsParams, 'space_id'>): Promise<Group[]> => {
-  const spaceId = getValidatedSpaceId();
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
 
   const response = await apiClient.get<ApiResponse<Group[]>>('/groups', {
-    params: { space_id: spaceId, ...params },
+    params: spaceId ? { space_id: spaceId, ...params } : params,
   });
   return response.data.data;
 };
@@ -93,15 +122,8 @@ export const getGroupById = async (groupId: string): Promise<Group> => {
   return response.data.data;
 };
 
-export const createGroup = async (data: Omit<CreateGroupRequest, 'space_id'>): Promise<Group> => {
-  const spaceId = getValidatedSpaceId();
-
-  const requestData: CreateGroupRequest = {
-    ...data,
-    space_id: spaceId,
-  };
-
-  const response = await apiClient.post<ApiResponse<Group>>('/groups', requestData);
+export const createGroup = async (data: CreateGroupRequest): Promise<Group> => {
+  const response = await apiClient.post<ApiResponse<Group>>('/groups', data);
   return response.data.data;
 };
 
@@ -145,8 +167,8 @@ export const getGroupJoinRequests = async (groupId: string): Promise<any[]> => {
 export const getGroupMembers = async (
   groupId: string,
   params?: PaginationParams
-): Promise<any[]> => {
-  const response = await apiClient.get<ApiResponse<any[]>>(
+): Promise<GroupMember[]> => {
+  const response = await apiClient.get<ApiResponse<GroupMember[]>>(
     `/groups/${groupId}/members`,
     { params }
   );
@@ -201,11 +223,12 @@ export const getGroupApplications = async (groupId: string): Promise<RoleApplica
 
 export const updateApplicationStatus = async (
   applicationId: string,
-  status: 'accepted' | 'rejected'
+  status: 'approved' | 'rejected',
+  review_notes?: string
 ): Promise<RoleApplication> => {
   const response = await apiClient.put<ApiResponse<RoleApplication>>(
     `/applications/${applicationId}/status`,
-    { status }
+    { status, review_notes }
   );
   return response.data.data;
 };
@@ -235,12 +258,143 @@ export const updateMemberRole = async (
 };
 
 export const getUserGroups = async (params?: PaginationParams): Promise<Group[]> => {
-  const spaceId = getValidatedSpaceId();
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
 
   const response = await apiClient.get<ApiResponse<Group[]>>('/users/groups', {
-    params: { space_id: spaceId, ...params },
+    params: spaceId ? { space_id: spaceId, ...params } : params,
   });
   return response.data.data;
+};
+
+export const getRecommendedGroups = async (params?: PaginationParams): Promise<Group[]> => {
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
+
+  const response = await apiClient.get<ApiResponse<Group[]>>('/users/groups/recommended', {
+    params: spaceId ? { space_id: spaceId, ...params } : params,
+  });
+  return response.data.data;
+};
+
+export interface JoinRequest {
+  id: string;
+  group_id: string;
+  user_id: string;
+  message?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  review_notes?: string | null;
+  username: string;
+  full_name: string;
+  avatar?: string | null;
+  level?: string | null;
+  department?: string | null;
+}
+
+export const createJoinRequest = async (
+  groupId: string,
+  data: { message?: string }
+): Promise<JoinRequest> => {
+  const response = await apiClient.post<ApiResponse<JoinRequest>>(
+    `/groups/${groupId}/join-requests`,
+    data
+  );
+  return response.data.data;
+};
+
+export const getJoinRequests = async (groupId: string): Promise<JoinRequest[]> => {
+  const response = await apiClient.get<ApiResponse<JoinRequest[]>>(
+    `/groups/${groupId}/join-requests`
+  );
+  return response.data.data;
+};
+
+export const approveJoinRequest = async (
+  requestId: string,
+  review_notes?: string
+): Promise<void> => {
+  await apiClient.put(`/join-requests/${requestId}/approve`, { review_notes });
+};
+
+export const rejectJoinRequest = async (
+  requestId: string,
+  review_notes?: string
+): Promise<void> => {
+  await apiClient.put(`/join-requests/${requestId}/reject`, { review_notes });
+};
+
+export interface Announcement {
+  id: string;
+  group_id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  is_pinned: boolean;
+  status: string;
+  created_at: string;
+  updated_at?: string | null;
+  author_username: string;
+  author_full_name: string;
+  author_avatar?: string | null;
+}
+
+export const createGroupAnnouncement = async (
+  groupId: string,
+  data: { title: string; content: string; is_pinned?: boolean }
+): Promise<Announcement> => {
+  const response = await apiClient.post<ApiResponse<Announcement>>(
+    `/groups/${groupId}/announcements`,
+    data
+  );
+  return response.data.data;
+};
+
+export const getGroupAnnouncements = async (
+  groupId: string,
+  params?: PaginationParams
+): Promise<Announcement[]> => {
+  const response = await apiClient.get<ApiResponse<Announcement[]>>(
+    `/groups/${groupId}/announcements`,
+    { params }
+  );
+  return response.data.data;
+};
+
+export const updateGroupAnnouncement = async (
+  announcementId: string,
+  data: { title: string; content: string; is_pinned?: boolean }
+): Promise<Announcement> => {
+  const response = await apiClient.put<ApiResponse<Announcement>>(
+    `/group-announcements/${announcementId}`,
+    data
+  );
+  return response.data.data;
+};
+
+export const deleteGroupAnnouncement = async (announcementId: string): Promise<void> => {
+  await apiClient.delete(`/group-announcements/${announcementId}`);
+};
+
+export const pinGroupAnnouncement = async (
+  announcementId: string,
+  pinned: boolean
+): Promise<void> => {
+  await apiClient.put(`/group-announcements/${announcementId}/pin`, { pinned });
+};
+
+export const removeGroupMember = async (groupId: string, userId: string): Promise<void> => {
+  await apiClient.delete(`/groups/${groupId}/members/${userId}`);
 };
 
 export const groupsApi = {
@@ -267,6 +421,109 @@ export const groupsApi = {
   removeGroupModerator,
   updateMemberRole,
   getUserGroups,
+  getRecommendedGroups,
+  createJoinRequest,
+  getJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  createGroupAnnouncement,
+  getGroupAnnouncements,
+  updateGroupAnnouncement,
+  deleteGroupAnnouncement,
+  pinGroupAnnouncement,
+  removeGroupMember,
 };
+
+export interface GroupResource {
+  id: string;
+  group_id: string;
+  uploaded_by: string;
+  name: string;
+  description?: string | null;
+  file_url: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  category?: string | null;
+  tags: string[];
+  download_count: number;
+  status: string;
+  created_at: string;
+  updated_at?: string | null;
+  uploader_username: string;
+  uploader_full_name: string;
+  uploader_avatar?: string | null;
+}
+
+export interface CreateResourceRequest {
+  name: string;
+  description?: string | null;
+  file_url: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  category?: string | null;
+  tags?: string[];
+}
+
+export interface UpdateResourceRequest {
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  tags?: string[];
+}
+
+export async function createGroupResource(
+  groupId: string,
+  resource: CreateResourceRequest
+): Promise<GroupResource> {
+  const response = await apiClient.post<ApiResponse<GroupResource>>(
+    `/groups/${groupId}/resources`,
+    resource
+  );
+  return response.data.data;
+}
+
+export async function getGroupResources(
+  groupId: string,
+  params?: PaginationParams
+): Promise<GroupResource[]> {
+  const response = await apiClient.get<ApiResponse<GroupResource[]>>(
+    `/groups/${groupId}/resources`,
+    { params: { ...params, space_id: getValidatedSpaceId() } }
+  );
+  return response.data.data;
+}
+
+export async function getResourceById(resourceId: string): Promise<GroupResource> {
+  const response = await apiClient.get<ApiResponse<GroupResource>>(
+    `/resources/${resourceId}`
+  );
+  return response.data.data;
+}
+
+export async function updateGroupResource(
+  resourceId: string,
+  resource: UpdateResourceRequest
+): Promise<GroupResource> {
+  const response = await apiClient.put<ApiResponse<GroupResource>>(
+    `/resources/${resourceId}`,
+    resource
+  );
+  return response.data.data;
+}
+
+export async function deleteGroupResource(resourceId: string): Promise<void> {
+  await apiClient.delete(`/resources/${resourceId}`);
+}
+
+export async function downloadResource(resourceId: string): Promise<{
+  file_url: string;
+  download_count: number;
+}> {
+  const response = await apiClient.get<ApiResponse<{
+    file_url: string;
+    download_count: number;
+  }>>(`/resources/${resourceId}/download`);
+  return response.data.data;
+}
 
 export default groupsApi;

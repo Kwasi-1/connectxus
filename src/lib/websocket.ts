@@ -4,17 +4,27 @@ import { toast } from 'sonner';
 
 type MessageHandler = (data: any) => void;
 type EventType =
-  | 'message.new'
   | 'message.created'
-  | 'message.updated'
+  | 'message.delivered'
+  | 'message.read'
   | 'message.deleted'
-  | 'notification.new'
-  | 'post.new'
+  | 'message.updated'
+  | 'notification.created'
+  | 'notification.read'
+  | 'notification.deleted'
+  | 'post.created'
+  | 'post.updated'
+  | 'post.deleted'
   | 'post.liked'
-  | 'comment.new'
-  | 'presence.update'
-  | 'typing.start'
-  | 'typing.stop';
+  | 'post.unliked'
+  | 'comment.created'
+  | 'comment.updated'
+  | 'comment.deleted'
+  | 'typing.started'
+  | 'typing.stopped'
+  | 'user.online'
+  | 'user.offline'
+  | 'presence.update';
 
 interface WebSocketMessage {
   type: string;
@@ -133,34 +143,6 @@ class WebSocketClient {
   }
 
     private handleMessage(message: WebSocketMessage): void {
-        if (message.type === 'event') {
-                        let eventType = 'message.created';
-
-            const createdHandlers = this.handlers.get('message.created' as EventType);
-      if (createdHandlers) {
-        createdHandlers.forEach((handler) => {
-          try {
-            handler(message.payload);
-          } catch (error) {
-            console.error(`Error handling message.created:`, error);
-          }
-        });
-      }
-
-            const newHandlers = this.handlers.get('message.new' as EventType);
-      if (newHandlers) {
-        newHandlers.forEach((handler) => {
-          try {
-            handler(message.payload);
-          } catch (error) {
-            console.error(`Error handling message.new:`, error);
-          }
-        });
-      }
-
-      return;
-    }
-
         const handlers = this.handlers.get(message.type as EventType);
     if (handlers) {
       handlers.forEach((handler) => {

@@ -1,10 +1,11 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
+import { variables } from '@/utils/env';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const DEFAULT_SPACE_ID = import.meta.env.VITE_DEFAULT_SPACE_ID || '';
+const API_BASE_URL = variables().API_BASE_URL || 'http://localhost:8000';
+const API_URL = variables().API_URL || 'http://localhost:8000/api';
+const DEFAULT_SPACE_ID = variables().DEFAULT_SPACE_ID || '';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -77,6 +78,11 @@ const handleApiError = (error: AxiosError<any>) => {
 
   const status = error.response.status;
   const errorData = error.response.data;
+  const url = error.config?.url || '';
+
+    if (url.includes('/my-application')) {
+    return;
+  }
 
     let message = errorData?.error?.message
     || errorData?.message

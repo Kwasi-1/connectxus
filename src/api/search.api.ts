@@ -105,11 +105,7 @@ export interface TutorSearchResult {
 export interface GlobalSearchResults {
   users: UserSearchResult[];
   posts: PostSearchResult[];
-  communities: CommunitySearchResult[];
-  groups: GroupSearchResult[];
   events: EventSearchResult[];
-  mentors: MentorSearchResult[];
-  tutors: TutorSearchResult[];
 }
 
 export const searchUsers = async (filters: SearchFilters): Promise<UserSearchResult[]> => {
@@ -181,6 +177,7 @@ export const searchMentors = async (filters: SearchFilters): Promise<MentorSearc
   const spaceId = filters.space_id || getDefaultSpaceId();
   const response = await apiClient.get<ApiResponse<MentorSearchResult[]>>('/mentors/search', {
     params: {
+      q: filters.query,
       space_id: spaceId,
       page: filters.page || 1,
       limit: filters.limit || 20,
@@ -193,6 +190,7 @@ export const searchTutors = async (filters: SearchFilters): Promise<TutorSearchR
   const spaceId = filters.space_id || getDefaultSpaceId();
   const response = await apiClient.get<ApiResponse<TutorSearchResult[]>>('/tutors/search', {
     params: {
+      q: filters.query,
       space_id: spaceId,
       page: filters.page || 1,
       limit: filters.limit || 20,
@@ -202,24 +200,16 @@ export const searchTutors = async (filters: SearchFilters): Promise<TutorSearchR
 };
 
 export const globalSearch = async (filters: SearchFilters): Promise<GlobalSearchResults> => {
-  const [users, posts, communities, groups, events, mentors, tutors] = await Promise.allSettled([
+  const [users, posts, events] = await Promise.allSettled([
     searchUsers({ ...filters, limit: 5 }),
     searchPosts({ ...filters, limit: 5 }),
-    searchCommunities({ ...filters, limit: 5 }),
-    searchGroups({ ...filters, limit: 5 }),
     searchEvents({ ...filters, limit: 5 }),
-    searchMentors({ ...filters, limit: 5 }),
-    searchTutors({ ...filters, limit: 5 }),
   ]);
 
   return {
     users: users.status === 'fulfilled' ? users.value : [],
     posts: posts.status === 'fulfilled' ? posts.value : [],
-    communities: communities.status === 'fulfilled' ? communities.value : [],
-    groups: groups.status === 'fulfilled' ? groups.value : [],
     events: events.status === 'fulfilled' ? events.value : [],
-    mentors: mentors.status === 'fulfilled' ? mentors.value : [],
-    tutors: tutors.status === 'fulfilled' ? tutors.value : [],
   };
 };
 

@@ -17,7 +17,7 @@ import Communities from "./pages/client/groups_and_communities/communities/Commu
 import CommunityDetail from "./pages/client/groups_and_communities/communities/CommunityDetail";
 import GroupsNew from "./pages/client/groups_and_communities/groups/GroupsNew";
 import GroupDetail from "./pages/client/groups_and_communities/groups/GroupDetail";
-import Tutoring from "./pages/client/tutoring/Tutoring";
+import Tutoring from "./pages/client/tutoring/TutoringNew";
 import Mentors from "./pages/client/mentors/Mentors";
 import Account from "./pages/client/account/Account";
 import UserProfile from "./pages/client/profile/UserProfile";

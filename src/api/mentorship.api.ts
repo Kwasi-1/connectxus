@@ -61,6 +61,7 @@ export interface MentorApplication {
   reviewer_notes?: string;
   reviewed_at?: string;
   submitted_at: string;
+  experience?: number;
 }
 
 export interface TutorApplication {
@@ -74,6 +75,7 @@ export interface TutorApplication {
   reviewer_notes?: string;
   reviewed_at?: string;
   submitted_at: string;
+  qualifications?: string;
 }
 
 export interface MentoringSession {
@@ -219,15 +221,13 @@ export const getMyMentorProfile = async (): Promise<MentorProfile | null> => {
 };
 
 export const getRecommendedMentors = async (limit: number = 5): Promise<MentorProfile[]> => {
-  const spaceId = getValidatedSpaceId();
-
   try {
-        const response = await apiClient.get<ApiResponse<MentorProfile[]>>('/mentorship/mentors/search', {
-      params: { space_id: spaceId, limit },
+    const response = await apiClient.get<ApiResponse<MentorProfile[]>>('/mentorship/mentors/recommended', {
+      params: { limit },
     });
     return response.data.data;
   } catch (error) {
-        return [];
+    return [];
   }
 };
 
@@ -293,15 +293,13 @@ export const getMyTutorProfile = async (): Promise<TutorProfile | null> => {
 };
 
 export const getRecommendedTutors = async (limit: number = 5): Promise<TutorProfile[]> => {
-  const spaceId = getValidatedSpaceId();
-
   try {
-        const response = await apiClient.get<ApiResponse<TutorProfile[]>>('/mentorship/tutors/search', {
-      params: { space_id: spaceId, limit },
+    const response = await apiClient.get<ApiResponse<TutorProfile[]>>('/mentorship/tutors/recommended', {
+      params: { limit },
     });
     return response.data.data;
   } catch (error) {
-        return [];
+    return [];
   }
 };
 
@@ -427,8 +425,7 @@ export const getMyTutorApplication = async (): Promise<TutorApplication | null> 
     const response = await apiClient.get<ApiResponse<TutorApplication>>('/mentorship/tutors/applications/my-application');
     return response.data.data;
   } catch (error: any) {
-                    return null;
-    throw error;
+    return null;
   }
 };
 
@@ -625,7 +622,7 @@ export interface TutoringRequest {
   response_message?: string;
   created_at?: string;
   updated_at?: string;
-  // Phase 1 MVP fields
+
   subject?: string;
   topic?: string;
   preferred_schedule?: string[];
@@ -667,11 +664,13 @@ export interface MentorshipRequest {
 
 
 export const createTutoringRequest = async (data: {
+  session_id?: string;
+  message?: string;
   tutor_id: string;
-  subject: string;
-  topic: string;
-  preferred_schedule: string[];
-  session_type: 'single' | 'semester';
+  subject?: string;
+  topic?: string;
+  preferred_schedule?: string[];
+  session_type?: 'single' | 'semester';
 }): Promise<TutoringRequest> => {
   const spaceId = getValidatedSpaceId();
 

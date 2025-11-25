@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient, { getValidatedSpaceId } from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -57,7 +57,7 @@ export interface ListEventsParams extends PaginationParams {
 }
 
 export const getEvents = async (params?: Omit<ListEventsParams, 'space_id'>): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events', {
     params: { space_id: spaceId, ...params },
@@ -71,7 +71,7 @@ export const getEventById = async (eventId: string): Promise<Event> => {
 };
 
 export const getUpcomingEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/upcoming', {
     params: { space_id: spaceId, ...params },
@@ -80,7 +80,7 @@ export const getUpcomingEvents = async (params?: PaginationParams): Promise<Even
 };
 
 export const searchEvents = async (query: string, params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/search', {
     params: { q: query, space_id: spaceId, ...params },
@@ -94,11 +94,7 @@ export const getEventCategories = async (): Promise<string[]> => {
 };
 
 export const createEvent = async (data: Omit<CreateEventRequest, 'space_id'>): Promise<Event> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID.');
-  }
+  const spaceId = getValidatedSpaceId();
 
   const requestData: CreateEventRequest = {
     ...data,
@@ -162,7 +158,7 @@ export const markAttendance = async (
 };
 
 export const getUserEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
   const response = await apiClient.get<ApiResponse<Event[]>>('/users/events', {
     params: { space_id: spaceId, ...params },
   });
@@ -170,7 +166,7 @@ export const getUserEvents = async (params?: PaginationParams): Promise<Event[]>
 };
 
 export const getTrendingEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/trending', {
     params: { space_id: spaceId, ...params },
@@ -179,7 +175,7 @@ export const getTrendingEvents = async (params?: PaginationParams): Promise<Even
 };
 
 export const getPublicEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events', {
     params: { space_id: spaceId, ...params },

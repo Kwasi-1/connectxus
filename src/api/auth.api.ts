@@ -40,10 +40,11 @@ export interface RegisterRequest {
   password: string;
   full_name: string;
   level?: string | null;
-  department?: string | null;
+  department_id?: string | null;
   major?: string | null;
   year?: number | null;
   interests?: string[];
+  phone_number: string;
 }
 
 export interface RegisterResponseData {
@@ -80,21 +81,14 @@ export const login = async (data: LoginRequest): Promise<LoginResponseData> => {
   return response.data.data;
 };
 
-export const register = async (data: Omit<RegisterRequest, 'space_id'>): Promise<RegisterResponseData> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID in your environment.');
+export const register = async (data: RegisterRequest): Promise<RegisterResponseData> => {
+  if (!data.space_id) {
+    throw new Error('Space ID is required. Please select a space.');
   }
 
-  const requestData: RegisterRequest = {
-    ...data,
-    space_id: spaceId,
-  };
+  const response = await apiClient.post<ApiResponse<RegisterResponseData>>('/users', data);
 
-  const response = await apiClient.post<ApiResponse<RegisterResponseData>>('/users', requestData);
-
-    return response.data.data;
+  return response.data.data;
 };
 
 export const logout = async (): Promise<void> => {

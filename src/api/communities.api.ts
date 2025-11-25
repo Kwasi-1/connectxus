@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient, { getValidatedSpaceId } from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -22,10 +22,12 @@ export interface Community {
   role?: string | null;            }
 
 export interface CreateCommunityRequest {
-  space_id: string;
   name: string;
   description?: string | null;
-  category: string;                  cover_image?: string | null;       is_public: boolean;                settings?: any | null;
+  category: string;
+  cover_image?: string | null;
+  is_public: boolean;
+  settings?: any | null;
 }
 
 export interface UpdateCommunityRequest {
@@ -40,11 +42,28 @@ export interface ListCommunitiesParams extends PaginationParams {
   category?: string;
 }
 
+export interface CommunityMember {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar?: string | null;
+  level?: string | null;
+  department?: string | null;
+  verified: boolean;
+  role: string;
+  joined_at?: string | null;
+}
+
 export const getCommunities = async (params?: Omit<ListCommunitiesParams, 'space_id'>): Promise<Community[]> => {
-  const spaceId = getDefaultSpaceId();
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
 
   const response = await apiClient.get<ApiResponse<Community[]>>('/communities', {
-    params: { space_id: spaceId, ...params },
+    params: spaceId ? { space_id: spaceId, ...params } : params,
   });
   return response.data.data;
 };
@@ -55,7 +74,7 @@ export const getCommunityById = async (communityId: string): Promise<Community> 
 };
 
 export const getCommunityBySlug = async (slug: string): Promise<Community> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Community>>(
     `/communities/slug/${slug}`,
@@ -66,19 +85,8 @@ export const getCommunityBySlug = async (slug: string): Promise<Community> => {
   return response.data.data;
 };
 
-export const createCommunity = async (data: Omit<CreateCommunityRequest, 'space_id'>): Promise<Community> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID.');
-  }
-
-  const requestData: CreateCommunityRequest = {
-    ...data,
-    space_id: spaceId,
-  };
-
-  const response = await apiClient.post<ApiResponse<Community>>('/communities', requestData);
+export const createCommunity = async (data: CreateCommunityRequest): Promise<Community> => {
+  const response = await apiClient.post<ApiResponse<Community>>('/communities', data);
   return response.data.data;
 };
 
@@ -101,7 +109,7 @@ export const searchCommunities = async (
   query: string,
   params?: PaginationParams
 ): Promise<Community[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Community[]>>('/communities/search', {
     params: { q: query, space_id: spaceId, ...params },
@@ -125,8 +133,8 @@ export const leaveCommunity = async (communityId: string): Promise<void> => {
 export const getCommunityMembers = async (
   communityId: string,
   params?: PaginationParams
-): Promise<any[]> => {
-  const response = await apiClient.get<ApiResponse<any[]>>(
+): Promise<CommunityMember[]> => {
+  const response = await apiClient.get<ApiResponse<CommunityMember[]>>(
     `/communities/${communityId}/members`,
     { params }
   );
@@ -162,21 +170,113 @@ export const removeCommunityModerator = async (
 };
 
 export const getUserCommunities = async (params?: PaginationParams): Promise<Community[]> => {
-  const spaceId = getDefaultSpaceId();
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
 
   const response = await apiClient.get<ApiResponse<Community[]>>('/users/communities', {
-    params: { space_id: spaceId, ...params },
+    params: spaceId ? { space_id: spaceId, ...params } : params,
+  });
+  return response.data.data;
+};
+
+export const getRecommendedCommunities = async (params?: PaginationParams): Promise<Community[]> => {
+    let spaceId: string | undefined;
+  try {
+    spaceId = getValidatedSpaceId();
+  } catch (error) {
+        spaceId = undefined;
+  }
+
+  const response = await apiClient.get<ApiResponse<Community[]>>('/users/communities/recommended', {
+    params: spaceId ? { space_id: spaceId, ...params } : params,
   });
   return response.data.data;
 };
 
 export const getTrendingCommunities = async (params?: PaginationParams): Promise<Community[]> => {
-  const spaceId = getDefaultSpaceId();
+  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Community[]>>('/communities/trending', {
     params: { space_id: spaceId, ...params },
   });
   return response.data.data;
+};
+
+export interface CommunityAnnouncement {
+  id: string;
+  community_id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  is_pinned: boolean;
+  status: string;
+  created_at: string;
+  updated_at?: string | null;
+  author_username: string;
+  author_full_name: string;
+  author_avatar?: string | null;
+}
+
+export const createCommunityAnnouncement = async (
+  communityId: string,
+  data: { title: string; content: string; is_pinned?: boolean }
+): Promise<CommunityAnnouncement> => {
+  const response = await apiClient.post<ApiResponse<CommunityAnnouncement>>(
+    `/communities/${communityId}/announcements`,
+    data
+  );
+  return response.data.data;
+};
+
+export const getCommunityAnnouncements = async (
+  communityId: string,
+  params?: PaginationParams
+): Promise<CommunityAnnouncement[]> => {
+  const response = await apiClient.get<ApiResponse<CommunityAnnouncement[]>>(
+    `/communities/${communityId}/announcements`,
+    { params }
+  );
+  return response.data.data;
+};
+
+export const updateCommunityAnnouncement = async (
+  announcementId: string,
+  data: { title: string; content: string; is_pinned?: boolean }
+): Promise<CommunityAnnouncement> => {
+  const response = await apiClient.put<ApiResponse<CommunityAnnouncement>>(
+    `/community-announcements/${announcementId}`,
+    data
+  );
+  return response.data.data;
+};
+
+export const deleteCommunityAnnouncement = async (announcementId: string): Promise<void> => {
+  await apiClient.delete(`/community-announcements/${announcementId}`);
+};
+
+export const pinCommunityAnnouncement = async (
+  announcementId: string,
+  pinned: boolean
+): Promise<void> => {
+  await apiClient.put(`/community-announcements/${announcementId}/pin`, { pinned });
+};
+
+export const addCommunityAdmin = async (
+  communityId: string,
+  userId: string
+): Promise<void> => {
+  await apiClient.post(`/communities/${communityId}/admins`, { user_id: userId });
+};
+
+export const removeCommunityAdmin = async (
+  communityId: string,
+  userId: string
+): Promise<void> => {
+  await apiClient.delete(`/communities/${communityId}/admins/${userId}`);
 };
 
 export const communitiesApi = {
@@ -196,7 +296,15 @@ export const communitiesApi = {
   addCommunityModerator,
   removeCommunityModerator,
   getUserCommunities,
+  getRecommendedCommunities,
   getTrendingCommunities,
+  createCommunityAnnouncement,
+  getCommunityAnnouncements,
+  updateCommunityAnnouncement,
+  deleteCommunityAnnouncement,
+  pinCommunityAnnouncement,
+  addCommunityAdmin,
+  removeCommunityAdmin,
 };
 
 export default communitiesApi;
