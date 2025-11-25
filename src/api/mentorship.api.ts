@@ -593,6 +593,15 @@ export const rateTutoringSession = async (
 };
 
 
+export interface PaymentDetails {
+  amount: number;
+  session_type: 'single' | 'semester';
+  paid_at: string;
+  platform_fee: number;
+  tutor_amount: number;
+  refund_eligible_until: string;
+}
+
 export interface TutoringRequest {
   id: string;
   session_id: string;
@@ -603,18 +612,32 @@ export interface TutoringRequest {
   requester_department?: string;
   requester_level?: string;
   space_id: string;
+  tutor_id?: string;
   tutor_username?: string;
   tutor_full_name?: string;
   subjects?: string[];
   rate?: string;
   availability?: string[];
-  status: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'paid' | 'completed' | 'refund_pending' | 'refunded';
   message?: string;
   requested_at?: string;
   responded_at?: string;
   response_message?: string;
   created_at?: string;
   updated_at?: string;
+  // Phase 1 MVP fields
+  subject?: string;
+  topic?: string;
+  preferred_schedule?: string[];
+  session_type?: 'single' | 'semester';
+  payment_details?: PaymentDetails;
+  rating?: number;
+  review?: string;
+  completed_at?: string;
+  expires_at?: string;
+  refund_reason?: string;
+  refund_explanation?: string;
+  refund_requested_at?: string;
 }
 
 export interface MentorshipRequest {
@@ -644,17 +667,28 @@ export interface MentorshipRequest {
 
 
 export const createTutoringRequest = async (data: {
-  session_id: string;
-  message?: string;
+  tutor_id: string;
+  subject: string;
+  topic: string;
+  preferred_schedule: string[];
+  session_type: 'single' | 'semester';
 }): Promise<TutoringRequest> => {
   const spaceId = getValidatedSpaceId();
+
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24);
 
   const response = await apiClient.post<ApiResponse<TutoringRequest>>(
     '/mentorship/tutoring/requests',
     {
-      session_id: data.session_id,
+      tutor_id: data.tutor_id,
       space_id: spaceId,
-      message: data.message,
+      subject: data.subject,
+      topic: data.topic,
+      preferred_schedule: data.preferred_schedule,
+      session_type: data.session_type,
+      status: 'pending',
+      expires_at: expiresAt.toISOString(),
     }
   );
   return response.data.data;
@@ -704,6 +738,92 @@ export const updateTutoringRequestStatus = async (
 
 export const deleteTutoringRequest = async (requestId: string): Promise<void> => {
   await apiClient.delete(`/mentorship/tutoring/requests/${requestId}`);
+};
+
+// Phase 1 MVP - Enhanced Tutoring Request Functions
+
+export const acceptTutoringRequest = async (requestId: string): Promise<TutoringRequest> => {
+  const response = await apiClient.put<ApiResponse<TutoringRequest>>(
+    `/mentorship/tutoring/requests/${requestId}/accept`,
+    { status: 'accepted', responded_at: new Date().toISOString() }
+  );
+  return response.data.data;
+};
+
+export const declineTutoringRequest = async (
+  requestId: string,
+  reason?: string
+): Promise<TutoringRequest> => {
+  const response = await apiClient.put<ApiResponse<TutoringRequest>>(
+    `/mentorship/tutoring/requests/${requestId}/decline`,
+    { 
+      status: 'declined', 
+      response_message: reason,
+      responded_at: new Date().toISOString() 
+    }
+  );
+  return response.data.data;
+};
+
+export const payForTutoringSession = async (
+  requestId: string,
+  paymentData: {
+    amount: number;
+    session_type: 'single' | 'semester';
+    platform_fee: number;
+    tutor_amount: number;
+  }
+): Promise<TutoringRequest> => {
+  const refundWindow = paymentData.session_type === 'single' ? 7 : 14; // days
+  const refundEligibleUntil = new Date();
+  refundEligibleUntil.setDate(refundEligibleUntil.getDate() + refundWindow);
+
+  const response = await apiClient.put<ApiResponse<TutoringRequest>>(
+    `/mentorship/tutoring/requests/${requestId}/pay`,
+    {
+      status: 'paid',
+      payment_details: {
+        ...paymentData,
+        paid_at: new Date().toISOString(),
+        refund_eligible_until: refundEligibleUntil.toISOString(),
+      },
+    }
+  );
+  return response.data.data;
+};
+
+export const completeTutoringSession = async (
+  requestId: string,
+  rating: number,
+  review?: string
+): Promise<TutoringRequest> => {
+  const response = await apiClient.put<ApiResponse<TutoringRequest>>(
+    `/mentorship/tutoring/requests/${requestId}/complete`,
+    {
+      status: 'completed',
+      rating,
+      review,
+      completed_at: new Date().toISOString(),
+    }
+  );
+  return response.data.data;
+};
+
+export const requestTutoringRefund = async (
+  requestId: string,
+  reason: string,
+  explanation?: string
+): Promise<TutoringRequest> => {
+  const response = await apiClient.put<ApiResponse<TutoringRequest>>(
+    `/mentorship/tutoring/requests/${requestId}/refund`,
+    {
+      status: 'refund_pending',
+      refund_reason: reason,
+      refund_explanation: explanation,
+      refund_requested_at: new Date().toISOString(),
+    }
+  );
+  return response.data.data;
 };
 
 

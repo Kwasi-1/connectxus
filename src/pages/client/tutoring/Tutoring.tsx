@@ -8,6 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TutorCard } from "@/components/tutoring/TutorCard";
 import { TutorApplicationCard } from "@/components/tutoring/TutorApplicationCard";
 import { TutoringRequestCard } from "@/components/tutoring/TutoringRequestCard";
+import { RequestTutoringModal } from "@/components/tutoring/RequestTutoringModal";
+import { PaymentModal } from "@/components/tutoring/PaymentModal";
+import { StudentRequestCard } from "@/components/tutoring/StudentRequestCard";
+import { SessionCompletionModal } from "@/components/tutoring/SessionCompletionModal";
+import { RefundRequestModal } from "@/components/tutoring/RefundRequestModal";
 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +24,13 @@ import {
   getUserTutoringRequests,
   getTutorSessionRequests,
   TutorProfile as ApiTutorProfile,
+  createTutoringRequest,
+  acceptTutoringRequest,
+  declineTutoringRequest,
+  payForTutoringSession,
+  completeTutoringSession,
+  requestTutoringRefund,
+  TutoringRequest,
 } from "@/api/mentorship.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
@@ -54,6 +66,17 @@ const Tutoring = () => {
   const [followingStatus, setFollowingStatus] = useState<
     Record<string, boolean>
   >({});
+
+  // Modal states
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<ApiTutorProfile | null>(
+    null
+  );
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] =
+    useState<TutoringRequest | null>(null);
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
 
   const { data: tutors = [], isLoading: loadingTutors } = useQuery({
     queryKey: ["tutors", searchQuery],
@@ -211,7 +234,39 @@ const Tutoring = () => {
   }, [filteredTutors, followingStatus]);
 
   const handleRequestTutoring = (tutor: ApiTutorProfile) => {
-    sonnerToast.info("Request tutoring feature coming soon");
+    setSelectedTutor(tutor);
+    setRequestModalOpen(true);
+  };
+
+  const createRequestMutation = useMutation({
+    mutationFn: createTutoringRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
+      setRequestModalOpen(false);
+      setSelectedTutor(null);
+      sonnerToast.success("Request sent! The tutor has 24 hours to respond.");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to send request"
+      );
+    },
+  });
+
+  const handleSubmitRequest = (data: {
+    subject: string;
+    topic: string;
+    preferredSchedule: string[];
+    sessionType: "single" | "semester";
+  }) => {
+    if (!selectedTutor?.user_id) return;
+    createRequestMutation.mutate({
+      tutor_id: selectedTutor.user_id,
+      subject: data.subject,
+      topic: data.topic,
+      preferred_schedule: data.preferredSchedule,
+      session_type: data.sessionType,
+    });
   };
 
   const handleContactTutor = (tutor: ApiTutorProfile) => {
@@ -253,14 +308,177 @@ const Tutoring = () => {
     sonnerToast.info("Delete functionality coming soon");
   };
 
+  const acceptRequestMutation = useMutation({
+    mutationFn: acceptTutoringRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tutoring-requests-received"],
+      });
+      sonnerToast.success("Request accepted! Student will be notified.");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to accept request"
+      );
+    },
+  });
+
+  const declineRequestMutation = useMutation({
+    mutationFn: (data: { requestId: string; reason?: string }) =>
+      declineTutoringRequest(data.requestId, data.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tutoring-requests-received"],
+      });
+      sonnerToast.success("Request declined.");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to decline request"
+      );
+    },
+  });
+
   const handleAcceptRequest = (requestId: string) => {
-    sonnerToast.info("Accept functionality coming soon");
-    queryClient.invalidateQueries({ queryKey: ["tutoring-requests-received"] });
+    acceptRequestMutation.mutate(requestId);
   };
 
   const handleDeclineRequest = (requestId: string) => {
-    sonnerToast.info("Decline functionality coming soon");
-    queryClient.invalidateQueries({ queryKey: ["tutoring-requests-received"] });
+    declineRequestMutation.mutate({ requestId });
+  };
+
+  // Payment flow
+  const paymentMutation = useMutation({
+    mutationFn: (data: {
+      requestId: string;
+      amount: number;
+      session_type: "single" | "semester";
+      platform_fee: number;
+      tutor_amount: number;
+    }) => payForTutoringSession(data.requestId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
+      setPaymentModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Payment successful! You can now message your tutor to schedule your session."
+      );
+    },
+    onError: (error: any) => {
+      sonnerToast.error(error?.response?.data?.message || "Payment failed");
+    },
+  });
+
+  const handleProceedToPayment = (request: TutoringRequest) => {
+    setSelectedRequest(request);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePayment = (sessionType: "single" | "semester") => {
+    if (!selectedRequest) return;
+    const tutor = tutors.find((t) => t.user_id === selectedRequest.tutor_id);
+    const hourlyRate = tutor?.hourly_rate || 25;
+    const baseAmount =
+      sessionType === "single" ? hourlyRate : hourlyRate * 12 * 0.85;
+    const platformFee = baseAmount * 0.15;
+    const total = baseAmount + platformFee;
+
+    paymentMutation.mutate({
+      requestId: selectedRequest.id,
+      amount: total,
+      session_type: sessionType,
+      platform_fee: platformFee,
+      tutor_amount: baseAmount,
+    });
+  };
+
+  // Messaging
+  const handleMessageTutor = (request: TutoringRequest) => {
+    if (!request.tutor_id) {
+      sonnerToast.error("Unable to message this tutor");
+      return;
+    }
+    messageTutorMutation.mutate(request.tutor_id);
+  };
+
+  // Session completion
+  const completionMutation = useMutation({
+    mutationFn: (data: {
+      requestId: string;
+      rating: number;
+      review?: string;
+    }) => completeTutoringSession(data.requestId, data.rating, data.review),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
+      setCompletionModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Thank you! Payment will be released to the tutor on the next payout date."
+      );
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to complete session"
+      );
+    },
+  });
+
+  const handleMarkComplete = (request: TutoringRequest) => {
+    setSelectedRequest(request);
+    setCompletionModalOpen(true);
+  };
+
+  const handleCompleteSession = (rating: number, review?: string) => {
+    if (!selectedRequest) return;
+    completionMutation.mutate({
+      requestId: selectedRequest.id,
+      rating,
+      review,
+    });
+  };
+
+  const handleReportIssue = (reason: string) => {
+    sonnerToast.info(
+      "Issue reported. Our support team will contact you within 48 hours."
+    );
+    setCompletionModalOpen(false);
+    setSelectedRequest(null);
+  };
+
+  // Refund request
+  const refundMutation = useMutation({
+    mutationFn: (data: {
+      requestId: string;
+      reason: string;
+      explanation?: string;
+    }) => requestTutoringRefund(data.requestId, data.reason, data.explanation),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
+      setRefundModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Refund request submitted. You'll hear back within 48 hours."
+      );
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to request refund"
+      );
+    },
+  });
+
+  const handleRequestRefund = (request: TutoringRequest) => {
+    setSelectedRequest(request);
+    setRefundModalOpen(true);
+  };
+
+  const handleSubmitRefund = (reason: string, explanation?: string) => {
+    if (!selectedRequest) return;
+    refundMutation.mutate({
+      requestId: selectedRequest.id,
+      reason,
+      explanation,
+    });
   };
 
   return (
@@ -554,6 +772,64 @@ const Tutoring = () => {
           </>
         )}
       </div>
+
+      {/* Modals */}
+      {selectedTutor && (
+        <RequestTutoringModal
+          open={requestModalOpen}
+          onOpenChange={setRequestModalOpen}
+          tutor={selectedTutor}
+          onSubmit={handleSubmitRequest}
+          isLoading={createRequestMutation.isPending}
+        />
+      )}
+
+      {selectedRequest && (
+        <>
+          <PaymentModal
+            open={paymentModalOpen}
+            onOpenChange={setPaymentModalOpen}
+            request={selectedRequest}
+            tutorName={
+              selectedRequest.tutor_full_name ||
+              selectedRequest.tutor_username ||
+              "Tutor"
+            }
+            hourlyRate={
+              tutors.find((t) => t.user_id === selectedRequest.tutor_id)
+                ?.hourly_rate || 25
+            }
+            onPayment={handlePayment}
+            isLoading={paymentMutation.isPending}
+          />
+
+          <SessionCompletionModal
+            open={completionModalOpen}
+            onOpenChange={setCompletionModalOpen}
+            tutorName={
+              selectedRequest.tutor_full_name ||
+              selectedRequest.tutor_username ||
+              "Tutor"
+            }
+            onComplete={handleCompleteSession}
+            onReportIssue={handleReportIssue}
+            isLoading={completionMutation.isPending}
+          />
+
+          <RefundRequestModal
+            open={refundModalOpen}
+            onOpenChange={setRefundModalOpen}
+            tutorName={
+              selectedRequest.tutor_full_name ||
+              selectedRequest.tutor_username ||
+              "Tutor"
+            }
+            refundAmount={selectedRequest.payment_details?.amount || 0}
+            onSubmit={handleSubmitRefund}
+            isLoading={refundMutation.isPending}
+          />
+        </>
+      )}
     </AppLayout>
   );
 };
