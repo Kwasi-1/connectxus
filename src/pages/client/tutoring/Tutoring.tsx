@@ -39,6 +39,7 @@ import {
   checkFollowingStatus,
 } from "@/api/users.api";
 import { toast as sonnerToast } from "sonner";
+import { useMockTutoring, MockTutoringProvider } from "@/contexts/MockTutoringContext";
 
 const subjectFilters = [
   "All",
@@ -78,6 +79,15 @@ const Tutoring = () => {
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
 
+  // Mock tutoring context and loading states
+  const mockTutoring = useMockTutoring();
+  const [isCreatingRequest, setIsCreatingRequest] = useState(false);
+  const [isAcceptingRequest, setIsAcceptingRequest] = useState(false);
+  const [isDecliningRequest, setIsDecliningRequest] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isCompletingSession, setIsCompletingSession] = useState(false);
+  const [isRequestingRefund, setIsRequestingRefund] = useState(false);
+
   const { data: tutors = [], isLoading: loadingTutors } = useQuery({
     queryKey: ["tutors", searchQuery],
     queryFn: () =>
@@ -100,19 +110,13 @@ const Tutoring = () => {
     retry: false,
   });
 
-  const { data: sentRequests = [], isLoading: loadingSentRequests } = useQuery({
-    queryKey: ["tutoring-requests-sent"],
-    queryFn: () => getUserTutoringRequests(1, 100),
-    staleTime: 30000,
-  });
-
-  const { data: receivedRequests = [], isLoading: loadingReceivedRequests } =
-    useQuery({
-      queryKey: ["tutoring-requests-received"],
-      queryFn: () => getTutorSessionRequests(1, 100),
-      enabled: !!myTutorProfile,
-      staleTime: 30000,
-    });
+  // Use mock data for requests instead of API
+  const sentRequests = mockTutoring.getUserRequests();
+  const receivedRequests = myTutorProfile
+    ? mockTutoring.getTutorRequests(myTutorProfile.user_id || "")
+    : [];
+  const loadingSentRequests = false;
+  const loadingReceivedRequests = false;
 
   const loading = loadingTutors || loadingMyApplication;
   const requestsLoading = loadingSentRequests || loadingReceivedRequests;
@@ -238,35 +242,31 @@ const Tutoring = () => {
     setRequestModalOpen(true);
   };
 
-  const createRequestMutation = useMutation({
-    mutationFn: createTutoringRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
-      setRequestModalOpen(false);
-      setSelectedTutor(null);
-      sonnerToast.success("Request sent! The tutor has 24 hours to respond.");
-    },
-    onError: (error: any) => {
-      sonnerToast.error(
-        error?.response?.data?.message || "Failed to send request"
-      );
-    },
-  });
-
-  const handleSubmitRequest = (data: {
+  const handleSubmitRequest = async (data: {
     subject: string;
     topic: string;
     preferredSchedule: string[];
     sessionType: "single" | "semester";
   }) => {
     if (!selectedTutor?.user_id) return;
-    createRequestMutation.mutate({
-      tutor_id: selectedTutor.user_id,
-      subject: data.subject,
-      topic: data.topic,
-      preferred_schedule: data.preferredSchedule,
-      session_type: data.sessionType,
-    });
+
+    setIsCreatingRequest(true);
+    try {
+      await mockTutoring.createRequest({
+        tutor_id: selectedTutor.user_id,
+        subject: data.subject,
+        topic: data.topic,
+        preferred_schedule: data.preferredSchedule,
+        session_type: data.sessionType,
+      });
+      setRequestModalOpen(false);
+      setSelectedTutor(null);
+      sonnerToast.success("Request sent! The tutor has 24 hours to respond.");
+    } catch (error) {
+      sonnerToast.error("Failed to send request");
+    } finally {
+      setIsCreatingRequest(false);
+    }
   };
 
   const handleContactTutor = (tutor: ApiTutorProfile) => {
@@ -308,73 +308,37 @@ const Tutoring = () => {
     sonnerToast.info("Delete functionality coming soon");
   };
 
-  const acceptRequestMutation = useMutation({
-    mutationFn: acceptTutoringRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tutoring-requests-received"],
-      });
+  const handleAcceptRequest = async (requestId: string) => {
+    setIsAcceptingRequest(true);
+    try {
+      await mockTutoring.acceptRequest(requestId);
       sonnerToast.success("Request accepted! Student will be notified.");
-    },
-    onError: (error: any) => {
-      sonnerToast.error(
-        error?.response?.data?.message || "Failed to accept request"
-      );
-    },
-  });
-
-  const declineRequestMutation = useMutation({
-    mutationFn: (data: { requestId: string; reason?: string }) =>
-      declineTutoringRequest(data.requestId, data.reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tutoring-requests-received"],
-      });
-      sonnerToast.success("Request declined.");
-    },
-    onError: (error: any) => {
-      sonnerToast.error(
-        error?.response?.data?.message || "Failed to decline request"
-      );
-    },
-  });
-
-  const handleAcceptRequest = (requestId: string) => {
-    acceptRequestMutation.mutate(requestId);
+    } catch (error) {
+      sonnerToast.error("Failed to accept request");
+    } finally {
+      setIsAcceptingRequest(false);
+    }
   };
 
-  const handleDeclineRequest = (requestId: string) => {
-    declineRequestMutation.mutate({ requestId });
+  const handleDeclineRequest = async (requestId: string) => {
+    setIsDecliningRequest(true);
+    try {
+      await mockTutoring.declineRequest(requestId);
+      sonnerToast.success("Request declined.");
+    } catch (error) {
+      sonnerToast.error("Failed to decline request");
+    } finally {
+      setIsDecliningRequest(false);
+    }
   };
 
   // Payment flow
-  const paymentMutation = useMutation({
-    mutationFn: (data: {
-      requestId: string;
-      amount: number;
-      session_type: "single" | "semester";
-      platform_fee: number;
-      tutor_amount: number;
-    }) => payForTutoringSession(data.requestId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
-      setPaymentModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Payment successful! You can now message your tutor to schedule your session."
-      );
-    },
-    onError: (error: any) => {
-      sonnerToast.error(error?.response?.data?.message || "Payment failed");
-    },
-  });
-
   const handleProceedToPayment = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setPaymentModalOpen(true);
   };
 
-  const handlePayment = (sessionType: "single" | "semester") => {
+  const handlePayment = async (sessionType: "single" | "semester") => {
     if (!selectedRequest) return;
     const tutor = tutors.find((t) => t.user_id === selectedRequest.tutor_id);
     const hourlyRate = tutor?.hourly_rate || 25;
@@ -383,13 +347,24 @@ const Tutoring = () => {
     const platformFee = baseAmount * 0.15;
     const total = baseAmount + platformFee;
 
-    paymentMutation.mutate({
-      requestId: selectedRequest.id,
-      amount: total,
-      session_type: sessionType,
-      platform_fee: platformFee,
-      tutor_amount: baseAmount,
-    });
+    setIsProcessingPayment(true);
+    try {
+      await mockTutoring.payForSession(selectedRequest.id, {
+        amount: total,
+        session_type: sessionType,
+        platform_fee: platformFee,
+        tutor_amount: baseAmount,
+      });
+      setPaymentModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Payment successful! You can now message your tutor to schedule your session."
+      );
+    } catch (error) {
+      sonnerToast.error("Payment failed");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   // Messaging
@@ -402,39 +377,27 @@ const Tutoring = () => {
   };
 
   // Session completion
-  const completionMutation = useMutation({
-    mutationFn: (data: {
-      requestId: string;
-      rating: number;
-      review?: string;
-    }) => completeTutoringSession(data.requestId, data.rating, data.review),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
-      setCompletionModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Thank you! Payment will be released to the tutor on the next payout date."
-      );
-    },
-    onError: (error: any) => {
-      sonnerToast.error(
-        error?.response?.data?.message || "Failed to complete session"
-      );
-    },
-  });
-
   const handleMarkComplete = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setCompletionModalOpen(true);
   };
 
-  const handleCompleteSession = (rating: number, review?: string) => {
+  const handleCompleteSession = async (rating: number, review?: string) => {
     if (!selectedRequest) return;
-    completionMutation.mutate({
-      requestId: selectedRequest.id,
-      rating,
-      review,
-    });
+
+    setIsCompletingSession(true);
+    try {
+      await mockTutoring.completeSession(selectedRequest.id, rating, review);
+      setCompletionModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Thank you! Payment will be released to the tutor on the next payout date."
+      );
+    } catch (error) {
+      sonnerToast.error("Failed to complete session");
+    } finally {
+      setIsCompletingSession(false);
+    }
   };
 
   const handleReportIssue = (reason: string) => {
@@ -446,43 +409,32 @@ const Tutoring = () => {
   };
 
   // Refund request
-  const refundMutation = useMutation({
-    mutationFn: (data: {
-      requestId: string;
-      reason: string;
-      explanation?: string;
-    }) => requestTutoringRefund(data.requestId, data.reason, data.explanation),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tutoring-requests-sent"] });
-      setRefundModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Refund request submitted. You'll hear back within 48 hours."
-      );
-    },
-    onError: (error: any) => {
-      sonnerToast.error(
-        error?.response?.data?.message || "Failed to request refund"
-      );
-    },
-  });
-
   const handleRequestRefund = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setRefundModalOpen(true);
   };
 
-  const handleSubmitRefund = (reason: string, explanation?: string) => {
+  const handleSubmitRefund = async (reason: string, explanation?: string) => {
     if (!selectedRequest) return;
-    refundMutation.mutate({
-      requestId: selectedRequest.id,
-      reason,
-      explanation,
-    });
+
+    setIsRequestingRefund(true);
+    try {
+      await mockTutoring.requestRefund(selectedRequest.id, reason, explanation);
+      setRefundModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success(
+        "Refund request submitted. You'll hear back within 48 hours."
+      );
+    } catch (error) {
+      sonnerToast.error("Failed to request refund");
+    } finally {
+      setIsRequestingRefund(false);
+    }
   };
 
   return (
-    <AppLayout showRightSidebar={false}>
+    <MockTutoringProvider>
+      <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
         {/* Header */}
         <div className="flex justify-between items-start sm:items-center gap-4">
@@ -780,7 +732,7 @@ const Tutoring = () => {
           onOpenChange={setRequestModalOpen}
           tutor={selectedTutor}
           onSubmit={handleSubmitRequest}
-          isLoading={createRequestMutation.isPending}
+          isLoading={isCreatingRequest}
         />
       )}
 
@@ -800,7 +752,7 @@ const Tutoring = () => {
                 ?.hourly_rate || 25
             }
             onPayment={handlePayment}
-            isLoading={paymentMutation.isPending}
+            isLoading={isProcessingPayment}
           />
 
           <SessionCompletionModal
@@ -813,7 +765,7 @@ const Tutoring = () => {
             }
             onComplete={handleCompleteSession}
             onReportIssue={handleReportIssue}
-            isLoading={completionMutation.isPending}
+            isLoading={isCompletingSession}
           />
 
           <RefundRequestModal
@@ -826,11 +778,12 @@ const Tutoring = () => {
             }
             refundAmount={selectedRequest.payment_details?.amount || 0}
             onSubmit={handleSubmitRefund}
-            isLoading={refundMutation.isPending}
+            isLoading={isRequestingRefund}
           />
         </>
       )}
     </AppLayout>
+    </MockTutoringProvider>
   );
 };
 
