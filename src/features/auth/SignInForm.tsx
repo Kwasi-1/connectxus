@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,6 +17,7 @@ import { SignInFormData } from "@/types/auth";
 import { toast } from "sonner";
 import { Mail, Lock } from "lucide-react";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -29,6 +30,7 @@ interface SignInFormProps {
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
   const { signIn, isLoading } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -94,11 +96,22 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Enter your password here"
                       className="pl-10"
                       {...field}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />
