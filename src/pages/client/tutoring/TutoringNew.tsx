@@ -35,8 +35,8 @@ import {
 } from "@/contexts/MockTutoringContext";
 import {
   mockTutors,
-  mockTutorApplication,
-  mockTutorProfile,
+  getTutorApplicationForUser,
+  getTutorProfileForUser,
 } from "@/data/mockTutors";
 
 const subjectFilters = [
@@ -82,8 +82,11 @@ const TutoringContent = () => {
 
   // Use mock data instead of API calls
   const tutors = mockTutors;
-  const myTutorApplication = null; // Set to mockTutorApplication to test as tutor
-  const myTutorProfile = null; // Set to mockTutorProfile to test as tutor
+
+  // User-based tutor detection
+  const myTutorApplication = getTutorApplicationForUser(user?.email);
+  const myTutorProfile = getTutorProfileForUser(user?.email, user?.id);
+
   const loadingTutors = false;
   const loadingMyApplication = false;
   const loadingMyProfile = false;

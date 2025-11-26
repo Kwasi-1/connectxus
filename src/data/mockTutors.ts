@@ -1,7 +1,30 @@
 import { TutorProfile as ApiTutorProfile } from "@/api/mentorship.api";
 
+// User detection function
+export const isUserTutor = (userEmail?: string): boolean => {
+  return userEmail === "kelvinmhacwilson@gmail.com";
+};
+
 // Mock tutors data for testing
 export const mockTutors: ApiTutorProfile[] = [
+  // kelvinmhacwilson as a tutor
+  {
+    id: "tutor-kelvin",
+    user_id: "kelvinmhacwilson-user-id", // Will be replaced with actual user ID
+    subjects: ["DCIT 101", "DCIT 201", "Programming", "Web Development"],
+    hourly_rate: 30,
+    bio: "Passionate software developer and educator. I love helping students understand programming concepts and build real-world projects.",
+    qualifications: "BSc Computer Science, Full-stack Developer",
+    availability: ["Monday 4pm-8pm", "Wednesday 4pm-8pm", "Friday 2pm-6pm", "Saturday 10am-2pm"],
+    rating: 4.9,
+    review_count: 45,
+    created_at: "2024-09-01T10:00:00Z",
+    user: {
+      name: "Kelvin Mhacwilson",
+      username: "kelvinmhacwilson",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=kelvinmhacwilson",
+    },
+  },
   {
     id: "tutor-123",
     user_id: "user-tutor-123",
@@ -140,35 +163,43 @@ export const mockTutors: ApiTutorProfile[] = [
   },
 ];
 
-// Mock tutor application (for testing as a tutor)
-export const mockTutorApplication = {
-  id: "app-001",
-  user_id: "current-user-123",
-  status: "approved" as const,
-  subjects: ["DCIT 101", "Programming"],
-  motivation: "Passionate about teaching programming to beginners.",
-  qualifications: "BSc Computer Science, 2 years tutoring experience",
-  availability: ["Monday 5pm-8pm", "Wednesday 5pm-8pm"],
-  submitted_at: "2024-10-01T10:00:00Z",
-  reviewed_at: "2024-10-05T14:30:00Z",
-  reviewer_notes: "Excellent qualifications and experience.",
+// Function to get tutor application for current user
+export const getTutorApplicationForUser = (userEmail?: string) => {
+  if (!isUserTutor(userEmail)) return null;
+  
+  return {
+    id: "app-kelvin",
+    user_id: "kelvinmhacwilson-user-id",
+    status: "approved" as const,
+    subjects: ["DCIT 101", "DCIT 201", "Programming", "Web Development"],
+    motivation: "Passionate about teaching programming to students and helping them build real-world skills.",
+    qualifications: "BSc Computer Science, Full-stack Developer with 3 years experience",
+    availability: ["Monday 4pm-8pm", "Wednesday 4pm-8pm", "Friday 2pm-6pm", "Saturday 10am-2pm"],
+    submitted_at: "2024-09-01T10:00:00Z",
+    reviewed_at: "2024-09-05T14:30:00Z",
+    reviewer_notes: "Excellent qualifications and teaching passion.",
+  };
 };
 
-// Mock tutor profile (for users who are approved tutors)
-export const mockTutorProfile: ApiTutorProfile = {
-  id: "tutor-current",
-  user_id: "current-user-123",
-  subjects: ["DCIT 101", "Programming"],
-  hourly_rate: 25,
-  bio: "Passionate about teaching programming to beginners.",
-  qualifications: "BSc Computer Science, 2 years tutoring experience",
-  availability: ["Monday 5pm-8pm", "Wednesday 5pm-8pm"],
-  rating: 4.5,
-  review_count: 15,
-  created_at: "2024-10-05T14:30:00Z",
-  user: {
-    name: "Current User",
-    username: "current_user_tutor",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CurrentUser",
-  },
+// Function to get tutor profile for current user
+export const getTutorProfileForUser = (userEmail?: string, userId?: string): ApiTutorProfile | null => {
+  if (!isUserTutor(userEmail)) return null;
+  
+  return {
+    id: "tutor-kelvin",
+    user_id: userId || "kelvinmhacwilson-user-id",
+    subjects: ["DCIT 101", "DCIT 201", "Programming", "Web Development"],
+    hourly_rate: 30,
+    bio: "Passionate software developer and educator. I love helping students understand programming concepts and build real-world projects.",
+    qualifications: "BSc Computer Science, Full-stack Developer",
+    availability: ["Monday 4pm-8pm", "Wednesday 4pm-8pm", "Friday 2pm-6pm", "Saturday 10am-2pm"],
+    rating: 4.9,
+    review_count: 45,
+    created_at: "2024-09-01T10:00:00Z",
+    user: {
+      name: "Kelvin Mhacwilson",
+      username: "kelvinmhacwilson",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=kelvinmhacwilson",
+    },
+  };
 };
