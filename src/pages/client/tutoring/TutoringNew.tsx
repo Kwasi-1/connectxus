@@ -13,6 +13,7 @@ import { PaymentModal } from "@/components/tutoring/PaymentModal";
 import { StudentRequestCard } from "@/components/tutoring/StudentRequestCard";
 import { SessionCompletionModal } from "@/components/tutoring/SessionCompletionModal";
 import { RefundRequestModal } from "@/components/tutoring/RefundRequestModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +59,7 @@ const TutoringContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [followingStatus, setFollowingStatus] = useState<
@@ -334,7 +336,10 @@ const TutoringContent = () => {
     setPaymentModalOpen(true);
   };
 
-  const handlePayment = async (sessionType: "single" | "semester") => {
+  const handlePayment = async (
+    sessionType: "single" | "semester",
+    reference: string
+  ) => {
     if (!selectedRequest) return;
     const tutor = tutors.find((t) => t.user_id === selectedRequest.tutor_id);
     const hourlyRate = tutor?.hourly_rate || 25;
@@ -350,6 +355,7 @@ const TutoringContent = () => {
         session_type: sessionType,
         platform_fee: platformFee,
         tutor_amount: baseAmount,
+        payment_reference: reference,
       });
       setPaymentModalOpen(false);
       setSelectedRequest(null);
@@ -750,6 +756,7 @@ const TutoringContent = () => {
               tutors.find((t) => t.user_id === selectedRequest.tutor_id)
                 ?.hourly_rate || 25
             }
+            userEmail={user?.email || ""}
             onPayment={handlePayment}
             isLoading={isProcessingPayment}
           />

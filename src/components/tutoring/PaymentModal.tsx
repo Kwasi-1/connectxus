@@ -17,6 +17,8 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import { PaystackButton } from "react-paystack";
+import { variables } from "@/utils/env";
 
 interface PaymentModalProps {
   open: boolean;
@@ -24,7 +26,8 @@ interface PaymentModalProps {
   request: TutoringRequest;
   tutorName: string;
   hourlyRate: number;
-  onPayment: (sessionType: "single" | "semester") => void;
+  userEmail: string;
+  onPayment: (sessionType: "single" | "semester", reference: string) => void;
   isLoading?: boolean;
 }
 
@@ -36,6 +39,7 @@ export function PaymentModal({
   request,
   tutorName,
   hourlyRate,
+  userEmail,
   onPayment,
   isLoading = false,
 }: PaymentModalProps) {
@@ -64,11 +68,70 @@ export function PaymentModal({
   const singlePricing = calculatePricing("single");
   const semesterPricing = calculatePricing("semester");
 
-  const handlePayment = () => {
-    onPayment(selectedType);
+  const selectedPricing =
+    selectedType === "single" ? singlePricing : semesterPricing;
+
+  // Generate unique reference for this transaction
+  const reference = `TUT-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(7)}`;
+
+  // Paystack configuration
+  const paystackConfig = {
+    reference,
+    email: userEmail,
+    amount: Math.round(selectedPricing.total * 100), // Convert to kobo (smallest currency unit)
+    publicKey: variables().PAYSTACK_PUBLIC_API_KEY || "",
+    metadata: {
+      custom_fields: [
+        {
+          display_name: "Tutor Name",
+          variable_name: "tutor_name",
+          value: tutorName,
+        },
+        {
+          display_name: "Subject",
+          variable_name: "subject",
+          value: request.subject,
+        },
+        {
+          display_name: "Session Type",
+          variable_name: "session_type",
+          value: selectedType,
+        },
+        {
+          display_name: "Request ID",
+          variable_name: "request_id",
+          value: request.id,
+        },
+      ],
+    },
+  };
+
+  // Payment success callback
+  const handlePaystackSuccessAction = (reference: any) => {
+    onPayment(selectedType, reference.reference);
+  };
+
+  // Payment close callback (user closed popup)
+  const handlePaystackCloseAction = () => {
+    // User closed the payment popup
+    console.log("Payment popup closed");
   };
 
   const refundWindow = selectedType === "single" ? "1 week" : "2 weeks";
+
+  const componentProps = {
+    ...paystackConfig,
+    text: (
+      <span className="flex items-center">
+        <CreditCard className="h-4 w-4 mr-2" />
+        Pay ${selectedPricing.total.toFixed(2)}
+      </span>
+    ),
+    onSuccess: handlePaystackSuccessAction,
+    onClose: handlePaystackCloseAction,
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,19 +308,11 @@ export function PaymentModal({
             >
               Cancel
             </Button>
-            <Button onClick={handlePayment} disabled={isLoading} size="lg">
-              {isLoading ? (
-                "Processing..."
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Pay ${" "}
-                  {selectedType === "single"
-                    ? singlePricing.total.toFixed(2)
-                    : semesterPricing.total.toFixed(2)}
-                </>
-              )}
-            </Button>
+            <PaystackButton
+              {...componentProps}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-8 py-2"
+              disabled={isLoading}
+            />
           </div>
         </div>
       </DialogContent>

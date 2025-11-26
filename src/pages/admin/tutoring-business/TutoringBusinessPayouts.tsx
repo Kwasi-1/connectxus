@@ -1,0 +1,452 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Clock, CheckCircle, DollarSign, TrendingUp } from "lucide-react";
+import {
+  mockPendingPayouts,
+  mockPayoutHistory,
+} from "@/data/tutoringBusinessMockData";
+
+export function TutoringBusinessPayouts() {
+  const [selectedPayout, setSelectedPayout] = useState<
+    (typeof mockPendingPayouts)[0] | (typeof mockPayoutHistory)[0] | null
+  >(null);
+
+  // Calculate metrics
+  const totalPendingAmount = mockPendingPayouts.reduce(
+    (sum, p) => sum + p.amount,
+    0
+  );
+  const totalPendingPayouts = mockPendingPayouts.length;
+  const totalCompletedPayouts = mockPayoutHistory.length;
+  const totalPaidAmount = mockPayoutHistory.reduce(
+    (sum, p) => sum + p.amount,
+    0
+  );
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge className="bg-orange-600 text-white">Pending</Badge>;
+      case "completed":
+        return <Badge className="bg-green-600 text-white">Completed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold custom-font">Payouts</h1>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Pending Payouts
+            </CardTitle>
+            <Clock className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPendingPayouts}</div>
+            <p className="text-xs text-muted-foreground">Awaiting processing</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Pending Amount
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${totalPendingAmount.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">To be paid out</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Completed Payouts
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCompletedPayouts}</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${totalPaidAmount.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="pending">
+            <Clock className="h-4 w-4 mr-2" />
+            Pending Payouts
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Payout History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Payouts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payout ID</TableHead>
+                      <TableHead>Tutor</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Sessions</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockPendingPayouts.map((payout) => (
+                      <TableRow
+                        key={payout.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelectedPayout(payout)}
+                      >
+                        <TableCell className="font-medium">
+                          {payout.id}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={payout.tutorAvatar} />
+                              <AvatarFallback>
+                                {payout.tutorName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{payout.tutorName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          ${payout.amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>{payout.sessionsCount} sessions</TableCell>
+                        <TableCell>
+                          {new Date(payout.dueDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden space-y-4">
+                {mockPendingPayouts.map((payout) => (
+                  <Card
+                    key={payout.id}
+                    className="p-4 cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedPayout(payout)}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{payout.id}</span>
+                        {getStatusBadge(payout.status)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={payout.tutorAvatar} />
+                          <AvatarFallback>
+                            {payout.tutorName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">
+                            {payout.tutorName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {payout.sessionsCount} sessions
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            ${payout.amount.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Due {new Date(payout.dueDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payout History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payout ID</TableHead>
+                      <TableHead>Tutor</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Sessions</TableHead>
+                      <TableHead>Paid Date</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockPayoutHistory.map((payout) => (
+                      <TableRow
+                        key={payout.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelectedPayout(payout)}
+                      >
+                        <TableCell className="font-medium">
+                          {payout.id}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={payout.tutorAvatar} />
+                              <AvatarFallback>
+                                {payout.tutorName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{payout.tutorName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          ${payout.amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>{payout.sessionsCount} sessions</TableCell>
+                        <TableCell>
+                          {new Date(payout.paidDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{payout.paymentMethod}</TableCell>
+                        <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden space-y-4">
+                {mockPayoutHistory.map((payout) => (
+                  <Card
+                    key={payout.id}
+                    className="p-4 cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedPayout(payout)}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{payout.id}</span>
+                        {getStatusBadge(payout.status)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={payout.tutorAvatar} />
+                          <AvatarFallback>
+                            {payout.tutorName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">
+                            {payout.tutorName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {payout.sessionsCount} sessions
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            ${payout.amount.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(payout.paidDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Payout Detail Sheet */}
+      <Sheet
+        open={!!selectedPayout}
+        onOpenChange={() => setSelectedPayout(null)}
+      >
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Payout Details</SheetTitle>
+            <SheetDescription>
+              Complete information about this payout
+            </SheetDescription>
+          </SheetHeader>
+          {selectedPayout && (
+            <div className="mt-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <div className="text-sm font-medium">Payout ID</div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedPayout.id}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Status</div>
+                  <div className="mt-1">
+                    {getStatusBadge(selectedPayout.status)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">
+                    {"dueDate" in selectedPayout ? "Due Date" : "Paid Date"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(
+                      "dueDate" in selectedPayout
+                        ? selectedPayout.dueDate
+                        : selectedPayout.paidDate
+                    ).toLocaleDateString()}
+                  </div>
+                </div>
+                {"paymentMethod" in selectedPayout && (
+                  <div>
+                    <div className="text-sm font-medium">Payment Method</div>
+                    <div className="text-sm text-muted-foreground">
+                      {selectedPayout.paymentMethod}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Tutor Information</h3>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <Avatar>
+                    <AvatarImage src={selectedPayout.tutorAvatar} />
+                    <AvatarFallback>
+                      {selectedPayout.tutorName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {selectedPayout.tutorName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Tutor ID: {selectedPayout.tutorId}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Payout Summary</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Total Sessions
+                    </span>
+                    <span className="text-sm font-medium">
+                      {selectedPayout.sessionsCount}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-sm font-semibold">Total Amount</span>
+                    <span className="text-sm font-semibold">
+                      ${selectedPayout.amount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {"sessions" in selectedPayout && selectedPayout.sessions && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Included Sessions</h3>
+                  <div className="space-y-2">
+                    {selectedPayout.sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex justify-between p-3 border rounded-lg"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">
+                            {session.id}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {session.date}
+                          </div>
+                        </div>
+                        <div className="text-sm font-medium">
+                          ${session.amount.toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {"referenceNumber" in selectedPayout && (
+                <div className="text-xs text-muted-foreground">
+                  Reference: {selectedPayout.referenceNumber}
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
