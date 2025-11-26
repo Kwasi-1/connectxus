@@ -92,7 +92,7 @@ export function TutorApplicationCard({
             variant="outline"
             size="sm"
             onClick={onEdit}
-            disabled={application.status === "approved"}
+            // disabled={application.status === "approved"}
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit

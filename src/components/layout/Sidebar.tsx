@@ -10,7 +10,7 @@ import HomeIcon from "@/assets/icons/Home.svg?react";
 import ExploreIcon from "@/assets/icons/ExploreIcon.svg?react";
 import NotificationsIcon from "@/assets/icons/NotificationsIcon.svg?react";
 import MessagesIcon from "@/assets/icons/Message.svg?react";
-import GroupsIcon from "@/assets/icons/GroupsIcon.svg?react";
+import GroupsIcon from "@/assets/icons/Category.svg?react";
 import TutoringIcon from "@/assets/icons/TutoringIcon.svg?react";
 import MentorsIcon from "@/assets/icons/MentorsIcon.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";

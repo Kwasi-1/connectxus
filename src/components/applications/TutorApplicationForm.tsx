@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { submitTutorApplication } from "@/api/mentorship.api";
 import { toast as sonnerToast } from "sonner";
 import SelectInput from "@/components/shared/SelectInput";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -57,8 +58,12 @@ interface AvailabilitySlot {
 export function TutorApplicationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currencySymbol } = useCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get application data from navigation state (for editing)
+  const existingApplication = location.state?.application;
 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [currentSubject, setCurrentSubject] = useState("");
@@ -77,6 +82,53 @@ export function TutorApplicationForm() {
     startTime: "09:00",
     endTime: "10:00",
   });
+
+  // Helper function to parse availability strings (e.g., "Monday: 09:00-10:00")
+  const parseAvailabilityString = (
+    availStr: string
+  ): AvailabilitySlot | null => {
+    const match = availStr.match(/^(.+?):\s*(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+    if (match) {
+      return {
+        day: match[1].trim(),
+        startTime: match[2],
+        endTime: match[3],
+      };
+    }
+    return null;
+  };
+
+  // Populate form when editing existing application
+  useEffect(() => {
+    if (existingApplication) {
+      // Set subjects
+      if (existingApplication.subjects) {
+        setSelectedSubjects(existingApplication.subjects);
+      }
+
+      // Set availability
+      if (
+        existingApplication.availability &&
+        Array.isArray(existingApplication.availability)
+      ) {
+        const parsedSlots = existingApplication.availability
+          .map(parseAvailabilityString)
+          .filter((slot): slot is AvailabilitySlot => slot !== null);
+        setAvailability(parsedSlots);
+      }
+
+      // Set text fields
+      if (existingApplication.experience)
+        setExperience(existingApplication.experience);
+      if (existingApplication.qualifications)
+        setQualifications(existingApplication.qualifications);
+      if (existingApplication.motivation)
+        setMotivation(existingApplication.motivation);
+
+      // Note: teaching_style and references might not be in the API response
+      // Add them if they exist in your API
+    }
+  }, [existingApplication]);
 
   const handleSubjectSelect = (value: string) => {
     if (value && !selectedSubjects.includes(value)) {
@@ -175,15 +227,19 @@ export function TutorApplicationForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="textcenter">
-        <h1 className="text-3xl font-bold mb-2">Become a Tutor</h1>
+      <div className="">
+        <h1 className="text-3xl font-bold mb-2">
+          {existingApplication ? "Edit Tutor Application" : "Become a Tutor"}
+        </h1>
         <p className="text-muted-foreground">
-          Share your knowledge and help fellow students succeed
+          {existingApplication
+            ? "Update your tutoring application details"
+            : "Share your knowledge and help fellow students succeed"}
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="space-y-8">
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Subjects You Can Tutor</CardTitle>
@@ -401,16 +457,15 @@ export function TutorApplicationForm() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="experience">
-                  Teaching/Tutoring Experience *
-                </Label>
+                <Label htmlFor="experience">Teaching Experience *</Label>
                 <Textarea
                   id="experience"
-                  placeholder="Describe your teaching or tutoring experience, including any relevant coursework, projects, or informal teaching experiences..."
+                  placeholder="Share your teaching or tutoring experience..."
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
                   required
-                  rows={4}
+                  rows={3}
+                  className="mt-2"
                 />
               </div>
 
@@ -420,11 +475,12 @@ export function TutorApplicationForm() {
                 </Label>
                 <Textarea
                   id="qualifications"
-                  placeholder="List your relevant qualifications, grades, certifications, or achievements in the subjects you want to tutor..."
+                  placeholder="List your relevant qualifications and achievements..."
                   value={qualifications}
                   onChange={(e) => setQualifications(e.target.value)}
                   required
                   rows={3}
+                  className="mt-2"
                 />
               </div>
             </CardContent>
@@ -432,32 +488,32 @@ export function TutorApplicationForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Teaching Style & Motivation</CardTitle>
+              <CardTitle>Teaching Approach</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="teaching-style">Your Teaching Style *</Label>
+                <Label htmlFor="teaching-style">Teaching Style *</Label>
                 <Textarea
                   id="teaching-style"
-                  placeholder="Describe your teaching approach, methods you use, and how you adapt to different learning styles..."
+                  placeholder="Describe your teaching approach and methods..."
                   value={teachingStyle}
                   onChange={(e) => setTeachingStyle(e.target.value)}
                   required
-                  rows={4}
+                  rows={3}
+                  className="mt-2"
                 />
               </div>
 
               <div>
-                <Label htmlFor="motivation">
-                  Why do you want to become a tutor? *
-                </Label>
+                <Label htmlFor="motivation">Why become a tutor? *</Label>
                 <Textarea
                   id="motivation"
-                  placeholder="Share your motivation for becoming a tutor and how you plan to help students succeed..."
+                  placeholder="Share your motivation and goals..."
                   value={motivation}
                   onChange={(e) => setMotivation(e.target.value)}
                   required
                   rows={3}
+                  className="mt-2"
                 />
               </div>
             </CardContent>
@@ -470,14 +526,15 @@ export function TutorApplicationForm() {
             <CardContent>
               <div>
                 <Label htmlFor="references">
-                  Professional or Academic References
+                  Academic or Professional References
                 </Label>
                 <Textarea
                   id="references"
-                  placeholder="Provide contact information for professors, teachers, or supervisors who can vouch for your academic abilities and character..."
+                  placeholder="Provide contact information for references..."
                   value={references}
                   onChange={(e) => setReferences(e.target.value)}
                   rows={3}
+                  className="mt-2"
                 />
               </div>
             </CardContent>
@@ -492,7 +549,13 @@ export function TutorApplicationForm() {
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Application"}
+              {isSubmitting
+                ? existingApplication
+                  ? "Updating..."
+                  : "Submitting..."
+                : existingApplication
+                ? "Update Application"
+                : "Submit Application"}
             </Button>
           </div>
         </div>

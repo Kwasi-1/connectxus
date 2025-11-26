@@ -284,7 +284,9 @@ const TutoringContent = () => {
   };
 
   const handleEditApplication = () => {
-    navigate("/tutoring/become-tutor");
+    navigate("/tutoring/become-tutor", {
+      state: { application: myTutorApplication },
+    });
   };
 
   const handleSaveApplication = () => {

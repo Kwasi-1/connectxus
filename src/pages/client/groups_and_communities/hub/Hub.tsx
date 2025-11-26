@@ -123,9 +123,9 @@ const Hub = () => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={group.avatar || undefined} alt={group.name} />
-              <AvatarFallback>
+            <Avatar className="h-14 w-14 rounded-sm">
+              <AvatarImage src={group.avatar || undefined} alt={group.name} className="rounded-sm"/>
+              <AvatarFallback className="rounded-sm">
                 {group.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
