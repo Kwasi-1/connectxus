@@ -68,14 +68,19 @@ export interface TutorApplication {
   id: string;
   user_id: string;
   subjects: string[];
-  motivation?: string;
-  availability?: any;
+  experience?: string; // Teaching/tutoring experience
+  qualifications?: string; // Academic qualifications
+  teaching_style?: string; // Teaching approach and methods
+  motivation?: string; // Why they want to become a tutor
+  references?: string; // Professional or academic references
+  availability?: any; // Array of availability strings or objects
+  session_rate?: number; // Hourly/session rate in GHS
+  semester_rate?: number; // Optional semester package rate in GHS
   status: 'pending' | 'approved' | 'rejected';
   reviewed_by?: string;
   reviewer_notes?: string;
   reviewed_at?: string;
   submitted_at: string;
-  qualifications?: string;
 }
 
 export interface MentoringSession {

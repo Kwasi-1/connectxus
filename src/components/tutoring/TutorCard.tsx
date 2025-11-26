@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Star,
   Clock,
-  DollarSign,
   MessageCircle,
   UserCheck,
   UserMinus,
+  BadgeCheck,
+  Star,
 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -22,10 +22,15 @@ interface TutorCardProps {
     subjects?: string[];
     rating?: number;
     hourly_rate?: number;
+    session_rate?: number;
+    semester_rate?: number;
+    department?: string;
+    year?: string;
     availability?:
       | string[]
       | { day: string; startTime: string; endTime: string }[];
     user_id?: string;
+    verified?: boolean;
   };
   isFollowing?: boolean;
   onContact: () => void;
@@ -49,54 +54,73 @@ export function TutorCard({
   const tutorName = tutor.full_name || tutor.username || "Unknown";
   const { formatCurrency } = useCurrency();
 
+  // Use session_rate if available, fallback to hourly_rate
+  const sessionRate = tutor.session_rate || tutor.hourly_rate;
+
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-all duration-200">
       <CardContent className="p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-5">
           {/* Tutor Info */}
-          <div className="flex items-start space-x-4 flex-1">
-            <Avatar className="h-16 w-16">
+          <div className="flex items-start gap-4 flex-1">
+            <Avatar className="h-14 w-14 rounded-sm">
               <AvatarImage src={tutor.avatar} alt={tutorName} />
-              <AvatarFallback>
+              <AvatarFallback className="rounded-sm">
                 {tutorName.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-xl font-semibold">{tutorName}</h3>
-                {tutor.rating && (
-                  <Badge variant="default" className="text-xs">
-                    ★ {tutor.rating.toFixed(1)}
-                  </Badge>
+                <h3 className="text-xl font-semibold truncate">{tutorName}</h3>
+                {tutor.verified && (
+                  <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
                 )}
               </div>
               <p className="text-muted-foreground mb-4 lg:mb-2">
-                {tutor.bio || "Tutor"}
+                {tutor.department} • {tutor.year}
               </p>
-              <p className="text-sm mb-3 -ml-[5rem] lg:ml-0">
-                {tutor.bio || ""}
-              </p>
+              {tutor.bio && (
+                <p className="text-sm mb-3 -ml-[4.5rem] lg:ml-0">
+                  {tutor.bio}
+                </p>
+              )}
 
               {/* Subjects */}
-              <div className="flex flex-wrap gap-1 mb-3 -ml-20 lg:ml-0">
-                {tutor.subjects?.map((subject, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {subject}
-                  </Badge>
-                )) || []}
-              </div>
+              {tutor.subjects && tutor.subjects.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-3 -ml-[4.5rem] lg:ml-0">
+                  {tutor.subjects.slice(0, 4).map((subject, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {subject}
+                    </Badge>
+                  ))}
+                  {tutor.subjects.length > 4 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{tutor.subjects.length - 4}
+                    </Badge>
+                  )}
+                </div>
+              )}
 
-              {/* Stats */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground -ml-20 lg:ml-0">
+              {/* Pricing */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground -ml-[4.5rem] lg:ml-0">
                 {tutor.rating && (
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-yellow-500 mr-1" />
                     {tutor.rating.toFixed(1)}
                   </div>
                 )}
-                {tutor.hourly_rate && (
-                  <div className="flex items-center">
-                    {formatCurrency(tutor.hourly_rate)}/hour
+                {sessionRate && (
+                  <div className="font-medium">
+                    {formatCurrency(sessionRate)}
+                    <span className="text-muted-foreground font-normal">
+                      /session
+                    </span>
+                  </div>
+                )}
+                {tutor.semester_rate && (
+                  <div className="text-muted-foreground">
+                    {formatCurrency(tutor.semester_rate)}
+                    <span className="text-xs">/semester</span>
                   </div>
                 )}
               </div>
@@ -105,43 +129,49 @@ export function TutorCard({
 
           {/* Availability & Actions */}
           <div className="lg:w-64 space-y-4">
-            <div>
+            {/* Availability */}
+            {tutor.availability &&
+              Array.isArray(tutor.availability) &&
+              tutor.availability.length > 0 && (
+                <div>
               <h4 className="font-medium mb-2 flex items-center">
                 <Clock className="h-4 w-4 mr-2" />
-                Availability
-              </h4>
-              <div className="space-y-1">
-                {tutor.availability &&
-                  Array.isArray(tutor.availability) &&
-                  tutor.availability
-                    .slice(0, 2)
-                    .map(
-                      (
-                        slot:
-                          | string
-                          | { day: string; startTime: string; endTime: string },
-                        index: number
-                      ) => (
-                        <div
-                          key={index}
+                    Availability
+                  </h4>
+                  <div className="space-y-1">
+                    {tutor.availability
+                      .slice(0, 2)
+                      .map(
+                        (
+                          slot:
+                            | string
+                            | {
+                                day: string;
+                                startTime: string;
+                                endTime: string;
+                              },
+                          index: number
+                        ) => (
+                          <div
+                            key={index}
                           className="text-sm text-muted-foreground"
-                        >
-                          {typeof slot === "string"
-                            ? slot
-                            : `${slot.day}: ${slot.startTime} - ${slot.endTime}`}
-                        </div>
-                      )
+                          >
+                            {typeof slot === "string"
+                              ? slot
+                              : `${slot.day}: ${slot.startTime} - ${slot.endTime}`}
+                          </div>
+                        )
+                      )}
+                    {tutor.availability.length > 2 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{tutor.availability.length - 2} more
+                      </div>
                     )}
-                {tutor.availability &&
-                  Array.isArray(tutor.availability) &&
-                  tutor.availability.length > 2 && (
-                    <div className="text-xs text-muted-foreground">
-                      +{tutor.availability.length - 2} more slots
-                    </div>
-                  )}
-              </div>
-            </div>
+                  </div>
+                </div>
+              )}
 
+            {/* Actions */}
             {showRequestButton ? (
               <Button
                 onClick={onRequestTutoring}
@@ -150,7 +180,7 @@ export function TutorCard({
                 Request Tutoring
               </Button>
             ) : (
-              <div className="flex space-x-2">
+              <div className="flex gap-2">
                 <Button
                   onClick={onContact}
                   size="sm"
