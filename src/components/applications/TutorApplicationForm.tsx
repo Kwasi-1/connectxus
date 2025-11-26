@@ -55,7 +55,9 @@ export function TutorApplicationForm() {
 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [currentSubject, setCurrentSubject] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
+  const [sessionRate, setSessionRate] = useState("");
+  const [semesterRate, setSemesterRate] = useState("");
+  const [showSemesterRate, setShowSemesterRate] = useState(false);
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [experience, setExperience] = useState("");
   const [qualifications, setQualifications] = useState("");
@@ -221,27 +223,77 @@ export function TutorApplicationForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Hourly Rate</CardTitle>
+              <CardTitle>Pricing</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{currencySymbol}</span>
-                <Input
-                  type="number"
-                  placeholder="30"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  className="w-32"
-                  min="0"
-                  step="0.50"
-                  required
-                />
-                <span className="text-muted-foreground">per hour</span>
+            <CardContent className="space-y-4">
+              {/* Session Rate */}
+              <div>
+                <Label htmlFor="session-rate">Session Rate *</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xl">{currencySymbol}</span>
+                  <Input
+                    id="session-rate"
+                    type="number"
+                    placeholder="30"
+                    value={sessionRate}
+                    onChange={(e) => setSessionRate(e.target.value)}
+                    className="w-32"
+                    min="0"
+                    step="0.50"
+                    required
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    per session
+                  </span>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Set your hourly rate in Ghana Cedis. This will be displayed to
-                students when they request tutoring.
-              </p>
+
+              {/* Toggle for Semester Rate */}
+              <div className="flex items-center justify-between pt-2">
+                <Label htmlFor="semester-toggle" className="cursor-pointer">
+                  Offer semester package?
+                </Label>
+                <button
+                  id="semester-toggle"
+                  type="button"
+                  onClick={() => {
+                    setShowSemesterRate(!showSemesterRate);
+                    if (showSemesterRate) setSemesterRate("");
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    showSemesterRate ? "bg-primary" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showSemesterRate ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Semester Rate (Conditional) */}
+              {showSemesterRate && (
+                <div className="pl-4 border-l-2 border-primary/20">
+                  <Label htmlFor="semester-rate">Semester Rate</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xl">{currencySymbol}</span>
+                    <Input
+                      id="semester-rate"
+                      type="number"
+                      placeholder="306"
+                      value={semesterRate}
+                      onChange={(e) => setSemesterRate(e.target.value)}
+                      className="w-32"
+                      min="0"
+                      step="0.50"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      12 sessions
+                    </span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
