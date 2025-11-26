@@ -17,20 +17,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  searchTutors,
-  getMyTutorProfile,
-  getMyTutorApplication,
-  getUserTutoringRequests,
-  getTutorSessionRequests,
   TutorProfile as ApiTutorProfile,
-  createTutoringRequest,
-  acceptTutoringRequest,
-  declineTutoringRequest,
-  payForTutoringSession,
-  completeTutoringSession,
-  requestTutoringRefund,
   TutoringRequest,
 } from "@/api/mentorship.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
@@ -44,6 +33,11 @@ import {
   useMockTutoring,
   MockTutoringProvider,
 } from "@/contexts/MockTutoringContext";
+import {
+  mockTutors,
+  mockTutorApplication,
+  mockTutorProfile,
+} from "@/data/mockTutors";
 
 const subjectFilters = [
   "All",
@@ -86,29 +80,15 @@ const TutoringContent = () => {
   const [isCompletingSession, setIsCompletingSession] = useState(false);
   const [isRequestingRefund, setIsRequestingRefund] = useState(false);
 
-  const { data: tutors = [], isLoading: loadingTutors } = useQuery({
-    queryKey: ["tutors", searchQuery],
-    queryFn: () =>
-      searchTutors(searchQuery || undefined, { page: 1, limit: 100 }),
-    staleTime: 60000,
-  });
+  // Use mock data instead of API calls
+  const tutors = mockTutors;
+  const myTutorApplication = null; // Set to mockTutorApplication to test as tutor
+  const myTutorProfile = null; // Set to mockTutorProfile to test as tutor
+  const loadingTutors = false;
+  const loadingMyApplication = false;
+  const loadingMyProfile = false;
 
-  const { data: myTutorApplication, isLoading: loadingMyApplication } =
-    useQuery({
-      queryKey: ["my-tutor-application"],
-      queryFn: () => getMyTutorApplication(),
-      staleTime: 60000,
-      retry: false,
-    });
-
-  const { data: myTutorProfile, isLoading: loadingMyProfile } = useQuery({
-    queryKey: ["my-tutor-profile"],
-    queryFn: () => getMyTutorProfile(),
-    staleTime: 60000,
-    retry: false,
-  });
-
-  // Use mock data for requests instead of API
+  // Use mock data for requests
   const sentRequests = mockTutoring.getUserRequests();
   const receivedRequests = myTutorProfile
     ? mockTutoring.getTutorRequests(myTutorProfile.user_id || "")

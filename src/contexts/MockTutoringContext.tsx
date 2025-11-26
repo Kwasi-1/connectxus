@@ -22,6 +22,7 @@ interface MockTutoringContextType {
       session_type: "single" | "semester";
       platform_fee: number;
       tutor_amount: number;
+      payment_reference?: string;
     }
   ) => Promise<TutoringRequest>;
   completeSession: (
@@ -55,12 +56,94 @@ interface MockTutoringProviderProps {
   currentUserId?: string;
 }
 
+// Initial mock data for testing
+const createInitialMockData = (currentUserId: string): TutoringRequest[] => {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const expiresIn24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const refundEligibleUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  return [
+    // Pending request (waiting for tutor to accept)
+    {
+      id: "req-mock-1",
+      session_id: "session-mock-1",
+      requester_id: currentUserId,
+      requester_username: "john_student",
+      requester_full_name: "John Student",
+      space_id: "space-1",
+      tutor_id: "tutor-123",
+      tutor_username: "sarah_tutor",
+      tutor_full_name: "Sarah Johnson",
+      subject: "DCIT 201",
+      topic: "Object-Oriented Programming Concepts",
+      preferred_schedule: ["Monday 2pm-4pm", "Wednesday 3pm-5pm"],
+      session_type: "single",
+      status: "pending",
+      created_at: yesterday.toISOString(),
+      expires_at: expiresIn24h.toISOString(),
+    },
+    // Accepted request (ready for payment)
+    {
+      id: "req-mock-2",
+      session_id: "session-mock-2",
+      requester_id: currentUserId,
+      requester_username: "john_student",
+      requester_full_name: "John Student",
+      space_id: "space-1",
+      tutor_id: "tutor-456",
+      tutor_username: "mike_tutor",
+      tutor_full_name: "Michael Chen",
+      subject: "Calculus I",
+      topic: "Integration Techniques and Applications",
+      preferred_schedule: ["Tuesday 10am-12pm", "Thursday 10am-12pm"],
+      session_type: "semester",
+      status: "accepted",
+      created_at: twoDaysAgo.toISOString(),
+      responded_at: yesterday.toISOString(),
+      expires_at: expiresIn24h.toISOString(),
+    },
+    // Paid request (ready for session)
+    {
+      id: "req-mock-3",
+      session_id: "session-mock-3",
+      requester_id: currentUserId,
+      requester_username: "john_student",
+      requester_full_name: "John Student",
+      space_id: "space-1",
+      tutor_id: "tutor-789",
+      tutor_username: "emma_tutor",
+      tutor_full_name: "Emma Williams",
+      subject: "Statistics",
+      topic: "Hypothesis Testing and Confidence Intervals",
+      preferred_schedule: ["Friday 1pm-3pm"],
+      session_type: "single",
+      status: "paid",
+      created_at: threeDaysAgo.toISOString(),
+      responded_at: twoDaysAgo.toISOString(),
+      payment_details: {
+        amount: 28.75,
+        session_type: "single",
+        platform_fee: 3.75,
+        tutor_amount: 25,
+        payment_reference: "TUT-1732593872123-a3b4c5",
+        paid_at: yesterday.toISOString(),
+        refund_eligible_until: refundEligibleUntil.toISOString(),
+      },
+    },
+  ];
+};
+
 export const MockTutoringProvider: React.FC<MockTutoringProviderProps> = ({
   children,
   currentUserId = "current-user-123",
 }) => {
-  const [requests, setRequests] = useState<TutoringRequest[]>([]);
-  const [requestIdCounter, setRequestIdCounter] = useState(1);
+  const [requests, setRequests] = useState<TutoringRequest[]>(() =>
+    createInitialMockData(currentUserId)
+  );
+  const [requestIdCounter, setRequestIdCounter] = useState(4); // Start from 4 since we have 3 initial requests
 
   // Simulate async operation
   const delay = (ms: number = 500) =>
@@ -79,10 +162,10 @@ export const MockTutoringProvider: React.FC<MockTutoringProviderProps> = ({
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const newRequest: TutoringRequest = {
-      id: `req-${requestIdCounter}`,
-      session_id: `session-${requestIdCounter}`,
+      id: `req-mock-${requestIdCounter}`,
+      session_id: `session-mock-${requestIdCounter}`,
       requester_id: currentUserId,
-      requester_username: "student_user",
+      requester_username: "john_student",
       requester_full_name: "John Student",
       space_id: "space-1",
       tutor_id: data.tutor_id,
@@ -148,6 +231,7 @@ export const MockTutoringProvider: React.FC<MockTutoringProviderProps> = ({
       session_type: "single" | "semester";
       platform_fee: number;
       tutor_amount: number;
+      payment_reference?: string;
     }
   ): Promise<TutoringRequest> => {
     await delay(1000); // Longer delay to simulate payment processing
@@ -160,7 +244,11 @@ export const MockTutoringProvider: React.FC<MockTutoringProviderProps> = ({
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + refundWindow);
 
     const payment: PaymentDetails = {
-      ...paymentData,
+      amount: paymentData.amount,
+      session_type: paymentData.session_type,
+      platform_fee: paymentData.platform_fee,
+      tutor_amount: paymentData.tutor_amount,
+      payment_reference: paymentData.payment_reference,
       paid_at: new Date().toISOString(),
       refund_eligible_until: refundEligibleUntil.toISOString(),
     };
