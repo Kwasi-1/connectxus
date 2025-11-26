@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { submitTutorApplication } from "@/api/mentorship.api";
 import { toast as sonnerToast } from "sonner";
+import SelectInput from "@/components/shared/SelectInput";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const availableSubjects = [
   "DCIT 101",
@@ -48,10 +50,11 @@ interface AvailabilitySlot {
 export function TutorApplicationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { currencySymbol } = useCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [customSubject, setCustomSubject] = useState("");
+  const [currentSubject, setCurrentSubject] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [experience, setExperience] = useState("");
@@ -66,24 +69,15 @@ export function TutorApplicationForm() {
     endTime: "10:00",
   });
 
-  const handleSubjectSelect = (subject: string) => {
-    if (!selectedSubjects.includes(subject)) {
-      setSelectedSubjects([...selectedSubjects, subject]);
+  const handleSubjectSelect = (value: string) => {
+    if (value && !selectedSubjects.includes(value)) {
+      setSelectedSubjects([...selectedSubjects, value]);
+      setCurrentSubject("");
     }
   };
 
   const handleSubjectRemove = (subject: string) => {
     setSelectedSubjects(selectedSubjects.filter((s) => s !== subject));
-  };
-
-  const handleAddCustomSubject = () => {
-    if (
-      customSubject.trim() &&
-      !selectedSubjects.includes(customSubject.trim())
-    ) {
-      setSelectedSubjects([...selectedSubjects, customSubject.trim()]);
-      setCustomSubject("");
-    }
   };
 
   const handleAddAvailability = () => {
@@ -172,7 +166,7 @@ export function TutorApplicationForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="text-center">
+      <div className="textcenter">
         <h1 className="text-3xl font-bold mb-2">Become a Tutor</h1>
         <p className="text-muted-foreground">
           Share your knowledge and help fellow students succeed
@@ -186,37 +180,18 @@ export function TutorApplicationForm() {
               <CardTitle>Subjects You Can Tutor</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {availableSubjects.map((subject) => (
-                  <Button
-                    key={subject}
-                    type="button"
-                    variant={
-                      selectedSubjects.includes(subject) ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => handleSubjectSelect(subject)}
-                    className="justify-start"
-                  >
-                    {subject}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom subject..."
-                  value={customSubject}
-                  onChange={(e) => setCustomSubject(e.target.value)}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" &&
-                    (e.preventDefault(), handleAddCustomSubject())
-                  }
-                />
-                <Button type="button" onClick={handleAddCustomSubject}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <SelectInput
+                id="subject-select"
+                label="Search and select subjects"
+                placeholder="Type to search subjects..."
+                items={availableSubjects.map((subject) => ({
+                  value: subject,
+                  label: subject,
+                }))}
+                onChange={handleSubjectSelect}
+                values={{ "subject-select": currentSubject }}
+                wrapperClassName="mb-4"
+              />
 
               {selectedSubjects.length > 0 && (
                 <div>
@@ -246,25 +221,26 @@ export function TutorApplicationForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Hourly Rate (Optional)</CardTitle>
+              <CardTitle>Hourly Rate</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <span className="text-2xl">$</span>
+                <span className="text-2xl">{currencySymbol}</span>
                 <Input
                   type="number"
-                  placeholder="25"
+                  placeholder="30"
                   value={hourlyRate}
                   onChange={(e) => setHourlyRate(e.target.value)}
                   className="w-32"
                   min="0"
                   step="0.50"
+                  required
                 />
                 <span className="text-muted-foreground">per hour</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Leave blank if you prefer to discuss rates individually with
-                students.
+                Set your hourly rate in Ghana Cedis. This will be displayed to
+                students when they request tutoring.
               </p>
             </CardContent>
           </Card>
