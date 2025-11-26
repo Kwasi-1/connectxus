@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PaystackButton } from "react-paystack";
 import { variables } from "@/utils/env";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface PaymentModalProps {
   open: boolean;
@@ -46,6 +47,7 @@ export function PaymentModal({
   const [selectedType, setSelectedType] = useState<"single" | "semester">(
     request.session_type || "single"
   );
+  const { formatCurrency } = useCurrency();
 
   const calculatePricing = (type: "single" | "semester") => {
     const baseAmount = type === "single" ? hourlyRate : hourlyRate * 12;
@@ -80,7 +82,8 @@ export function PaymentModal({
   const paystackConfig = {
     reference,
     email: userEmail,
-    amount: Math.round(selectedPricing.total * 100), // Convert to kobo (smallest currency unit)
+    amount: Math.round(selectedPricing.total * 100), // Convert to pesewas (smallest currency unit for GHS)
+    currency: "GHS", // Ghana Cedis
     publicKey:
       variables().PAYSTACK_PUBLIC_API_KEY ||
       "pk_test_c8e9fcf6be7da2f938b8d277203a0b781fff6c39",
@@ -128,7 +131,7 @@ export function PaymentModal({
     text: (
       <span className="flex items-center">
         <CreditCard className="h-4 w-4 mr-2" />
-        Pay ${selectedPricing.total.toFixed(2)}
+        Pay {formatCurrency(selectedPricing.total)}
       </span>
     ),
     onSuccess: handlePaystackSuccessAction,
@@ -191,20 +194,19 @@ export function PaymentModal({
                       <span className="text-muted-foreground">
                         Session rate:
                       </span>
-                      <span>${singlePricing.baseAmount.toFixed(2)}</span>
+                      <span>{formatCurrency(singlePricing.baseAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
                         Platform fee (15%):
                       </span>
-                      <span>${singlePricing.platformFee.toFixed(2)}</span>
+                      <span>{formatCurrency(singlePricing.platformFee)}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between font-semibold text-base">
                       <span>Total:</span>
                       <span className="flex items-center">
-                        <DollarSign className="h-4 w-4" />
-                        {singlePricing.total.toFixed(2)}
+                        {formatCurrency(singlePricing.total)}
                       </span>
                     </div>
                   </div>
@@ -226,7 +228,10 @@ export function PaymentModal({
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="font-semibold">Semester Package</h4>
                     <Badge variant="default" className="text-xs">
-                      Save ${semesterPricing.discount.toFixed(0)}
+                      Save{" "}
+                      {formatCurrency(semesterPricing.discount, {
+                        decimals: 0,
+                      })}
                     </Badge>
                     {selectedType === "semester" && (
                       <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -241,27 +246,26 @@ export function PaymentModal({
                         Regular price:
                       </span>
                       <span className="line-through">
-                        ${semesterPricing.baseAmount.toFixed(2)}
+                        {formatCurrency(semesterPricing.baseAmount)}
                       </span>
                     </div>
                     <div className="flex justify-between text-green-600">
                       <span>Discounted (15% off):</span>
                       <span>
-                        ${semesterPricing.discountedAmount.toFixed(2)}
+                        {formatCurrency(semesterPricing.discountedAmount)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
                         Platform fee (15%):
                       </span>
-                      <span>${semesterPricing.platformFee.toFixed(2)}</span>
+                      <span>{formatCurrency(semesterPricing.platformFee)}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between font-semibold text-base">
                       <span>Total:</span>
                       <span className="flex items-center">
-                        <DollarSign className="h-4 w-4" />
-                        {semesterPricing.total.toFixed(2)}
+                        {formatCurrency(semesterPricing.total)}
                       </span>
                     </div>
                   </div>

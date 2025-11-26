@@ -14,6 +14,7 @@ import {
   HourglassIcon,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface StudentRequestCardProps {
   request: TutoringRequest;
@@ -30,6 +31,7 @@ export function StudentRequestCard({
   onMarkComplete,
   onRequestRefund,
 }: StudentRequestCardProps) {
+  const { formatCurrency } = useCurrency();
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "pending":
@@ -168,7 +170,7 @@ export function StudentRequestCard({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount Paid:</span>
               <span className="font-medium">
-                ${request.payment_details.amount.toFixed(2)}
+                {formatCurrency(request.payment_details.amount)}
               </span>
             </div>
             <div className="flex justify-between">

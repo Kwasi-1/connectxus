@@ -10,6 +10,7 @@ import {
   UserCheck,
   UserMinus,
 } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface TutorCardProps {
   tutor: {
@@ -46,6 +47,7 @@ export function TutorCard({
   showRequestButton = false,
 }: TutorCardProps) {
   const tutorName = tutor.full_name || tutor.username || "Unknown";
+  const { formatCurrency } = useCurrency();
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -94,8 +96,7 @@ export function TutorCard({
                 )}
                 {tutor.hourly_rate && (
                   <div className="flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1" />${tutor.hourly_rate}
-                    /hour
+                    {formatCurrency(tutor.hourly_rate)}/hour
                   </div>
                 )}
               </div>
