@@ -12,6 +12,13 @@ import { submitTutorApplication } from "@/api/mentorship.api";
 import { toast as sonnerToast } from "sonner";
 import SelectInput from "@/components/shared/SelectInput";
 import { useCurrency } from "@/hooks/useCurrency";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const availableSubjects = [
   "DCIT 101",
@@ -305,22 +312,26 @@ export function TutorApplicationForm() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3">
                 <div>
                   <Label>Day</Label>
-                  <select
-                    className="w-full p-2 border rounded-md"
+                  <Select
                     value={newSlot.day}
-                    onChange={(e) =>
-                      setNewSlot({ ...newSlot, day: e.target.value })
+                    onValueChange={(value) =>
+                      setNewSlot({ ...newSlot, day: value })
                     }
                   >
-                    {daysOfWeek.map((day) => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek.map((day) => (
+                        <SelectItem key={day} value={day}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Start Time</Label>
@@ -330,6 +341,7 @@ export function TutorApplicationForm() {
                     onChange={(e) =>
                       setNewSlot({ ...newSlot, startTime: e.target.value })
                     }
+                    className="mt-2"
                   />
                 </div>
                 <div>
@@ -340,40 +352,44 @@ export function TutorApplicationForm() {
                     onChange={(e) =>
                       setNewSlot({ ...newSlot, endTime: e.target.value })
                     }
+                    className="mt-2"
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button type="button" onClick={handleAddAvailability}>
-                    Add Slot
+                  <Button
+                    type="button"
+                    onClick={handleAddAvailability}
+                    size="icon"
+                    className="h-10 w-10"
+                  >
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               {availability.length > 0 && (
-                <div>
-                  <Label className="text-sm font-medium">
-                    Your Availability:
-                  </Label>
-                  <div className="space-y-2 mt-2">
-                    {availability.map((slot, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 border rounded-lg"
+                <div className="space-y-2 pt-2">
+                  {availability.map((slot, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="text-sm">
+                        <span className="font-medium">{slot.day}</span>
+                        <span className="text-muted-foreground mx-2">•</span>
+                        {slot.startTime} - {slot.endTime}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleRemoveAvailability(index)}
                       >
-                        <span>
-                          {slot.day}: {slot.startTime} - {slot.endTime}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveAvailability(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
