@@ -374,7 +374,7 @@ const TutoringContent = () => {
     setCompletionModalOpen(true);
   };
 
-  const handleCompleteSession = async (rating: number, review?: string) => {
+  const handleSubmitCompletion = async (rating: number, review?: string) => {
     if (!selectedRequest) return;
 
     setIsCompletingSession(true);
@@ -740,7 +740,7 @@ const TutoringContent = () => {
                           onProceedToPayment={() =>
                             handleProceedToPayment(request)
                           }
-                          onMarkComplete={() => handleCompleteSession(request)}
+                          onMarkComplete={() => handleMarkComplete(request)}
                           onRequestRefund={() => handleRequestRefund(request)}
                           onMessageTutor={() => handleMessageTutor(request)}
                         />
@@ -864,7 +864,7 @@ const TutoringContent = () => {
               selectedRequest.tutor_username ||
               "Tutor"
             }
-            onComplete={handleCompleteSession}
+            onComplete={handleSubmitCompletion}
             onReportIssue={handleReportIssue}
             isLoading={isCompletingSession}
           />

@@ -81,7 +81,9 @@ export function PaymentModal({
     reference,
     email: userEmail,
     amount: Math.round(selectedPricing.total * 100), // Convert to kobo (smallest currency unit)
-    publicKey: variables().PAYSTACK_PUBLIC_API_KEY || "",
+    publicKey:
+      variables().PAYSTACK_PUBLIC_API_KEY ||
+      "pk_test_c8e9fcf6be7da2f938b8d277203a0b781fff6c39",
     metadata: {
       custom_fields: [
         {
