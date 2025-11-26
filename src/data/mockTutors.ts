@@ -5,12 +5,15 @@ export const isUserTutor = (userEmail?: string): boolean => {
   return userEmail === "kelvinmhacwilson@gmail.com";
 };
 
-// Mock tutors data for testing
-export const mockTutors: ApiTutorProfile[] = [
+// Mock tutors data for testing (with extended fields for display)
+export const mockTutors: any[] = [
   // kelvinmhacwilson as a tutor
   {
     id: "tutor-kelvin",
     user_id: "kelvinmhacwilson-user-id", // Will be replaced with actual user ID
+    full_name: "Kelvin Mhacwilson",
+    username: "kelvinmhacwilson",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=kelvinmhacwilson",
     subjects: ["DCIT 101", "DCIT 201", "Programming", "Web Development"],
     hourly_rate: 30,
     bio: "Passionate software developer and educator. I love helping students understand programming concepts and build real-world projects.",
@@ -28,6 +31,9 @@ export const mockTutors: ApiTutorProfile[] = [
   {
     id: "tutor-123",
     user_id: "user-tutor-123",
+    full_name: "Sarah Johnson",
+    username: "sarah_tutor",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
     subjects: ["DCIT 101", "DCIT 201", "Programming", "Data Structures"],
     hourly_rate: 25,
     bio: "Computer Science graduate with 5 years of tutoring experience. Specialized in programming and data structures.",
@@ -45,6 +51,9 @@ export const mockTutors: ApiTutorProfile[] = [
   {
     id: "tutor-456",
     user_id: "user-tutor-456",
+    full_name: "Michael Chen",
+    username: "mike_tutor",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael",
     subjects: ["Calculus I", "Calculus II", "Statistics", "Mathematics"],
     hourly_rate: 30,
     bio: "Mathematics PhD student passionate about helping students understand calculus and statistics.",
@@ -62,6 +71,9 @@ export const mockTutors: ApiTutorProfile[] = [
   {
     id: "tutor-789",
     user_id: "user-tutor-789",
+    full_name: "Emma Williams",
+    username: "emma_tutor",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma",
     subjects: ["Statistics", "Data Analysis", "DCIT 201", "Mathematics"],
     hourly_rate: 28,
     bio: "Statistics expert with industry experience in data analysis. Love making complex concepts simple!",

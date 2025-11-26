@@ -39,6 +39,13 @@ import {
   getTutorProfileForUser,
 } from "@/data/mockTutors";
 
+// Extended tutor profile with additional fields for display
+interface ExtendedTutorProfile extends ApiTutorProfile {
+  full_name?: string;
+  username?: string;
+  avatar?: string;
+}
+
 const subjectFilters = [
   "All",
   "DCIT 101",
@@ -646,6 +653,111 @@ const TutoringContent = () => {
                   application={myTutorApplication}
                   onEdit={handleEditApplication}
                 />
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : sentRequests.length > 0 ? (
+          <Tabs defaultValue="tutors" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tutors">Find Tutors</TabsTrigger>
+              <TabsTrigger value="my-requests">
+                My Requests ({sentRequests.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tutors" className="space-y-4">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search tutors or subjects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 rounded-full"
+                  />
+                </div>
+
+                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
+                  {subjectFilters.map((subject) => (
+                    <Button
+                      key={subject}
+                      variant={
+                        selectedSubject === subject ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedSubject(subject)}
+                      className="rounded-full px-5"
+                    >
+                      {subject}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {loading ? (
+                <LoadingSpinner />
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    {filteredTutors.map((tutor) => (
+                      <TutorCard
+                        key={tutor.id}
+                        tutor={tutor}
+                        onContact={() => handleContactTutor(tutor)}
+                        onFollow={() => handleFollowTutor(tutor)}
+                        onRequestTutoring={() => handleRequestTutoring(tutor)}
+                        showRequestButton={true}
+                      />
+                    ))}
+                  </div>
+
+                  {filteredTutors.length === 0 && (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        No tutors found
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Try adjusting your search or filters
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="my-requests" className="space-y-4">
+              {requestsLoading ? (
+                <LoadingSpinner size="md" />
+              ) : (
+                <>
+                  {sentRequests.length > 0 ? (
+                    <div className="space-y-4">
+                      {sentRequests.map((request) => (
+                        <StudentRequestCard
+                          key={request.id}
+                          request={request}
+                          onProceedToPayment={() =>
+                            handleProceedToPayment(request)
+                          }
+                          onMarkComplete={() => handleCompleteSession(request)}
+                          onRequestRefund={() => handleRequestRefund(request)}
+                          onMessageTutor={() => handleMessageTutor(request)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        No tutoring requests
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Request tutoring from a tutor to get started
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
