@@ -67,8 +67,12 @@ export function TutoringBusinessPayouts() {
     0
   );
 
-  // Calculate commission (15% of total pending amount)
-  const totalCommission = totalPendingAmount * 0.15;
+  // Calculate commission (20% of total amount)
+  const incomingCommission = totalPendingAmount * 0.2;
+  const totalCommission = mockPayoutHistory.reduce(
+    (sum, p) => sum + p.amount * 0.2,
+    0
+  );
 
   // Calculate next payout date (mock - would come from schedule)
   const nextPayoutDate = new Date();
@@ -137,6 +141,7 @@ export function TutoringBusinessPayouts() {
             <p className="text-xs text-muted-foreground">Awaiting processing</p>
           </CardContent>
         </Card>
+        {activeTab === "pending" ? (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -151,20 +156,38 @@ export function TutoringBusinessPayouts() {
             <p className="text-xs text-muted-foreground">To be paid out</p>
           </CardContent>
         </Card>
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Paid Amount
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(totalPaidAmount)}
+              </div>
+              <p className="text-xs text-muted-foreground">Total paid out</p>
+            </CardContent>
+          </Card>
+        )}
         {activeTab === "pending" ? (
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Commission (15%)
+                  Incoming Commission
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totalCommission)}
+                  {formatCurrency(incomingCommission)}
                 </div>
-                <p className="text-xs text-muted-foreground">Platform fees</p>
+                <p className="text-xs text-muted-foreground">
+                  20% platform fee
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -187,13 +210,13 @@ export function TutoringBusinessPayouts() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Paid
+                  Total Commission
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totalPaidAmount)}
+                  {formatCurrency(totalCommission)}
                 </div>
                 <p className="text-xs text-muted-foreground">This month</p>
               </CardContent>
@@ -248,7 +271,8 @@ export function TutoringBusinessPayouts() {
                     <TableRow>
                       <TableHead>Payout ID</TableHead>
                       <TableHead>Tutor</TableHead>
-                      <TableHead>Amount</TableHead>
+                      <TableHead>Transaction Amount</TableHead>
+                      <TableHead>Payout Amount</TableHead>
                       <TableHead>Sessions</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Status</TableHead>
@@ -277,6 +301,9 @@ export function TutoringBusinessPayouts() {
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold">
+                          {formatCurrency(payout.amount / 0.8)}
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-600">
                           {formatCurrency(payout.amount)}
                         </TableCell>
                         <TableCell>{payout.sessionsCount} sessions</TableCell>
@@ -371,7 +398,8 @@ export function TutoringBusinessPayouts() {
                     <TableRow>
                       <TableHead>Payout ID</TableHead>
                       <TableHead>Tutor</TableHead>
-                      <TableHead>Amount</TableHead>
+                      <TableHead>Transaction Amount</TableHead>
+                      <TableHead>Payout Amount</TableHead>
                       <TableHead>Sessions</TableHead>
                       <TableHead>Paid Date</TableHead>
                       <TableHead>Method</TableHead>
@@ -400,7 +428,10 @@ export function TutoringBusinessPayouts() {
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold">
-                          ${payout.amount.toFixed(2)}
+                          {formatCurrency(payout.amount / 0.8)}
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-600">
+                          {formatCurrency(payout.amount)}
                         </TableCell>
                         <TableCell>{payout.sessionsCount} sessions</TableCell>
                         <TableCell>
