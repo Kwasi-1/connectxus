@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -14,12 +14,17 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCheck } from "lucide-react";
+import { getWebSocketClient } from "@/lib/websocket";
+import { useAuth } from "@/contexts/AuthContext";
 
 type NotificationTab = "all" | "unread" | "mentions";
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState<NotificationTab>("all");
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const wsClient = useRef(getWebSocketClient());
+  const [wsConnected, setWsConnected] = useState(false);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -45,6 +50,60 @@ const Notifications = () => {
       toast.error("Failed to mark notifications as read");
     },
   });
+
+    useEffect(() => {
+    const initializeWebSocket = async () => {
+      try {
+        await wsClient.current.connect();
+        setWsConnected(true);
+
+                const notificationHandler = (notification: any) => {
+                    queryClient.setQueryData(["notifications"], (old: any) => {
+            if (!old) return [notification];
+            const exists = old.some((n: any) => n.id === notification.id);
+            if (exists) return old;
+            return [notification, ...old];
+          });
+
+                    const notificationSound = new Audio("/notification.mp3");
+          notificationSound.volume = 0.3;
+          notificationSound.play().catch((error) => {
+            console.log("Could not play notification sound:", error);
+          });
+
+                    toast.info(notification.title || "New notification", {
+            description: notification.message,
+          });
+        };
+
+        wsClient.current.on("notification.created", notificationHandler);
+
+                if (user?.id) {
+          wsClient.current.subscribe(`user:${user.id}`);
+        }
+
+                return () => {
+          wsClient.current.off("notification.created", notificationHandler);
+        };
+      } catch (error) {
+        console.error("Failed to connect to WebSocket:", error);
+        setWsConnected(false);
+      }
+    };
+
+    const cleanup = initializeWebSocket();
+
+    return () => {
+      cleanup?.then((cleanupFn) => {
+        if (cleanupFn && typeof cleanupFn === 'function') {
+          cleanupFn();
+        }
+      });
+      if (user?.id) {
+        wsClient.current.unsubscribe(`user:${user.id}`);
+      }
+    };
+  }, [queryClient, user?.id]);
 
   const handleNotificationClick = (notificationId: string, isRead: boolean) => {
     if (!isRead) {
@@ -100,7 +159,7 @@ const Notifications = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md borderb border-border">
           <div className="px-4 py-3 flex items-center justify-between">
             <h1 className="text-xl font-bold text-foreground">Notifications</h1>
             {unreadCount > 0 && (

@@ -25,10 +25,11 @@ export interface SignUpFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  university?: string;
-  department?: string;
+  space_id: string;
+  department_id?: string;
   level?: string;
   interests?: UserInterest[];
+  phoneNumber: string;
 }
 
 export interface SignInFormData {

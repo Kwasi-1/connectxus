@@ -1,4 +1,5 @@
 
+import { variables } from '@/utils/env';
 import { getAccessToken } from './apiClient';
 import { toast } from 'sonner';
 
@@ -46,7 +47,7 @@ class WebSocketClient {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    const wsUrl = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:8000/ws';
+    const wsUrl = variables().SOCKET_URL || 'ws://localhost:8000/ws';
     const token = getAccessToken();
     this.url = token ? `${wsUrl}?token=${token}` : wsUrl;
   }

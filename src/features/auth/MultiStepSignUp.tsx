@@ -1,13 +1,9 @@
 import React, { useState } from "react";
-
 import { useForm } from "react-hook-form";
-
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import * as z from "zod";
-
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 import {
   Form,
   FormControl,
@@ -16,52 +12,33 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
 import { Input } from "@/components/ui/input";
-
 import { useAuth } from "@/contexts/AuthContext";
-
 import { SignUpFormData } from "@/types/auth";
-
 import { RoleSelector } from "./RoleSelector";
-
 import { StudentFields } from "./StudentFields";
-
 import { StaffFields } from "./StaffFields";
-
 import { InterestsSelector } from "./InterestsSelector";
-
 import { toast } from "sonner";
-
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
-
 import { UniversitySelector } from "./UniversitySelector";
 
 const signUpSchema = z
   .object({
-    role: z.enum(["student", "staff"]),
-
     name: z.string().min(2, "Name must be at least 2 characters"),
-
     email: z.string().email("Invalid email address"),
-
     password: z.string().min(6, "Password must be at least 6 characters"),
-
     confirmPassword: z.string(),
-
-    university: z.string().min(1, "Please select a university"),
-
-    department: z.string().optional(),
-
+    space_id: z.string().min(1, "Please select a space"),
+    department_id: z.string().optional(),
+    phoneNumber: z.string().min(10).max(10),
     level: z.string().optional(),
-
     interests: z
       .array(z.string())
       .min(1, "Please select at least one interest"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
-
     path: ["confirmPassword"],
   });
 
@@ -73,7 +50,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   onToggleMode,
 }) => {
   const { signUp, isLoading } = useAuth();
-
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -82,25 +59,16 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
 
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
-
     defaultValues: {
-      role: "student",
-
       name: "",
-
       email: "",
-
       password: "",
-
       confirmPassword: "",
-
-      university: "",
-
-      department: "",
-
+      space_id: "",
+      department_id: "",
       level: "",
-
       interests: [],
+      phoneNumber: "",
     },
   });
 
@@ -111,26 +79,22 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   let totalSteps = 6;
 
   const nextStep = () => {
-    let next = currentStep + 1;
-
-    if (next <= totalSteps) {
-      setCurrentStep(next);
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    let prev = currentStep - 1;
-
-    if (prev > 0) {
-      setCurrentStep(prev);
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
   const onSubmit = async (data: SignUpFormData) => {
     try {
       await signUp(data);
-
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully! Please log in.");
+      navigate("/auth/signin");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to create account"
@@ -160,7 +124,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Tell us about yourself</h2>
-
               <p className="text-muted-foreground">
                 We'll need some basic information
               </p>
@@ -172,11 +135,9 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
-
                   <FormControl>
                     <Input placeholder="Enter your full name" {...field} />
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}
@@ -188,7 +149,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-
                   <FormControl>
                     <Input
                       type="email"
@@ -196,7 +156,24 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter your number"
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -224,12 +201,12 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Academic Details</h2>
-
               <p className="text-muted-foreground">
                 Help us understand your academic background
               </p>
             </div>
 
+            <StudentFields control={form.control} />
             {watchedRole === "student" ? (
               <StudentFields control={form.control} />
             ) : (
@@ -243,7 +220,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Your Interests</h2>
-
               <p className="text-muted-foreground">
                 Help us personalize your experience
               </p>
@@ -258,7 +234,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Secure your account</h2>
-
               <p className="text-muted-foreground">Choose a strong password</p>
             </div>
 
@@ -268,14 +243,13 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-
                   <FormControl>
                     <div className="relative">
-                      <Input
+                    <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Create a password"
-                        {...field}
-                      />
+                      placeholder="Create a password"
+                      {...field}
+                    />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -289,7 +263,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                       </button>
                     </div>
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}
@@ -301,14 +274,13 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
-
                   <FormControl>
                     <div className="relative">
-                      <Input
+                    <Input
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        {...field}
-                      />
+                      placeholder="Confirm your password"
+                      {...field}
+                    />
                       <button
                         type="button"
                         onClick={() =>
@@ -324,7 +296,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                       </button>
                     </div>
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}
@@ -337,21 +308,15 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
     }
   };
 
-  const showSkipButton = currentStep === 7 || currentStep === 8;
-
   return (
     <div className="space-y-8">
-      {/* Progress bar */}
-
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>
             Step {currentStep} of {totalSteps}
           </span>
-
           <span>{Math.round((currentStep / totalSteps) * 100)}%</span>
         </div>
-
         <div className="w-full bg-muted rounded-full h-2">
           <div
             className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out"
@@ -373,40 +338,29 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               className="flex items-center space-x-2"
             >
               <ChevronLeft className="h-4 w-4" />
-
               <span>Previous</span>
             </Button>
 
-            <div className="flex space-x-2">
-              {showSkipButton && (
-                <Button type="button" variant="ghost" onClick={nextStep}>
-                  Skip
-                </Button>
-              )}
-
-              {currentStep < totalSteps ? (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className="flex items-center space-x-2"
-                >
-                  <span>Next</span>
-
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Creating Account..." : "Create Account"}
-                </Button>
-              )}
-            </div>
+            {currentStep < totalSteps ? (
+              <Button
+                type="button"
+                onClick={nextStep}
+                className="flex items-center space-x-2"
+              >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            )}
           </div>
         </form>
       </Form>
 
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Already have an account? </span>
-
         <button
           onClick={onToggleMode}
           className="text-primary hover:underline font-medium"

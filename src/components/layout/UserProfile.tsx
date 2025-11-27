@@ -68,7 +68,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
           <MoreHorizontal className="h-5 w-5 block lg:hidden xl:block" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 sm:w-80 lg:w-56 bg-background border shadow-lg">
+      <DropdownMenuContent align="end" className="w-64 sm:w-80 lg:w-60 bg-background border shadow-lg px-3 py-2">
         <div className="px-2 py-1.5">
           <p className="text-sm font-medium">{user.name}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -86,7 +86,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
           <Palette className="mr-2 h-4 w-4" />
           {theme === 'light' ? 'Dark' : 'Light'} Theme
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out

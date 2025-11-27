@@ -74,21 +74,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-            await register({
-        username: data.email.split('@')[0],         email: data.email,
+      await register({
+        space_id: data.space_id,
+        username: data.email.split('@')[0],
+        email: data.email,
         password: data.password,
         full_name: data.name,
         level: data.level || null,
-        department: data.department || null,
+        department_id: data.department_id || null,
         major: null,
         year: null,
         interests: data.interests || [],
+        phone_number: data.phoneNumber,
       });
 
       toast.success('Account created successfully! Please log in.');
 
-                } catch (error: any) {
-            throw error;
+    } catch (error: any) {
+      throw error;
     } finally {
       setIsLoading(false);
     }

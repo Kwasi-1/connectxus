@@ -154,7 +154,7 @@ const Messages = () => {
         await wsClient.current.connect();
         setWsConnected(true);
 
-        wsClient.current.on("message.new", (message: any) => {
+                const messageHandler = (message: any) => {
           if (message.conversation_id) {
             queryClient.setQueryData(
               ["conversation-messages", message.conversation_id],
@@ -175,20 +175,30 @@ const Messages = () => {
               toast.info("New message received");
             }
           }
-        });
+        };
 
-        wsClient.current.on("typing.start", (data: any) => {
+        const typingHandler = (data: any) => {
           console.log("User typing:", data);
-        });
+        };
+
+                wsClient.current.on("message.created", messageHandler);
+        wsClient.current.on("typing.started", typingHandler);
+
+                return () => {
+          wsClient.current.off("message.created", messageHandler);
+          wsClient.current.off("typing.started", typingHandler);
+        };
       } catch (error) {
         console.error("Failed to connect to WebSocket:", error);
         setWsConnected(false);
       }
     };
 
-    initializeWebSocket();
+    const cleanup = initializeWebSocket();
 
-    return () => {};
+    return () => {
+      cleanup?.then((cleanupFn) => cleanupFn?.());
+    };
   }, [queryClient, selectedConversationId, user?.id]);
 
   useEffect(() => {

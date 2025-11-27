@@ -6,4 +6,5 @@ export const variables = () => ({
     DEFAULT_SPACE_ID : environment.VITE_DEFAULT_SPACE_ID,
     PAYSTACK_SECRET_API_KEY : environment.PAYSTACK_SECRET_API_KEY,
     PAYSTACK_PUBLIC_API_KEY : environment.PAYSTACK_PUBLIC_API_KEY,
+    SOCKET_URL : environment.VITE_SOCKET_URL,
 });

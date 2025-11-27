@@ -165,7 +165,7 @@ export function RightSidebar() {
                   <TrendingTopicSkeleton />
                 </>
               ) : trendingTopics.length === 0 ? (
-                <div className="p-3 text-center text-sm text-muted-foreground">
+                <div className="p-3 text-left text-sm text-muted-foreground">
                   No trending topics at the moment
                 </div>
               ) : (
@@ -196,7 +196,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted"
+                className="w-full text-primary hover:bg-muted justify-start"
                 onClick={() => navigate("/explore")}
               >
                 Show more
@@ -218,7 +218,7 @@ export function RightSidebar() {
                   <CampusHighlightSkeleton />
                 </>
               ) : announcements.length === 0 ? (
-                <div className="p-3 text-center text-sm text-muted-foreground">
+                <div className="p-3 text-left text-sm text-muted-foreground">
                   No announcements available
                 </div>
               ) : (
@@ -247,7 +247,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted"
+                className="w-full text-primary hover:bg-muted justify-start"
                 onClick={() => navigate("/announcements")}
               >
                 View all announcements
@@ -267,7 +267,7 @@ export function RightSidebar() {
                   <UserSkeleton />
                 </>
               ) : suggestedUsers.length === 0 ? (
-                <div className="p-3 text-center text-sm text-muted-foreground">
+                <div className="p-3 text-left text-sm text-muted-foreground">
                   No user suggestions available
                 </div>
               ) : (
@@ -331,7 +331,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted"
+                className="w-full text-primary hover:bg-muted text-left items-start justify-start"
                 onClick={() => navigate("/people")}
               >
                 Show more

@@ -14,7 +14,7 @@ export interface Group {
   community_id?: string | null;
   name: string;
   description?: string | null;
-  category: string;                  group_type: 'project' | 'study' | 'social';    avatar?: string | null;
+  category: string;                  group_type: 'project' | 'public' | 'private';    avatar?: string | null;
   banner?: string | null;            allow_invites: boolean;
   allow_member_posts: boolean;
   created_by?: string | null;
