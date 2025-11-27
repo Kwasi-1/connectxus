@@ -48,13 +48,16 @@ export function TutoringBusinessTransactions() {
   // Calculate metrics
   const totalTransactions = mockTransactions.length;
   const totalRevenue = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const completedSessions = mockTransactions.filter(
-    (t) => t.status === "completed"
-  ).length;
+  const totalPlatformFees = mockTransactions.reduce(
+    (sum, t) => sum + t.platformFee,
+    0
+  );
+  const totalRefundedAmount = mockTransactions
+    .filter((t) => t.status === "refunded")
+    .reduce((sum, t) => sum + t.amount, 0);
   const refundedCount = mockTransactions.filter(
     (t) => t.status === "refunded"
   ).length;
-  const refundRate = ((refundedCount / totalTransactions) * 100).toFixed(1);
 
   const filteredTransactions = mockTransactions.filter((transaction) => {
     const matchesSearch =
@@ -128,28 +131,29 @@ export function TutoringBusinessTransactions() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completed Sessions
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
+            <DollarSign className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedSessions}</div>
-            <p className="text-xs text-muted-foreground">
-              {((completedSessions / totalTransactions) * 100).toFixed(0)}%
-              completion rate
-            </p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalPlatformFees)}
+            </div>
+            <p className="text-xs text-muted-foreground">15% commission</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Refund Rate</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium">
+              Total Refunded
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{refundRate}%</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalRefundedAmount)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {refundedCount} refunded
+              {refundedCount} transaction{refundedCount !== 1 ? "s" : ""}
             </p>
           </CardContent>
         </Card>
