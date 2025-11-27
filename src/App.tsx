@@ -73,18 +73,18 @@ const App = () => (
                   path="/"
                   element={
                     <PublicRoute>
-                      <LandingPage />
+                      <LandingPageV2 />
                     </PublicRoute>
                   }
                 />
-                <Route
+                {/* <Route
                   path="/landing"
                   element={
                     <PublicRoute>
                       <LandingPageV2 />
                     </PublicRoute>
                   }
-                />
+                /> */}
                 <Route path="/about" element={<About />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />

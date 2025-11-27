@@ -322,15 +322,14 @@ const SpaceActivities = () => {
   return (
     <AdminPageLayout
       title="Space Activities"
-      description="Monitor and analyze space-level activities in real-time"
     >
-      <div className="space-y-6">
+      <div className="space-y-3">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Current Space</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg">Current Space</CardTitle>
+                <CardDescription className="mt-1">
                   Switch between spaces or create a new one
                 </CardDescription>
               </div>
@@ -340,7 +339,11 @@ const SpaceActivities = () => {
                   onSpaceChange={handleSpaceChange}
                   onCreateSpace={handleCreateSpace}
                 />
-                <Button onClick={handleCreateSpace} size="default">
+                <Button
+                  onClick={handleCreateSpace}
+                  size="default"
+                  className="hover:scale-105 transition-transform duration-200"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Space
                 </Button>
@@ -349,114 +352,123 @@ const SpaceActivities = () => {
           </CardHeader>
         </Card>
 
+        {/* Stats Grid */}
         {currentSpaceId && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Users
                 </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingStats && !stats ? (
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-10 w-24" />
                 ) : (
-                  <>
-                    <div className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <div className="text-3xl font-bold tracking-tight">
                       {stats?.user_count?.toLocaleString() || 0}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Registered users
-                      {fetchingStats && " (updating...)"}
+                      Registered users{fetchingStats && " (updating...)"}
                     </p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Posts
                 </CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 group-hover:scale-110 transition-transform duration-300">
+                  <FileText className="h-5 w-5 text-green-600 dark:text-green-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingStats && !stats ? (
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-10 w-24" />
                 ) : (
-                  <>
-                    <div className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <div className="text-3xl font-bold tracking-tight">
                       {stats?.post_count?.toLocaleString() || 0}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Across all communities
-                      {fetchingStats && " (updating...)"}
+                      Across all communities{fetchingStats && " (updating...)"}
                     </p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Communities
                 </CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 group-hover:scale-110 transition-transform duration-300">
+                  <MessageSquare className="h-5 w-5 text-purple-600 dark:text-purple-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingStats && !stats ? (
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-10 w-24" />
                 ) : (
-                  <>
-                    <div className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <div className="text-3xl font-bold tracking-tight">
                       {stats?.community_count || 0}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Active communities
-                      {fetchingStats && " (updating...)"}
+                      Active communities{fetchingStats && " (updating...)"}
                     </p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Groups</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Groups
+                </CardTitle>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingStats && !stats ? (
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-10 w-24" />
                 ) : (
-                  <>
-                    <div className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <div className="text-3xl font-bold tracking-tight">
                       {stats?.group_count || 0}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Active groups
-                      {fetchingStats && " (updating...)"}
+                      Active groups{fetchingStats && " (updating...)"}
                     </p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Space Name
                 </CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 group-hover:scale-110 transition-transform duration-300">
+                  <Activity className="h-5 w-5 text-cyan-600 dark:text-cyan-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingStats && !stats ? (
-                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-10 w-24" />
                 ) : (
-                  <>
+                  <div className="space-y-1">
                     <div className="text-xl font-bold truncate">
                       {stats?.name || "Unknown"}
                     </div>
@@ -464,20 +476,21 @@ const SpaceActivities = () => {
                       @{stats?.slug}
                       {fetchingStats && " (updating...)"}
                     </p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
         )}
 
+        {/* Activity Feed */}
         {currentSpaceId && (
-          <Card>
+          <Card className="border-border/50">
             <CardHeader>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle>Recent Activities</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg">Recent Activities</CardTitle>
+                  <CardDescription className="mt-1">
                     Monitor real-time space activities and user interactions
                     {fetchingActivities && " (updating...)"}
                   </CardDescription>
@@ -487,7 +500,7 @@ const SpaceActivities = () => {
                     value={activityFilter}
                     onValueChange={setActivityFilter}
                   >
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[200px] hover:border-primary/30 transition-colors">
                       <SelectValue placeholder="Filter activities" />
                     </SelectTrigger>
                     <SelectContent>
@@ -543,24 +556,24 @@ const SpaceActivities = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {activities.map((activity: ActivityItem) => (
                     <div
                       key={activity.id}
-                      className="flex items-start gap-4 pb-4 border-b last:border-0 hover:bg-muted/50 p-3 rounded-lg transition-colors"
+                      className="group flex items-start gap-4 pb-4 border-b last:border-0 hover:bg-muted/30 p-4 rounded-xl transition-all duration-200 hover:shadow-sm"
                     >
                       <div
-                        className={`p-2.5 rounded-full ${getActivityColor(
+                        className={`p-3 rounded-xl ${getActivityColor(
                           activity.activity_type
-                        )} shrink-0`}
+                        )} bg-gradient-to-br shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}
                       >
                         {getActivityIcon(activity.activity_type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-foreground leading-relaxed">
                           {activity.description}
                         </p>
-                        <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex items-center gap-2 mt-2">
                           {activity.actor_name && (
                             <>
                               <span className="text-xs text-muted-foreground font-medium">
@@ -579,7 +592,10 @@ const SpaceActivities = () => {
                           </span>
                         </div>
                       </div>
-                      <Badge variant="outline" className="shrink-0">
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 group-hover:border-primary/30 transition-colors"
+                      >
                         {formatActivityType(activity.activity_type)}
                       </Badge>
                     </div>

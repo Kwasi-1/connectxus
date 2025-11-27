@@ -160,7 +160,7 @@ export function AdminPageLayout({
         </div>
       )}
 
-      <Card>
+      <Card className="border-none shadow-none">
         {(contentTitle || showSearch || showFilter || tabs) && (
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -197,7 +197,7 @@ export function AdminPageLayout({
             </div>
           </CardHeader>
         )}
-        <CardContent>
+        <CardContent className="px-0  py-0">
           {tabs ? (
             <Tabs value={activeTab} onValueChange={onTabChange}>
               <TabsList>

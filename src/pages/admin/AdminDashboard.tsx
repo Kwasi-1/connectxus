@@ -110,16 +110,16 @@ export function AdminDashboard() {
   };
 
   return (
-    <AdminPageLayout
-      title="Admin Dashboard"
-      description="Overview of system metrics and activities"
-    >
-      <div className="space-y-6">
+    <AdminPageLayout title="Admin Dashboard">
+      <div className="space-y-4">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Current Space</CardTitle>
+                <CardTitle className="text-lg">Current Space</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Switch between spaces or create a new one
+                </p>
               </div>
               <SpaceSwitcher
                 currentSpaceId={currentSpaceId}
@@ -138,19 +138,36 @@ export function AdminDashboard() {
 
                 return (
                   <Card key={index}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
                         {stat.title}
                       </CardTitle>
-                      <div className={`p-2 rounded-full ${stat.bgColor}`}>
-                        <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                      <div
+                        className={`p-3 rounded-xl ${
+                          stat.bgColor
+                        } bg-gradient-to-br from-${stat.color.replace(
+                          "text-",
+                          ""
+                        )}/20 to-${stat.color.replace(
+                          "text-",
+                          ""
+                        )}/5 group-hover:scale-110 transition-transform duration-300`}
+                      >
+                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
                       </div>
                     </CardHeader>
                     <CardContent>
                       {isLoading ? (
-                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-10 w-24" />
                       ) : (
-                        <div className="text-2xl font-bold">{stat.value}</div>
+                        <div className="space-y-1">
+                          <div className="text-3xl font-bold tracking-tight">
+                            {stat.value}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Updated just now
+                          </p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -158,50 +175,88 @@ export function AdminDashboard() {
               })}
             </div>
 
+            {/* System Status Card */}
             <Card>
               <CardHeader>
-                <CardTitle>System Status</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  System Status
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-green-50 text-green-700 border-green-200"
-                  >
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    Operational
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    All systems are running smoothly
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
+                      >
+                        Operational
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        All systems are running smoothly
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Quick Actions Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Access frequently used features
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                   {hasPermission("user_management") && (
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href="/admin/users">Manage Users</a>
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
+                      asChild
+                    >
+                      <a href="/admin/users">
+                        <Users className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">Manage Users</span>
+                      </a>
                     </Button>
                   )}
                   {hasPermission("content_management") && (
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href="/admin/reports">View Reports</a>
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
+                      asChild
+                    >
+                      <a href="/admin/reports">
+                        <FileText className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">View Reports</span>
+                      </a>
                     </Button>
                   )}
                   {hasPermission("community_management") && (
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href="/admin/communities">Manage Communities</a>
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
+                      asChild
+                    >
+                      <a href="/admin/communities">
+                        <Building2 className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">Manage Communities</span>
+                      </a>
                     </Button>
                   )}
                   {hasPermission("analytics") && (
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href="/admin/analytics">View Analytics</a>
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
+                      asChild
+                    >
+                      <a href="/admin/analytics">
+                        <Activity className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">View Analytics</span>
+                      </a>
                     </Button>
                   )}
                 </div>
