@@ -102,7 +102,7 @@ export function People() {
             </div>
           </div>
         </div>
-        <div className="px-4 md:px-6 ">
+        <div className="px-4 md:px-6 pb-4 md:pb-6">
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
