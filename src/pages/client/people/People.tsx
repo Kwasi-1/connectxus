@@ -81,28 +81,28 @@ export function People() {
     >
       <div className="min-h-screen bg-background border-r border-border">
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border mb-8">
-            <div className="px-4 md:px-6 py-3">
-              <h1 className="text-xl font-bold text-foreground mb-4">
-                Discover People
-              </h1>
-              <p className="text-muted-foreground mb-4">
-                Connect with students, tutors, and creators in your community
-              </p>
+          <div className="px-4 md:px-6 py-3">
+            <h1 className="text-xl font-bold text-foreground mb-4">
+              Discover People
+            </h1>
+            <p className="text-muted-foreground mb-4">
+              Connect with students, tutors, and creators in your community
+            </p>
 
-              {/* Search Input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search Anything..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 py-3 border rounded-full text-base"
-                  autoFocus
-                />
-              </div>
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search Anything..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 py-3 border rounded-full text-base"
+                autoFocus
+              />
             </div>
           </div>
-        <div className="px-4 md:px-6 ">          
+        </div>
+        <div className="px-4 md:px-6 ">
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
@@ -116,12 +116,12 @@ export function People() {
             {filteredPeople.map((person) => (
               <Card
                 key={person.id}
-                className="group hover:shadow-md transition-all duration-200 hover:border-primary/20"
+                className="hover:shadow-md transition-all duration-200"
               >
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
-                    <Avatar className="h-14 w-14 ring-2 ring-background group-hover:ring-primary/20 transition-all">
+                    <Avatar className="h-14 w-14 ring-2 ring-background transition-all">
                       <AvatarImage src={person.avatar} alt={person.name} />
                       <AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -130,7 +130,7 @@ export function People() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0">
-                          <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                          <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
                             {person.name}
                           </h3>
                           <p className="text-xs text-muted-foreground truncate">
