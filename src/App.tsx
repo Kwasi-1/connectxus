@@ -50,6 +50,7 @@ import SpaceActivities from "./pages/admin/SpaceActivities";
 import { TutoringBusinessOverview } from "./pages/admin/tutoring-business/TutoringBusinessOverview";
 import { TutoringBusinessTransactions } from "./pages/admin/tutoring-business/TutoringBusinessTransactions";
 import { TutoringBusinessPayouts } from "./pages/admin/tutoring-business/TutoringBusinessPayouts";
+import { TutoringBusinessPayoutSchedule } from "./pages/admin/tutoring-business/TutoringBusinessPayoutSchedule";
 import { TutoringBusinessDisputes } from "./pages/admin/tutoring-business/TutoringBusinessDisputes";
 import { TutoringBusinessAnalytics } from "./pages/admin/tutoring-business/TutoringBusinessAnalytics";
 import { HeroUIProvider } from "@heroui/react";
@@ -322,6 +323,14 @@ const App = () => (
                             element={
                               <ProtectedAdminRoute requiredPermission="tutoring_management">
                                 <TutoringBusinessPayouts />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/payout-schedule"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessPayoutSchedule />
                               </ProtectedAdminRoute>
                             }
                           />

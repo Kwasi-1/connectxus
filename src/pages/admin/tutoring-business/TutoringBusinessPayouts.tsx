@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -19,19 +21,39 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Clock, DollarSign, CheckCircle, TrendingUp } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Clock,
+  DollarSign,
+  CheckCircle,
+  TrendingUp,
+  Banknote,
+  Calendar,
+} from "lucide-react";
 import {
   mockPendingPayouts,
   mockPayoutHistory,
 } from "@/data/tutoringBusinessMockData";
 import { useCurrency } from "@/hooks/useCurrency";
 
-
 export function TutoringBusinessPayouts() {
+  const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
+  const [activeTab, setActiveTab] = useState("pending");
   const [selectedPayout, setSelectedPayout] = useState<
     (typeof mockPendingPayouts)[0] | (typeof mockPayoutHistory)[0] | null
   >(null);
+  const [payoutToPay, setPayoutToPay] = useState<
+    (typeof mockPendingPayouts)[0] | null
+  >(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Calculate metrics
   const totalPendingAmount = mockPendingPayouts.reduce(
@@ -45,6 +67,16 @@ export function TutoringBusinessPayouts() {
     0
   );
 
+  // Calculate commission (15% of total pending amount)
+  const totalCommission = totalPendingAmount * 0.15;
+
+  // Calculate next payout date (mock - would come from schedule)
+  const nextPayoutDate = new Date();
+  nextPayoutDate.setDate(nextPayoutDate.getDate() + 7); // 7 days from now
+  const daysUntilPayout = Math.ceil(
+    (nextPayoutDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -56,13 +88,42 @@ export function TutoringBusinessPayouts() {
     }
   };
 
+  const handlePayPayout = async () => {
+    if (!payoutToPay) return;
+
+    setIsProcessingPayment(true);
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Here you would call your actual payment API
+    console.log("Processing payment for:", payoutToPay);
+
+    setIsProcessingPayment(false);
+    setPayoutToPay(null);
+
+    // Show success message (you can use toast here)
+    alert(
+      `Payment of ${formatCurrency(
+        payoutToPay.amount
+      )} processed successfully for ${payoutToPay.tutorName}`
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">Payouts</h1>
+        <Button
+          onClick={() => navigate("/admin/tutoring-business/payout-schedule")}
+          variant="outline"
+        >
+          <Calendar className="h-4 w-4 mr-2" />
+          Payout Schedule
+        </Button>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Metrics Cards - Dynamic based on active tab */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -90,33 +151,80 @@ export function TutoringBusinessPayouts() {
             <p className="text-xs text-muted-foreground">To be paid out</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completed Payouts
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCompletedPayouts}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalPaidAmount)}
-            </div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
+        {activeTab === "pending" ? (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Commission (15%)
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totalCommission)}
+                </div>
+                <p className="text-xs text-muted-foreground">Platform fees</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Next Payout
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{daysUntilPayout} days</div>
+                <p className="text-xs text-muted-foreground">
+                  {nextPayoutDate.toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Paid
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totalPaidAmount)}
+                </div>
+                <p className="text-xs text-muted-foreground">This month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Avg Payout
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(
+                    totalCompletedPayouts > 0
+                      ? totalPaidAmount / totalCompletedPayouts
+                      : 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Per payout</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
+      <Tabs
+        defaultValue="pending"
+        className="w-full"
+        onValueChange={(value) => setActiveTab(value)}
+      >
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="pending">
             <Clock className="h-4 w-4 mr-2" />
@@ -144,6 +252,7 @@ export function TutoringBusinessPayouts() {
                       <TableHead>Sessions</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -168,13 +277,26 @@ export function TutoringBusinessPayouts() {
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold">
-                          ${payout.amount.toFixed(2)}
+                          {formatCurrency(payout.amount)}
                         </TableCell>
                         <TableCell>{payout.sessionsCount} sessions</TableCell>
                         <TableCell>
                           {new Date(payout.dueDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPayoutToPay(payout);
+                            }}
+                          >
+                            <Banknote className="h-4 w-4 text-green-600" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -211,12 +333,23 @@ export function TutoringBusinessPayouts() {
                         </div>
                         <div className="text-right">
                           <div className="font-semibold">
-                            ${payout.amount.toFixed(2)}
+                            {formatCurrency(payout.amount)}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             Due {new Date(payout.dueDate).toLocaleDateString()}
                           </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPayoutToPay(payout);
+                          }}
+                        >
+                          <Banknote className="h-4 w-4 text-green-600" />
+                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -451,6 +584,90 @@ export function TutoringBusinessPayouts() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Payment Confirmation Dialog */}
+      <Dialog open={!!payoutToPay} onOpenChange={() => setPayoutToPay(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Payout Payment</DialogTitle>
+            <DialogDescription>
+              Review the payout details before processing the payment.
+            </DialogDescription>
+          </DialogHeader>
+
+          {payoutToPay && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={payoutToPay.tutorAvatar} />
+                  <AvatarFallback>
+                    {payoutToPay.tutorName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-semibold">{payoutToPay.tutorName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {payoutToPay.id}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="font-semibold">
+                    {formatCurrency(payoutToPay.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Sessions</span>
+                  <span>{payoutToPay.sessionsCount} sessions</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Due Date</span>
+                  <span>
+                    {new Date(payoutToPay.dueDate).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <p className="text-muted-foreground">
+                  This payment will be processed immediately and cannot be
+                  undone. Please ensure all details are correct.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPayoutToPay(null)}
+              disabled={isProcessingPayment}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePayPayout}
+              disabled={isProcessingPayment}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingPayment ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Banknote className="h-4 w-4 mr-2" />
+                  Process Payment
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
