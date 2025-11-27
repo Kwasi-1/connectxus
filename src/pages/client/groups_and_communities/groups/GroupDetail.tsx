@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   ArrowLeft,
   Users,
@@ -28,13 +29,14 @@ import {
   Clock,
   Camera,
   Upload,
+  Megaphone,
+  Pin,
+  Trash2,
 } from "lucide-react";
-import { mockUsers } from "@/data/mockCommunitiesData";
 import {
   ProjectRole,
   RoleApplication,
   MemberWithRole,
-  JoinRequest,
 } from "@/types/communities";
 import { User } from "@/types/global";
 import { ProjectRoleApplicationsModal } from "@/components/groups/ProjectRoleApplicationsModal";
@@ -47,7 +49,29 @@ import {
   joinGroup,
   leaveGroup,
   Group,
-} from "@/api/groups.api";
+  GroupMember,
+  getJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  JoinRequest,
+  getGroupAnnouncements,
+  createGroupAnnouncement,
+  updateGroupAnnouncement,
+  deleteGroupAnnouncement,
+  pinGroupAnnouncement,
+  Announcement,
+  removeGroupMember,
+  updateApplicationStatus,
+  updateGroup,
+  addGroupAdmin,
+  removeGroupAdmin,
+  addGroupModerator,
+  removeGroupModerator,
+  applyForRole,
+  getGroupResources,
+  GroupResource,
+  getGroupApplications,
+  } from "@/api/groups.api";
 import { getPostsByGroup } from "@/api/posts.api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,27 +110,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type GroupTab = "members" | "resources" | "roles" | "settings" | "requests";
-
-interface Resource {
-  id: string;
-  name: string;
-  type: string;
-  uploadedBy: string;
-  uploadedAt: Date;
-}
+type GroupTab = "members" | "resources" | "roles" | "settings" | "requests" | "announcements";
 
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const currentUserId = "user-1";
+  const currentUserId = user?.id || "";
 
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<GroupTab>("members");
-  const [resourcesLoading, setResourcesLoading] = useState(false);
-  const [resources, setResources] = useState<Resource[]>([]);
   const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -127,6 +142,18 @@ const GroupDetail = () => {
     queryKey: ["group-roles", id],
     queryFn: () => getGroupRoles(id || ""),
     enabled: !!id && activeTab === "roles",
+  });
+
+    const { data: applications = [] } = useQuery({
+    queryKey: ["group-applications", id],
+    queryFn: () => getGroupApplications(id || ""),
+    enabled: !!id && activeTab === "roles",
+  });
+
+    const { data: resources = [], isLoading: resourcesLoading } = useQuery({
+    queryKey: ["group-resources", id],
+    queryFn: () => getGroupResources(id || "", { page: 1, limit: 100 }),
+    enabled: !!id && activeTab === "resources",
   });
 
   const joinMutation = useMutation({
@@ -162,9 +189,220 @@ const GroupDetail = () => {
     },
   });
 
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+    const isAdmin = group?.role === "admin" || group?.role === "owner";
+  const isModerator = group?.role === "moderator";
+  const canManage = isAdmin || isModerator;
+  const isOwner = group?.role === "owner";
+
+    const approveJoinRequestMutation = useMutation({
+    mutationFn: (requestId: string) => approveJoinRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-join-requests", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({ title: "Request approved", description: "User has been added to the group" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to approve request", variant: "destructive" });
+    },
+  });
+
+  const rejectJoinRequestMutation = useMutation({
+    mutationFn: (requestId: string) => rejectJoinRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-join-requests", id] });
+      toast({ title: "Request rejected", description: "Join request has been rejected" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to reject request", variant: "destructive" });
+    },
+  });
+
+    const removeMemberMutation = useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
+      removeGroupMember(groupId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({ title: "Member removed", description: "Member has been removed from the group" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove member", variant: "destructive" });
+    },
+  });
+
+    const updateApplicationMutation = useMutation({
+    mutationFn: ({
+      applicationId,
+      status,
+    }: {
+      applicationId: string;
+      status: "approved" | "rejected";
+    }) => updateApplicationStatus(applicationId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-roles", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-applications", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({ title: "Application updated", description: "Application status has been updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update application", variant: "destructive" });
+    },
+  });
+
+    const createAnnouncementMutation = useMutation({
+    mutationFn: (data: { title: string; content: string; is_pinned?: boolean }) =>
+      createGroupAnnouncement(id || "", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-announcements", id] });
+      toast({ title: "Announcement created", description: "Announcement has been posted" });
+      setIsAnnouncementDialogOpen(false);
+      setAnnouncementTitle("");
+      setAnnouncementContent("");
+      setAnnouncementToPinned(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create announcement", variant: "destructive" });
+    },
+  });
+
+  const updateAnnouncementMutation = useMutation({
+    mutationFn: ({
+      announcementId,
+      data,
+    }: {
+      announcementId: string;
+      data: { title: string; content: string; is_pinned?: boolean };
+    }) => updateGroupAnnouncement(announcementId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-announcements", id] });
+      toast({ title: "Announcement updated", description: "Announcement has been updated" });
+      setEditingAnnouncement(null);
+      setIsAnnouncementDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update announcement", variant: "destructive" });
+    },
+  });
+
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: (announcementId: string) => deleteGroupAnnouncement(announcementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-announcements", id] });
+      toast({ title: "Announcement deleted", description: "Announcement has been removed" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete announcement", variant: "destructive" });
+    },
+  });
+
+  const pinAnnouncementMutation = useMutation({
+    mutationFn: ({ announcementId, pinned }: { announcementId: string; pinned: boolean }) =>
+      pinGroupAnnouncement(announcementId, pinned),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-announcements", id] });
+      toast({ title: "Announcement updated", description: "Announcement pin status updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update announcement", variant: "destructive" });
+    },
+  });
+
+    const updateGroupMutation = useMutation({
+    mutationFn: (data: any) => updateGroup(id || "", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast({ title: "Group updated", description: "Group has been updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update group", variant: "destructive" });
+    },
+  });
+
+    const addAdminMutation = useMutation({
+    mutationFn: (userId: string) => addGroupAdmin(id || "", userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      toast({ title: "Admin added", description: "User has been promoted to admin" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add admin", variant: "destructive" });
+    },
+  });
+
+  const removeAdminMutation = useMutation({
+    mutationFn: (userId: string) => removeGroupAdmin(id || "", userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      toast({ title: "Admin removed", description: "User has been demoted from admin" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove admin", variant: "destructive" });
+    },
+  });
+
+    const addModeratorMutation = useMutation({
+    mutationFn: (userId: string) => addGroupModerator(id || "", userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      toast({ title: "Moderator added", description: "User has been promoted to moderator" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add moderator", variant: "destructive" });
+    },
+  });
+
+  const removeModeratorMutation = useMutation({
+    mutationFn: (userId: string) => removeGroupModerator(id || "", userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", id] });
+      toast({ title: "Moderator removed", description: "User has been demoted from moderator" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove moderator", variant: "destructive" });
+    },
+  });
+
+    const applyForRoleMutation = useMutation({
+    mutationFn: ({ roleId, message }: { roleId: string; message?: string }) =>
+      applyForRole(roleId, { message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-roles", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-applications", id] });
+      toast({
+        title: "Application submitted!",
+        description: "Your application has been submitted for review.",
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to submit application", variant: "destructive" });
+    },
+  });
+
+    const { data: joinRequests = [] } = useQuery({
+    queryKey: ["group-join-requests", id],
+    queryFn: () => getJoinRequests(id || ""),
+    enabled: !!id && canManage && activeTab === "requests",
+  });
+
+    const { data: announcements = [] } = useQuery({
+    queryKey: ["group-announcements", id],
+    queryFn: () => getGroupAnnouncements(id || ""),
+    enabled: !!id && activeTab === "announcements",
+  });
+
   const [followedUsers, setFollowedUsers] = useState<User[]>([]);
   const [showFollowedUsers, setShowFollowedUsers] = useState(false);
+  const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementContent, setAnnouncementContent] = useState("");
+  const [announcementToPinned, setAnnouncementToPinned] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
 
   const [hasPendingJoinRequest, setHasPendingJoinRequest] = useState(false);
   const [pendingRoleApplications, setPendingRoleApplications] = useState<
@@ -223,143 +461,79 @@ const GroupDetail = () => {
   }, [group]);
 
   useEffect(() => {
-    const mockFollowedUsers = mockUsers.filter((user, index) => index < 2);
-    setFollowedUsers(mockFollowedUsers);
-
-    if (
-      (group?.requireApproval ?? group?.group_type === "private") &&
-      canManage
-    ) {
-      const mockJoinRequests: JoinRequest[] = [
-        {
-          id: "req-1",
-          userId: "user-4",
-          userName: "Alex Chen",
-          userAvatar: "/placeholder.svg",
-          userEmail: "alex@university.edu",
-          groupId: group.id,
-          status: "pending",
-          requestedAt: new Date("2024-03-15"),
-        },
-      ];
-      setJoinRequests(mockJoinRequests);
+        if (group && !group.is_member && group.group_type === "private") {
+      const userHasPending = joinRequests.some(
+        (req) => req.user_id === currentUserId && req.status === "pending"
+      );
+      setHasPendingJoinRequest(userHasPending);
     }
 
-    if (group && !group.is_member) {
-      if (group.group_type === "private") {
-        setHasPendingJoinRequest(false);
-      }
-
-      if (group.group_type === "project" && roles) {
-        const userPendingRoles: string[] = [];
-        roles.forEach((role) => {
-          const userApplication = role.applications.find(
-            (app) => app.userId === currentUserId && app.status === "pending"
-          );
-          if (userApplication) {
-            userPendingRoles.push(role.id);
-          }
-        });
-        setPendingRoleApplications(userPendingRoles);
-      }
+        if (group && !group.is_member && group.group_type === "project" && applications) {
+      const userPendingRoles: string[] = [];
+      applications.forEach((app) => {
+        if (app.user_id === currentUserId && app.status === "pending") {
+          userPendingRoles.push(app.role_id);
+        }
+      });
+      setPendingRoleApplications(userPendingRoles);
     }
   }, [
     group?.group_type,
     group?.id,
-    group?.requireApproval,
-    roles,
     group?.is_member,
+    applications,
+    joinRequests,
     currentUserId,
   ]);
   const handleUpdateGroupInfo = useCallback(() => {
-    if (!group) return;
-
-    setGroup({
-      ...group,
+    updateGroupMutation.mutate({
       name: groupName,
       description: groupDescription,
     });
-
-    toast({
-      title: "Group updated",
-      description: "Group information has been successfully updated",
-    });
-  }, [group, groupName, groupDescription, toast]);
+  }, [groupName, groupDescription, updateGroupMutation]);
 
   const handleUpdatePrivacySettings = useCallback(() => {
-    if (!group) return;
-
-    setGroup({
-      ...group,
-      groupType: groupType,
-      requireApproval: requireApproval,
-      allowMemberInvites: allowMemberInvites,
+    updateGroupMutation.mutate({
+      group_type: groupType as any,
+      settings: {
+        requireApproval,
+        allowMemberInvites,
+      },
     });
-
-    toast({
-      title: "Privacy settings updated",
-      description: "Group privacy settings have been successfully updated",
-    });
-  }, [group, groupType, requireApproval, allowMemberInvites, toast]);
+  }, [groupType, requireApproval, allowMemberInvites, updateGroupMutation]);
 
   const addTag = useCallback(() => {
-    if (newTag.trim() && !groupTags.includes(newTag.trim()) && group) {
+    if (newTag.trim() && !groupTags.includes(newTag.trim())) {
       const updatedTags = [...groupTags, newTag.trim()];
       setGroupTags(updatedTags);
-
-      setGroup({
-        ...group,
-        tags: updatedTags,
-      });
-
       setNewTag("");
 
-      toast({
-        title: "Tag added",
-        description: `"${newTag.trim()}" has been added to group tags`,
-      });
+      updateGroupMutation.mutate({ tags: updatedTags });
     }
-  }, [newTag, groupTags, group, toast]);
+  }, [newTag, groupTags, updateGroupMutation]);
 
   const removeTag = useCallback(
     (tagToRemove: string) => {
       const updatedTags = groupTags.filter((tag) => tag !== tagToRemove);
       setGroupTags(updatedTags);
 
-      if (group) {
-        setGroup({
-          ...group,
-          tags: updatedTags,
-        });
-
-        toast({
-          title: "Tag removed",
-          description: `"${tagToRemove}" has been removed from group tags`,
-        });
-      }
+      updateGroupMutation.mutate({ tags: updatedTags });
     },
-    [groupTags, group, toast]
+    [groupTags, updateGroupMutation]
   );
 
   const handleDeleteGroup = useCallback(() => {
-    if (!group) return;
-
-    const isUserAdmin = group.admins.includes(currentUserId);
-    const isUserOwner = group.createdBy === currentUserId;
+    const isUserAdmin = group?.role === "admin" || group?.role === "owner";
+    const isUserOwner = group?.role === "owner";
 
     if (isUserAdmin || isUserOwner) {
-      console.log("Deleting group:", group?.id);
+            console.log("Deleting group:", group?.id);
     } else {
-      console.log("Leaving group:", group?.id);
-      setGroup({
-        ...group,
-        moderators: group.moderators.filter((id) => id !== currentUserId),
-        memberCount: group.member_count - 1,
-      });
+            leaveMutation.mutate();
     }
     setShowDeleteConfirm(false);
     navigate("/groups");
-  }, [currentUserId, group, navigate]);
+  }, [group, leaveMutation, navigate]);
 
   const handlePrivacyChangeConfirm = useCallback(() => {
     setRequireApproval(false);
@@ -416,33 +590,20 @@ const GroupDetail = () => {
   };
 
   const saveImageChanges = useCallback(() => {
-    if (!group) return;
-
-    const updates: Partial<Group> = {};
-
+    const updates: any = {};
     if (editedProfileImage !== null) {
       updates.avatar = editedProfileImage;
     }
-
     if (editedBannerImage !== null) {
       updates.banner = editedBannerImage;
     }
 
     if (Object.keys(updates).length > 0) {
-      setGroup({
-        ...group,
-        ...updates,
-      });
-
+      updateGroupMutation.mutate(updates);
       setEditedProfileImage(null);
       setEditedBannerImage(null);
-
-      toast({
-        title: "Images updated",
-        description: "Group images have been successfully updated",
-      });
     }
-  }, [group, editedProfileImage, editedBannerImage, toast]);
+  }, [editedProfileImage, editedBannerImage, updateGroupMutation]);
 
   const cancelImageChanges = useCallback(() => {
     setEditedProfileImage(null);
@@ -455,46 +616,6 @@ const GroupDetail = () => {
 
   const removeGroupBannerImage = useCallback(() => {
     setEditedBannerImage("");
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "resources" && group) {
-      fetchResources();
-    }
-  }, [activeTab, group]);
-
-  const fetchResources = useCallback(async () => {
-    setResourcesLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setResources([
-        {
-          id: "1",
-          name: "Study Guide - Data Structures",
-          type: "PDF",
-          uploadedBy: "John Doe",
-          uploadedAt: new Date(),
-        },
-        {
-          id: "2",
-          name: "Algorithms Cheat Sheet",
-          type: "PDF",
-          uploadedBy: "Sarah Johnson",
-          uploadedAt: new Date(),
-        },
-        {
-          id: "3",
-          name: "Practice Problems",
-          type: "Link",
-          uploadedBy: "Mike Wilson",
-          uploadedAt: new Date(),
-        },
-      ]);
-    } catch (error) {
-      console.error("Error fetching resources:", error);
-    } finally {
-      setResourcesLoading(false);
-    }
   }, []);
 
   const handleJoinGroup = () => {
@@ -595,157 +716,54 @@ const GroupDetail = () => {
     }
   };
 
-  const isAdmin = group?.role === "admin" || group?.role === "owner";
-  const isModerator = group?.role === "moderator";
-  const canManage = isAdmin || isModerator;
-  const isOwner = group?.role === "owner";
-
   const handlePromoteToAdmin = useCallback(
     (userId: string) => {
-      if (!group || !isOwner) return;
-
-      setGroup({
-        ...group,
-        admins: [...group.admins, userId],
-        moderators: group.moderators.filter((id) => id !== userId),
-      });
-
-      toast({
-        title: "Member promoted",
-        description: "Member has been promoted to admin",
-      });
+      addAdminMutation.mutate(userId);
       setMemberToPromote(null);
     },
-    [group, isOwner, toast]
+    [addAdminMutation]
   );
 
   const handleDemoteFromAdmin = useCallback(
     (userId: string) => {
-      if (!group || !isOwner || userId === currentUserId) return;
-
-      setGroup({
-        ...group,
-        admins: group.admins.filter((id) => id !== userId),
-      });
-
-      toast({
-        title: "Admin demoted",
-        description: "Admin has been demoted to regular member",
-      });
+      removeAdminMutation.mutate(userId);
       setMemberToDemote(null);
     },
-    [group, isOwner, currentUserId, toast]
+    [removeAdminMutation]
   );
 
   const handlePromoteToModerator = (userId: string) => {
-    if (!group || !canManage) return;
-
-    setGroup({
-      ...group,
-      moderators: [...group.moderators, userId],
-    });
-
-    toast({
-      title: "Member promoted",
-      description: "Member has been promoted to moderator",
-    });
+    addModeratorMutation.mutate(userId);
   };
 
   const handleDemoteFromModerator = (userId: string) => {
-    if (!group || !canManage) return;
-
-    setGroup({
-      ...group,
-      moderators: group.moderators.filter((id) => id !== userId),
-    });
-
-    toast({
-      title: "Moderator demoted",
-      description: "Moderator has been demoted to regular member",
-    });
+    removeModeratorMutation.mutate(userId);
   };
 
   const handleViewApplications = (role: ProjectRole) => {
-    setSelectedRole(role);
+        const roleApplications = applications.filter(app => app.role_id === role.id);
+    const roleWithApplications = {
+      ...role,
+      applications: roleApplications
+    };
+    setSelectedRole(roleWithApplications as any);
     setIsApplicationsModalOpen(true);
   };
 
   const handleAcceptApplication = (applicationId: string) => {
-    if (!group || !selectedRole) return;
-
-    setGroup({
-      ...group,
-      projectRoles: roles?.map((role) =>
-        role.id === selectedRole.id
-          ? {
-              ...role,
-              slotsFilled: role.slots_filled + 1,
-              applications: role.applications.map((app) =>
-                app.id === applicationId
-                  ? { ...app, status: "accepted" as const }
-                  : app
-              ),
-            }
-          : role
-      ),
-    });
+    updateApplicationMutation.mutate({ applicationId, status: "approved" });
   };
 
   const handleRejectApplication = (applicationId: string) => {
-    if (!group || !selectedRole) return;
-
-    setGroup({
-      ...group,
-      projectRoles: roles?.map((role) =>
-        role.id === selectedRole.id
-          ? {
-              ...role,
-              applications: role.applications.map((app) =>
-                app.id === applicationId
-                  ? { ...app, status: "rejected" as const }
-                  : app
-              ),
-            }
-          : role
-      ),
-    });
+    updateApplicationMutation.mutate({ applicationId, status: "rejected" });
   };
 
   const handleApplyForRole = useCallback(
     (role: ProjectRole, message: string) => {
-      if (!group) return;
-
-      const newApplication: RoleApplication = {
-        id: `app-${Date.now()}`,
-        userId: currentUserId,
-        userName: "Current User",
-        userAvatar: "/placeholder.svg",
-        roleId: role.id,
-        message: message,
-        status: "pending",
-        appliedAt: new Date(),
-      };
-
-      setGroup({
-        ...group,
-        projectRoles: roles?.map((r) =>
-          r.id === role.id
-            ? {
-                ...r,
-                applications: [...r.applications, newApplication],
-              }
-            : r
-        ),
-      });
-
+      applyForRoleMutation.mutate({ roleId: role.id, message });
       setPendingRoleApplications([...pendingRoleApplications, role.id]);
-
-      toast({
-        title: "Application submitted!",
-        description: `Your application for ${role.name} has been submitted for review.`,
-      });
     },
-    [group, currentUserId, pendingRoleApplications, toast]
+    [applyForRoleMutation, pendingRoleApplications]
   );
 
   const handleOpenRoleApplication = (role: ProjectRole) => {
@@ -755,86 +773,34 @@ const GroupDetail = () => {
 
   const handleAddMemberFromModal = useCallback(
     (user: User, role?: string) => {
-      const newMember: MemberWithRole = {
-        ...user,
-        role:
-          role || (group?.group_type === "project" ? "Team Member" : undefined),
-      };
-
-      setMembers((prevMembers) => [...prevMembers, newMember]);
-      setGroup((prev) =>
-        prev ? { ...prev, memberCount: prev.memberCount + 1 } : prev
-      );
-
-      toast({
-        title: "Member added",
-        description: `${user.username} has been added to the group${
-          role ? ` as ${role}` : ""
-        }`,
-      });
+            if (role === "admin") {
+        addAdminMutation.mutate(user.id);
+      } else if (role === "moderator") {
+        addModeratorMutation.mutate(user.id);
+      } else {
+        toast({
+          title: "Feature not available",
+          description: "Direct member addition requires admin/moderator role selection",
+          variant: "destructive",
+        });
+      }
     },
-    [group?.group_type, toast]
+    [addAdminMutation, addModeratorMutation, toast]
   );
 
-  const handleJoinRequest = useCallback(
-    (request: JoinRequest) => {
-      if (group?.group_type !== "private") return;
-
-      setJoinRequests((prev) => [...prev, request]);
-      toast({
-        title: "New join request",
-        description: `${request.userName} wants to join the group`,
-      });
-    },
-    [group?.group_type, toast]
-  );
 
   const handleApproveJoinRequest = useCallback(
     (requestId: string) => {
-      const request = joinRequests.find((req) => req.id === requestId);
-      if (!request) return;
-
-      const newMember: MemberWithRole = {
-        id: request.userId,
-        username: request.userName.toLowerCase().replace(" ", "_"),
-        displayName: request.userName,
-        email: request.userEmail,
-        avatar: request.userAvatar || "/placeholder.svg",
-        verified: false,
-        followers: 0,
-        following: 0,
-        createdAt: new Date(),
-        roles: ["student"],
-        role: group?.group_type === "project" ? "Team Member" : undefined,
-      };
-
-      setMembers((prev) => [...prev, newMember]);
-      setGroup((prev) =>
-        prev ? { ...prev, memberCount: prev.memberCount + 1 } : prev
-      );
-      setJoinRequests((prev) => prev.filter((req) => req.id !== requestId));
-
-      toast({
-        title: "Request approved",
-        description: `${request.userName} has been added to the group`,
-      });
+      approveJoinRequestMutation.mutate(requestId);
     },
-    [joinRequests, group?.group_type, toast]
+    [approveJoinRequestMutation]
   );
 
   const handleRejectJoinRequest = useCallback(
     (requestId: string) => {
-      const request = joinRequests.find((req) => req.id === requestId);
-      if (!request) return;
-
-      setJoinRequests((prev) => prev.filter((req) => req.id !== requestId));
-
-      toast({
-        title: "Request rejected",
-        description: `${request.userName}'s request has been rejected`,
-      });
+      rejectJoinRequestMutation.mutate(requestId);
     },
-    [joinRequests, toast]
+    [rejectJoinRequestMutation]
   );
 
   const handleRemoveMember = useCallback((member: MemberWithRole) => {
@@ -842,23 +808,11 @@ const GroupDetail = () => {
   }, []);
 
   const confirmRemoveMember = useCallback(() => {
-    if (memberToRemove && group) {
-      setMembers((prevMembers) =>
-        prevMembers.filter((m) => m.id !== memberToRemove.id)
-      );
-      setGroup({
-        ...group,
-        memberCount: group.member_count - 1,
-      });
-
-      toast({
-        title: "Member removed",
-        description: `${memberToRemove.displayName} has been removed from the group`,
-      });
-
+    if (memberToRemove && id) {
+      removeMemberMutation.mutate({ groupId: id, userId: memberToRemove.id });
       setMemberToRemove(null);
     }
-  }, [memberToRemove, group, toast]);
+  }, [memberToRemove, id, removeMemberMutation]);
 
   const confirmPromoteToAdmin = useCallback(() => {
     if (memberToPromote) {
@@ -885,23 +839,82 @@ const GroupDetail = () => {
   };
 
   const handleSaveSettings = () => {
-    if (!group) return;
-
-    setGroup({
-      ...group,
-      ...editedGroup,
-    });
-
+    if (editedGroup.name || editedGroup.description || editedGroup.tags) {
+      updateGroupMutation.mutate({
+        name: editedGroup.name,
+        description: editedGroup.description,
+        tags: editedGroup.tags,
+      });
+    }
     setIsSettingsEditing(false);
-    toast({
-      title: "Settings updated",
-      description: "Group settings have been saved successfully",
-    });
   };
 
   const handleCancelSettings = () => {
     setIsSettingsEditing(false);
     setEditedGroup({});
+  };
+
+    const handleCreateAnnouncement = () => {
+    if (!announcementTitle.trim() || !announcementContent.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both title and content for the announcement",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createAnnouncementMutation.mutate({
+      title: announcementTitle,
+      content: announcementContent,
+      is_pinned: announcementToPinned,
+    });
+  };
+
+  const handleEditAnnouncement = (announcement: Announcement) => {
+    setEditingAnnouncement(announcement);
+    setAnnouncementTitle(announcement.title);
+    setAnnouncementContent(announcement.content);
+    setAnnouncementToPinned(announcement.is_pinned);
+    setIsAnnouncementDialogOpen(true);
+  };
+
+  const handleUpdateAnnouncement = () => {
+    if (!editingAnnouncement) return;
+
+    if (!announcementTitle.trim() || !announcementContent.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both title and content for the announcement",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateAnnouncementMutation.mutate({
+      announcementId: editingAnnouncement.id,
+      data: {
+        title: announcementTitle,
+        content: announcementContent,
+        is_pinned: announcementToPinned,
+      },
+    });
+  };
+
+  const handleDeleteAnnouncement = (announcementId: string) => {
+    deleteAnnouncementMutation.mutate(announcementId);
+  };
+
+  const handlePinAnnouncement = (announcementId: string, pinned: boolean) => {
+    pinAnnouncementMutation.mutate({ announcementId, pinned: !pinned });
+  };
+
+  const openNewAnnouncementDialog = () => {
+    setEditingAnnouncement(null);
+    setAnnouncementTitle("");
+    setAnnouncementContent("");
+    setAnnouncementToPinned(false);
+    setIsAnnouncementDialogOpen(true);
   };
 
   if (isLoading) {
@@ -931,7 +944,7 @@ const GroupDetail = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full relative">
-        <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border">
+        <div className="sticky top-16 lg:top-0 z-10 bg-background/90 border-b border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -1030,37 +1043,66 @@ const GroupDetail = () => {
                 ))}
               </div>
               <div className="flex gap-2">
-                {!canManage && (
-                  <Button
-                    onClick={handleJoinGroup}
-                    variant={group.is_member ? "outline" : "default"}
-                    disabled={
-                      hasPendingJoinRequest ||
-                      (group.group_type === "project" &&
-                        pendingRoleApplications.length > 0)
-                    }
-                  >
-                    {group.is_member ? (
-                      <>
-                        <UserMinus className="h-4 w-4 mr-2" />
-                        Leave Group
-                      </>
-                    ) : hasPendingJoinRequest ? (
-                      "Request Pending"
-                    ) : group.group_type === "private" ? (
-                      "Request Access"
-                    ) : group.group_type === "project" ? (
-                      pendingRoleApplications.length > 0 ? (
-                        `Applied for ${pendingRoleApplications.length} role${
-                          pendingRoleApplications.length > 1 ? "s" : ""
-                        }`
+                {!canManage && !group.is_member && (
+                  <>
+                    <Button
+                      onClick={handleJoinGroup}
+                      variant="default"
+                      disabled={
+                        hasPendingJoinRequest ||
+                        (group.group_type === "project" &&
+                          pendingRoleApplications.length > 0)
+                      }
+                    >
+                      {hasPendingJoinRequest ? (
+                        "Request Pending"
+                      ) : group.group_type === "private" ? (
+                        "Request Access"
+                      ) : group.group_type === "project" ? (
+                        pendingRoleApplications.length > 0 ? (
+                          `Applied for ${pendingRoleApplications.length} role${
+                            pendingRoleApplications.length > 1 ? "s" : ""
+                          }`
+                        ) : (
+                          "View Roles & Apply"
+                        )
                       ) : (
-                        "View Roles & Apply"
-                      )
-                    ) : (
-                      "Join Group"
-                    )}
-                  </Button>
+                        "Join Group"
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleShareGroup}
+                      variant="outline"
+                    >
+                      <Share className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  </>
+                )}
+                {!canManage && group.is_member && (
+                  <>
+                    <Button
+                      onClick={handleChatClick}
+                      variant="default"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                    </Button>
+                    <Button
+                      onClick={handleShareGroup}
+                      variant="outline"
+                    >
+                      <Share className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                    <Button
+                      onClick={handleJoinGroup}
+                      variant="outline"
+                    >
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      Leave Group
+                    </Button>
+                  </>
                 )}
                 {(canManage ||
                   (group?.is_member &&
@@ -1111,6 +1153,12 @@ const GroupDetail = () => {
             >
               Resources
             </TabsTrigger>
+            <TabsTrigger
+              value="announcements"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              Announcements
+            </TabsTrigger>
             {canManage &&
               (group?.requireApproval ?? group?.group_type === "private") && (
                 <TabsTrigger
@@ -1138,14 +1186,8 @@ const GroupDetail = () => {
             )}
           </TabsList>
 
-          <div className={` relative`}>
-            <div
-              className={`${
-                !group?.is_member && !canManage && activeTab !== "roles"
-                  ? "blur-sm pointer-events-none"
-                  : ""
-              } relative`}
-            >
+          <div className="relative">
+            <div className="relative">
               <TabsContent value="members" className="mt-0">
                 {membersLoading ? (
                   <LoadingSpinner />
@@ -1160,22 +1202,20 @@ const GroupDetail = () => {
                     ) : (
                       members.map((member) => {
                         const isCurrentUser = member.id === currentUserId;
-                        const isMemberAdmin = group?.admins.includes(member.id);
-                        const isMemberModerator = group?.moderators.includes(
-                          member.id
-                        );
-                        const isGroupOwner = group?.createdBy === member.id;
+                        const isMemberAdmin = member.role === 'admin';
+                        const isMemberModerator = member.role === 'moderator';
+                        const isGroupOwner = group?.created_by === member.id;
 
                         return (
                           <div key={member.id} className="p-4 hover:bg-muted/5">
                             <div className="flex items-center gap-3">
                               <Avatar className="h-12 w-12">
                                 <AvatarImage
-                                  src={member.avatar}
-                                  alt={member.displayName}
+                                  src={member.avatar || undefined}
+                                  alt={member.full_name}
                                 />
                                 <AvatarFallback>
-                                  {member.displayName
+                                  {member.full_name
                                     .substring(0, 2)
                                     .toUpperCase()}
                                 </AvatarFallback>
@@ -1183,7 +1223,7 @@ const GroupDetail = () => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <h3 className="font-semibold">
-                                    {member.displayName}
+                                    {member.full_name}
                                   </h3>
                                   {member.verified && (
                                     <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
@@ -1205,12 +1245,11 @@ const GroupDetail = () => {
                                 <p className="text-sm text-muted-foreground">
                                   @{member.username}
                                 </p>
-                                {member.role &&
-                                  group?.group_type === "project" && (
-                                    <p className="text-xs text-primary font-medium">
-                                      {member.role}
-                                    </p>
-                                  )}
+                                {member.department && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {member.department}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 {isMemberAdmin && !isGroupOwner && (
@@ -1313,7 +1352,10 @@ const GroupDetail = () => {
                 <TabsContent value="roles" className="mt-0">
                   <div className="p-4 space-y-4">
                     {roles?.map((role) => {
-                      const pendingCount = role.applications.filter(
+                      const roleApplications = applications.filter(
+                        (app) => app.role_id === role.id
+                      );
+                      const pendingCount = roleApplications.filter(
                         (app) => app.status === "pending"
                       ).length;
                       const isFilled = role.slots_filled >= role.slots_total;
@@ -1387,7 +1429,7 @@ const GroupDetail = () => {
                             </div>
                           </div>
 
-                          {role.applications.filter(
+                          {roleApplications.filter(
                             (app) => app.status === "accepted"
                           ).length > 0 && (
                             <div className="mt-3 pt-3 border-t border-border">
@@ -1395,7 +1437,7 @@ const GroupDetail = () => {
                                 Team Members:
                               </p>
                               <div className="flex flex-wrap gap-2">
-                                {role.applications
+                                {roleApplications
                                   .filter((app) => app.status === "accepted")
                                   .map((app) => (
                                     <div
@@ -1403,15 +1445,15 @@ const GroupDetail = () => {
                                       className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1"
                                     >
                                       <Avatar className="h-5 w-5">
-                                        <AvatarImage src={app.userAvatar} />
+                                        <AvatarImage src={app.avatar || undefined} />
                                         <AvatarFallback className="text-xs">
-                                          {app.userName
+                                          {app.full_name
                                             .substring(0, 2)
                                             .toUpperCase()}
                                         </AvatarFallback>
                                       </Avatar>
                                       <span className="text-sm">
-                                        {app.userName}
+                                        {app.full_name}
                                       </span>
                                     </div>
                                   ))}
@@ -1438,6 +1480,7 @@ const GroupDetail = () => {
                   <div className="divide-y divide-border">
                     {resources.length === 0 ? (
                       <div className="p-8 text-center">
+                        <Files className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">
                           No resources shared yet
                         </p>
@@ -1452,12 +1495,31 @@ const GroupDetail = () => {
                             <div className="flex-1">
                               <h3 className="font-medium">{resource.name}</h3>
                               <p className="text-sm text-muted-foreground">
-                                {resource.type} • Shared by{" "}
-                                {resource.uploadedBy} •{" "}
-                                {resource.uploadedAt.toLocaleDateString()}
+                                {resource.file_type || "File"} • Shared by{" "}
+                                {resource.uploader_full_name} •{" "}
+                                {new Date(resource.created_at).toLocaleDateString()} •{" "}
+                                {resource.download_count} downloads
                               </p>
+                              {resource.description && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {resource.description}
+                                </p>
+                              )}
+                              {resource.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {resource.tags.map((tag) => (
+                                    <Badge key={tag} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(resource.file_url, '_blank')}
+                            >
                               Download
                             </Button>
                           </div>
@@ -1466,6 +1528,97 @@ const GroupDetail = () => {
                     )}
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="announcements" className="mt-0">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Announcements</h3>
+                    {canManage && (
+                      <Button onClick={openNewAnnouncementDialog}>
+                        <Megaphone className="h-4 w-4 mr-2" />
+                        New Announcement
+                      </Button>
+                    )}
+                  </div>
+                  {announcements.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        No announcements yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {announcements
+                        .sort((a, b) => {
+                          if (a.is_pinned && !b.is_pinned) return -1;
+                          if (!a.is_pinned && b.is_pinned) return 1;
+                          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                        })
+                        .map((announcement) => (
+                          <div
+                            key={announcement.id}
+                            className={`p-4 border rounded-lg ${
+                              announcement.is_pinned ? "border-primary bg-primary/5" : ""
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">{announcement.title}</h4>
+                                {announcement.is_pinned && (
+                                  <Badge variant="default" className="gap-1">
+                                    <Pin className="h-3 w-3" />
+                                    Pinned
+                                  </Badge>
+                                )}
+                              </div>
+                              {canManage && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      •••
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditAnnouncement(announcement)}
+                                    >
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handlePinAnnouncement(
+                                          announcement.id,
+                                          announcement.is_pinned
+                                        )
+                                      }
+                                    >
+                                      {announcement.is_pinned ? "Unpin" : "Pin"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap mb-2">{announcement.content}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{announcement.author_full_name}</span>
+                              <span>•</span>
+                              <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
               {canManage &&
@@ -1493,21 +1646,21 @@ const GroupDetail = () => {
                                 <div className="flex items-start gap-3">
                                   <Avatar className="h-10 w-10">
                                     <AvatarImage
-                                      src={request.userAvatar}
-                                      alt={request.userName}
+                                      src={request.avatar || undefined}
+                                      alt={request.full_name}
                                     />
                                     <AvatarFallback>
-                                      {request.userName
+                                      {request.full_name
                                         .substring(0, 2)
                                         .toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1">
                                     <h4 className="font-medium">
-                                      {request.userName}
+                                      {request.full_name}
                                     </h4>
                                     <p className="text-sm text-muted-foreground">
-                                      {request.userEmail}
+                                      @{request.username}
                                     </p>
                                     {request.message && (
                                       <p className="text-sm mt-2">
@@ -1516,7 +1669,7 @@ const GroupDetail = () => {
                                     )}
                                     <p className="text-xs text-muted-foreground mt-1">
                                       Requested{" "}
-                                      {request.requestedAt.toLocaleDateString()}
+                                      {new Date(request.requested_at).toLocaleDateString()}
                                     </p>
                                   </div>
                                 </div>
@@ -1975,7 +2128,7 @@ const GroupDetail = () => {
             </div>
 
             {!group?.is_member && !canManage && (
-              <div className="absolute inset-0 top-[0px] bg-background/60 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden">
+              <div className="absolute inset-0 top-[0px] bg-background/60 z-50 flex flex-col items-center justify-center hidden">
                 <div className="text-center space-y-6 p-8 max-w-md mx-auto z-50 mt-[120px]">
                   <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-full flex items-center justify-center border border-blue-200 dark:border-blue-800">
                     <Lock className="h-12 w-12 text-blue-600 dark:text-blue-400" />
@@ -2245,6 +2398,68 @@ const GroupDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isAnnouncementDialogOpen} onOpenChange={setIsAnnouncementDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingAnnouncement ? "Edit Announcement" : "New Announcement"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingAnnouncement
+                ? "Update your announcement details"
+                : "Create a new announcement for group members"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="announcement-title">Title</Label>
+              <Input
+                id="announcement-title"
+                value={announcementTitle}
+                onChange={(e) => setAnnouncementTitle(e.target.value)}
+                placeholder="Enter announcement title"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="announcement-content">Content</Label>
+              <Textarea
+                id="announcement-content"
+                value={announcementContent}
+                onChange={(e) => setAnnouncementContent(e.target.value)}
+                placeholder="Enter announcement content"
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="announcement-pinned"
+                checked={announcementToPinned}
+                onCheckedChange={setAnnouncementToPinned}
+              />
+              <Label htmlFor="announcement-pinned">Pin this announcement</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAnnouncementDialogOpen(false);
+                setEditingAnnouncement(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={editingAnnouncement ? handleUpdateAnnouncement : handleCreateAnnouncement}
+            >
+              {editingAnnouncement ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

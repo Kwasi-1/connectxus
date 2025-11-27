@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getGroups, getUserGroups, Group } from "@/api/groups.api";
+import { getGroups, getRecommendedGroups, getUserGroups, Group } from "@/api/groups.api";
 import {
   getCommunities,
   getUserCommunities,
@@ -39,6 +39,12 @@ const Hub = () => {
   const [eventSearchQuery, setEventSearchQuery] = useState("");
 
   const navigate = useNavigate();
+
+    const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups, error: groupsError } = useQuery({
+      queryKey: ["recommended-groups"],
+      queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
+      staleTime: 60000,
+    });
 
   const { data: allGroups = [], isLoading: loadingAllGroups } = useQuery({
     queryKey: ["groups"],
@@ -77,7 +83,9 @@ const Hub = () => {
     loadingUserGroups ||
     loadingAllCommunities ||
     loadingUserCommunities;
-
+    loadingRecommendedGroups ||
+    groupsError;
+    
   const myCommunities = userCommunities;
   const myGroups = userGroups;
   const exploreCommunities = allCommunities
