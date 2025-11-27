@@ -27,30 +27,46 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Search, AlertTriangle, CheckCircle, XCircle, ArrowUpCircle, Clock } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  ArrowUpCircle,
+  Clock,
+} from "lucide-react";
 import { mockDisputes } from "@/data/tutoringBusinessMockData";
+import { useCurrency } from "@/hooks/useCurrency";
 
-export const TutoringBusinessDisputes = () => {
+export function TutoringBusinessDisputes() {
+  const { formatCurrency } = useCurrency();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedDispute, setSelectedDispute] = useState<typeof mockDisputes[0] | null>(null);
+  const [selectedDispute, setSelectedDispute] = useState<
+    (typeof mockDisputes)[0] | null
+  >(null);
   const [adminNotes, setAdminNotes] = useState("");
 
   // Calculate metrics
   const totalDisputes = mockDisputes.length;
-  const pendingDisputes = mockDisputes.filter(d => d.status === "pending").length;
-  const resolvedDisputes = mockDisputes.filter(d => d.status === "resolved").length;
-  const urgentDisputes = mockDisputes.filter(d => d.priority === "urgent").length;
+  const pendingDisputes = mockDisputes.filter(
+    (d) => d.status === "pending"
+  ).length;
+  const resolvedDisputes = mockDisputes.filter(
+    (d) => d.status === "resolved"
+  ).length;
+  const urgentDisputes = mockDisputes.filter(
+    (d) => d.priority === "urgent"
+  ).length;
 
   const filteredDisputes = mockDisputes.filter((dispute) => {
     const matchesSearch =
       dispute.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dispute.tutorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dispute.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType =
-      typeFilter === "all" || dispute.type === typeFilter;
+    const matchesType = typeFilter === "all" || dispute.type === typeFilter;
     const matchesPriority =
       priorityFilter === "all" || dispute.priority === priorityFilter;
     const matchesStatus =
@@ -122,7 +138,9 @@ export const TutoringBusinessDisputes = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Disputes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Disputes
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
@@ -147,7 +165,10 @@ export const TutoringBusinessDisputes = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resolvedDisputes}</div>
-            <p className="text-xs text-muted-foreground">{((resolvedDisputes / totalDisputes) * 100).toFixed(0)}% resolution rate</p>
+            <p className="text-xs text-muted-foreground">
+              {((resolvedDisputes / totalDisputes) * 100).toFixed(0)}%
+              resolution rate
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -157,7 +178,9 @@ export const TutoringBusinessDisputes = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{urgentDisputes}</div>
-            <p className="text-xs text-muted-foreground">Requires immediate attention</p>
+            <p className="text-xs text-muted-foreground">
+              Requires immediate attention
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -267,7 +290,7 @@ export const TutoringBusinessDisputes = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">
-                      ${dispute.amount}
+                      {formatCurrency(dispute.amount)}
                     </TableCell>
                     <TableCell>{getPriorityBadge(dispute.priority)}</TableCell>
                     <TableCell>{getStatusBadge(dispute.status)}</TableCell>
@@ -312,7 +335,9 @@ export const TutoringBusinessDisputes = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">${dispute.amount}</div>
+                      <div className="font-semibold">
+                        {formatCurrency(dispute.amount)}
+                      </div>
                       {getStatusBadge(dispute.status)}
                     </div>
                   </div>
@@ -444,7 +469,7 @@ export const TutoringBusinessDisputes = () => {
                       Amount
                     </span>
                     <span className="text-sm font-medium">
-                      ${selectedDispute.amount}
+                      {formatCurrency(selectedDispute.amount)}
                     </span>
                   </div>
                 </div>

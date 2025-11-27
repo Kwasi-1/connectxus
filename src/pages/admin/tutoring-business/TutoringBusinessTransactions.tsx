@@ -33,8 +33,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { mockTransactions } from "@/data/tutoringBusinessMockData";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export function TutoringBusinessTransactions() {
+  const { formatCurrency } = useCurrency();
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -119,7 +121,7 @@ export function TutoringBusinessTransactions() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalRevenue.toLocaleString()}
+              {formatCurrency(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">Gross revenue</p>
           </CardContent>
@@ -255,7 +257,7 @@ export function TutoringBusinessTransactions() {
                     </TableCell>
                     <TableCell>{transaction.subject}</TableCell>
                     <TableCell className="font-semibold">
-                      ${transaction.amount}
+                      {formatCurrency(transaction.amount)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
@@ -303,7 +305,9 @@ export function TutoringBusinessTransactions() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">${transaction.amount}</div>
+                      <div className="font-semibold">
+                        {formatCurrency(transaction.amount)}
+                      </div>
                       <Badge
                         variant="outline"
                         className="text-xs capitalize mt-1"
@@ -432,7 +436,7 @@ export function TutoringBusinessTransactions() {
                       Total Amount
                     </span>
                     <span className="text-sm font-medium">
-                      ${selectedTransaction.amount}
+                      {formatCurrency(selectedTransaction.amount)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -440,7 +444,7 @@ export function TutoringBusinessTransactions() {
                       Platform Fee (15%)
                     </span>
                     <span className="text-sm font-medium">
-                      ${selectedTransaction.platformFee}
+                      {formatCurrency(selectedTransaction.platformFee)}
                     </span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
@@ -448,7 +452,7 @@ export function TutoringBusinessTransactions() {
                       Tutor Earnings
                     </span>
                     <span className="text-sm font-semibold">
-                      ${selectedTransaction.tutorAmount}
+                      {formatCurrency(selectedTransaction.tutorAmount)}
                     </span>
                   </div>
                 </div>

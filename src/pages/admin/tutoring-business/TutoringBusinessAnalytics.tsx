@@ -24,8 +24,10 @@ import {
   Star,
 } from "lucide-react";
 import { mockAnalyticsData } from "@/data/tutoringBusinessMockData";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export function TutoringBusinessAnalytics() {
+  const { formatCurrency, currencySymbol } = useCurrency();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -67,8 +69,9 @@ export function TutoringBusinessAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              $
-              {mockAnalyticsData.refundAnalytics.totalRefundAmount.toLocaleString()}
+              {formatCurrency(
+                mockAnalyticsData.refundAnalytics.totalRefundAmount
+              )}
             </div>
             <p className="text-xs text-muted-foreground">Total refunded</p>
           </CardContent>
@@ -140,7 +143,9 @@ export function TutoringBusinessAnalytics() {
                   cy="50%"
                   outerRadius={80}
                   dataKey="revenue"
-                  label={({ subject, revenue }) => `${subject}: $${revenue}`}
+                  label={({ subject, revenue }) =>
+                    `${subject}: ${formatCurrency(revenue)}`
+                  }
                 >
                   {mockAnalyticsData.revenueBySubject.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -163,7 +168,7 @@ export function TutoringBusinessAnalytics() {
                     <span>{item.subject}</span>
                   </div>
                   <span className="font-medium">
-                    ${item.revenue.toLocaleString()}
+                    {formatCurrency(item.revenue)}
                   </span>
                 </div>
               ))}
@@ -199,7 +204,7 @@ export function TutoringBusinessAnalytics() {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-green-600">
-                    ${tutor.totalEarnings.toLocaleString()}
+                    {formatCurrency(tutor.totalEarnings)}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {tutor.sessionsCompleted} sessions

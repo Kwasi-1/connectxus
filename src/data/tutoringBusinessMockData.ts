@@ -1,4 +1,4 @@
-// Mock data for Tutoring Business admin section
+// Mock data for Tutoring Business admin section (All amounts in GHS - Ghana Cedis)
 
 export const mockTutoringBusinessData = {
   totalRevenue: 45280,
@@ -298,7 +298,7 @@ export const mockDisputes = [
     slaDeadline: "2024-11-24T11:00:00Z",
     adminNotes: "Confirmed platform issue. Partial refund issued.",
     resolvedDate: "2024-11-21T09:00:00Z",
-    resolution: "Partial refund of $10 issued to student",
+    resolution: "Partial refund of ₵10 issued to student",
   },
 ];
 

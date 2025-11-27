@@ -24,12 +24,15 @@ import {
   mockRevenueHistory,
   mockSessionBreakdown,
 } from "@/data/tutoringBusinessMockData";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export function TutoringBusinessOverview() {
+  const { formatCurrency } = useCurrency();
+
   const stats = [
     {
       title: "Total Revenue",
-      value: `$${mockTutoringBusinessData.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(mockTutoringBusinessData.totalRevenue),
       icon: DollarSign,
       description:
         mockTutoringBusinessData.monthOverMonthGrowth + " from last month",
@@ -39,21 +42,21 @@ export function TutoringBusinessOverview() {
       title: "Total Sessions",
       value: mockTutoringBusinessData.totalSessions.toLocaleString(),
       icon: BookOpen,
-      description: `Avg $${mockTutoringBusinessData.averageSessionValue.toFixed(
-        0
+      description: `Avg ${formatCurrency(
+        mockTutoringBusinessData.averageSessionValue
       )} per session`,
       color: "text-blue-600",
     },
     {
       title: "Platform Fees",
-      value: `$${mockTutoringBusinessData.platformFees.toLocaleString()}`,
+      value: formatCurrency(mockTutoringBusinessData.platformFees),
       icon: Wallet,
       description: "15% of total revenue",
       color: "text-purple-600",
     },
     {
       title: "Pending Payouts",
-      value: `$${mockTutoringBusinessData.pendingPayouts.toLocaleString()}`,
+      value: formatCurrency(mockTutoringBusinessData.pendingPayouts),
       icon: TrendingUp,
       description: "Due by end of month",
       color: "text-orange-600",
@@ -132,7 +135,7 @@ export function TutoringBusinessOverview() {
                   dataKey="revenue"
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
-                  name="Revenue ($)"
+                  name="Revenue (GHS)"
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -17,14 +17,18 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
-import { Clock, CheckCircle, DollarSign, TrendingUp } from "lucide-react";
+import { Clock, DollarSign, CheckCircle, TrendingUp } from "lucide-react";
 import {
   mockPendingPayouts,
   mockPayoutHistory,
 } from "@/data/tutoringBusinessMockData";
+import { useCurrency } from "@/hooks/useCurrency";
+
 
 export function TutoringBusinessPayouts() {
+  const { formatCurrency } = useCurrency();
   const [selectedPayout, setSelectedPayout] = useState<
     (typeof mockPendingPayouts)[0] | (typeof mockPayoutHistory)[0] | null
   >(null);
@@ -81,7 +85,7 @@ export function TutoringBusinessPayouts() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalPendingAmount.toLocaleString()}
+              {formatCurrency(totalPendingAmount)}
             </div>
             <p className="text-xs text-muted-foreground">To be paid out</p>
           </CardContent>
@@ -105,7 +109,7 @@ export function TutoringBusinessPayouts() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalPaidAmount.toLocaleString()}
+              {formatCurrency(totalPaidAmount)}
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -406,7 +410,7 @@ export function TutoringBusinessPayouts() {
                   <div className="flex justify-between border-t pt-2">
                     <span className="text-sm font-semibold">Total Amount</span>
                     <span className="text-sm font-semibold">
-                      ${selectedPayout.amount.toFixed(2)}
+                      {formatCurrency(selectedPayout.amount)}
                     </span>
                   </div>
                 </div>
@@ -430,7 +434,7 @@ export function TutoringBusinessPayouts() {
                           </div>
                         </div>
                         <div className="text-sm font-medium">
-                          ${session.amount.toFixed(2)}
+                          {formatCurrency(session.amount)}
                         </div>
                       </div>
                     ))}
