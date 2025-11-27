@@ -9,12 +9,14 @@ import { useLocation } from "react-router-dom";
 interface AppLayoutProps {
   children: ReactNode;
   showRightSidebar?: boolean;
+  rightSidebarContent?: ReactNode;
   onCreatePost?: (content: string, audience: string) => void;
 }
 
 export function AppLayout({
   children,
   showRightSidebar = true,
+  rightSidebarContent,
   onCreatePost,
 }: AppLayoutProps) {
   const location = useLocation();
@@ -57,8 +59,8 @@ export function AppLayout({
 
           {shouldShowRightSidebar && (
             <div className="w-96 hidden lg:block z-30">
-              <div className="sticky top-0 self-start bg-background borderl border-border">
-                <RightSidebar />
+              <div className="sticky top-0 self-start bg-background borderl border-border transistion duration-300">
+                {rightSidebarContent || <RightSidebar />}
               </div>
             </div>
           )}

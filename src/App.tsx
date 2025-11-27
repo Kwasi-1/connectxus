@@ -10,6 +10,7 @@ import { LandingPage } from "@/LandingPage";
 import Feed from "./pages/client/feed/Feed";
 import PostView from "./pages/client/feed/PostView";
 import Explore from "./pages/client/explore/Explore";
+import { People } from "./pages/client/people/People";
 import Notifications from "./pages/client/notifications/Notifications";
 import Messages from "./pages/client/messages/Messages";
 import Hub from "./pages/client/groups_and_communities/hub/Hub";
@@ -146,6 +147,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Explore />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/people"
+                  element={
+                    <ProtectedRoute>
+                      <People />
                     </ProtectedRoute>
                   }
                 />

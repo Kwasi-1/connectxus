@@ -1,0 +1,162 @@
+// Mock data for people recommendations
+
+export interface Person {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  department?: string;
+  followers: number;
+  mutualFollowers: number;
+  isFollowing: boolean;
+  isTrending?: boolean;
+  isNew?: boolean;
+  joinedDate?: string;
+}
+
+export const mockPeople: Person[] = [
+  {
+    id: "1",
+    name: "Kwame Mensah",
+    username: "kwame_dev",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kwame",
+    bio: "Computer Science student | Full-stack developer | Tech enthusiast",
+    department: "Computer Science",
+    followers: 1234,
+    mutualFollowers: 12,
+    isFollowing: false,
+    isTrending: true,
+  },
+  {
+    id: "2",
+    name: "Ama Asante",
+    username: "ama_designs",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ama",
+    bio: "UI/UX Designer | Creative thinker | Design systems advocate",
+    department: "Computer Science",
+    followers: 892,
+    mutualFollowers: 8,
+    isFollowing: false,
+    isTrending: true,
+  },
+  {
+    id: "3",
+    name: "Kofi Owusu",
+    username: "kofi_data",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kofi",
+    bio: "Data Science enthusiast | ML researcher | Python lover",
+    department: "Computer Science",
+    followers: 567,
+    mutualFollowers: 15,
+    isFollowing: false,
+  },
+  {
+    id: "4",
+    name: "Akua Boateng",
+    username: "akua_writes",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Akua",
+    bio: "English Literature | Creative writer | Book lover",
+    department: "English",
+    followers: 423,
+    mutualFollowers: 5,
+    isFollowing: false,
+    isNew: true,
+    joinedDate: "2024-11-20",
+  },
+  {
+    id: "5",
+    name: "Yaw Addo",
+    username: "yaw_business",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Yaw",
+    bio: "Business Admin | Entrepreneur | Startup enthusiast",
+    department: "Business Administration",
+    followers: 789,
+    mutualFollowers: 3,
+    isFollowing: false,
+    isTrending: true,
+  },
+  {
+    id: "6",
+    name: "Abena Frimpong",
+    username: "abena_bio",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Abena",
+    bio: "Biological Sciences | Research assistant | Nature lover",
+    department: "Biological Sciences",
+    followers: 345,
+    mutualFollowers: 7,
+    isFollowing: false,
+  },
+  {
+    id: "7",
+    name: "Kwesi Darko",
+    username: "kwesi_eng",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kwesi",
+    bio: "Mechanical Engineering | Robotics | Innovation",
+    department: "Engineering",
+    followers: 612,
+    mutualFollowers: 9,
+    isFollowing: false,
+    isNew: true,
+    joinedDate: "2024-11-22",
+  },
+  {
+    id: "8",
+    name: "Efua Mensah",
+    username: "efua_art",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Efua",
+    bio: "Fine Arts | Digital artist | Creative soul",
+    department: "Fine Arts",
+    followers: 1567,
+    mutualFollowers: 4,
+    isFollowing: false,
+    isTrending: true,
+  },
+  {
+    id: "9",
+    name: "Nana Osei",
+    username: "nana_econ",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nana",
+    bio: "Economics major | Policy analyst | Data enthusiast",
+    department: "Economics",
+    followers: 456,
+    mutualFollowers: 11,
+    isFollowing: false,
+  },
+  {
+    id: "10",
+    name: "Adjoa Amponsah",
+    username: "adjoa_chem",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Adjoa",
+    bio: "Chemistry student | Lab researcher | Science communicator",
+    department: "Chemistry",
+    followers: 289,
+    mutualFollowers: 6,
+    isFollowing: false,
+    isNew: true,
+    joinedDate: "2024-11-25",
+  },
+  {
+    id: "11",
+    name: "Kojo Annan",
+    username: "kojo_law",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kojo",
+    bio: "Law student | Debate champion | Justice advocate",
+    department: "Law",
+    followers: 934,
+    mutualFollowers: 8,
+    isFollowing: false,
+  },
+  {
+    id: "12",
+    name: "Esi Quartey",
+    username: "esi_psych",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Esi",
+    bio: "Psychology | Mental health advocate | Counselor in training",
+    department: "Psychology",
+    followers: 678,
+    mutualFollowers: 10,
+    isFollowing: false,
+    isTrending: true,
+  },
+];
