@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +27,9 @@ import {
   MessageCircle,
   Check,
   CheckCheck,
+  Smile,
+  Paperclip,
+  Pin,
 } from "lucide-react";
 import { NewChatModal } from "@/components/messages/NewChatModal";
 
@@ -154,7 +158,7 @@ const Messages = () => {
         await wsClient.current.connect();
         setWsConnected(true);
 
-                const messageHandler = (message: any) => {
+        const messageHandler = (message: any) => {
           if (message.conversation_id) {
             queryClient.setQueryData(
               ["conversation-messages", message.conversation_id],
@@ -181,10 +185,10 @@ const Messages = () => {
           console.log("User typing:", data);
         };
 
-                wsClient.current.on("message.created", messageHandler);
+        wsClient.current.on("message.created", messageHandler);
         wsClient.current.on("typing.started", typingHandler);
 
-                return () => {
+        return () => {
           wsClient.current.off("message.created", messageHandler);
           wsClient.current.off("typing.started", typingHandler);
         };
@@ -398,37 +402,51 @@ const Messages = () => {
 
     return (
       <div
-        className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-b ${
-          isSelected ? "bg-muted" : ""
+        className={`p-4 rounded-md cursor-pointer transition-colors mb-[2px] ${
+          isSelected
+            ? "bg-muted/50 border border-muted/60"
+            : "hover:bg-muted/40"
         }`}
         onClick={() => handleConversationSelect(conversation.id)}
       >
-        <div className="flex items-start gap-3">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={displayAvatar} />
+        <div className="flex items-center space-x-3">
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={displayAvatar} alt={displayName} />
             <AvatarFallback>
               {displayName[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold truncate">{displayName}</span>
-              {lastMessageTime && (
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {formatDistanceToNow(new Date(lastMessageTime), {
-                    addSuffix: true,
-                  })}
-                </span>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground truncate">
+                {displayName}
+              </h3>
+              <div className="flex items-center space-x-2">
+                {conversation.is_pinned && (
+                  <Pin className="h-3 w-3 text-primary" />
+                )}
+                {lastMessageTime && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(lastMessageTime), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground truncate">
+                {lastMessageContent}
+              </p>
+              {conversation.unread_count > 0 && (
+                <Badge
+                  variant="default"
+                  className="ml-2 h-5 min-w-5 flex items-center justify-center text-xs"
+                >
+                  {conversation.unread_count}
+                </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">
-              {lastMessageContent}
-            </p>
-            {conversation.unread_count > 0 && (
-              <span className="inline-block mt-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-                {conversation.unread_count}
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -439,39 +457,41 @@ const Messages = () => {
     <AppLayout showRightSidebar={false}>
       <div className="flex h-[calc(100vh-4rem)] md:h-screen overflow-hidden">
         <div
-          className={`w-full md:w-96 border-r border-border flex flex-col ${
+          className={`w-full lg:min-w-[450px] lg:max-w-md lg:border-r border-border flex flex-col ${
             selectedConversationId ? "hidden md:flex" : "flex"
           }`}
         >
-          <div className="p-4 border-b flex-shrink-0">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">Messages</h1>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setIsNewChatModalOpen(true)}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
+          <div className="sticky top-0 z-40 bg-background">
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold">Messages</h1>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setIsNewChatModalOpen(true)}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 rounded-full"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 rounded-full"
+                />
+              </div>
             </div>
           </div>
 
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as MessageTab)}
-            className="px-4 pt-2 flex-shrink-0"
+            className="mb-2 px-4"
           >
-            <TabsList className="grid w-full grid-cols-2 rounded-full">
+            <TabsList className="grid w-full grid-cols-2 mt-2 rounded-full">
               <TabsTrigger className="rounded-full" value="all">
                 All
               </TabsTrigger>
@@ -482,19 +502,21 @@ const Messages = () => {
           </Tabs>
 
           <ScrollArea className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No conversations yet</p>
-              </div>
-            ) : (
-              filteredConversations.map((conversation) => (
-                <ConversationItem
-                  key={conversation.id}
-                  conversation={conversation}
-                />
-              ))
-            )}
+            <div className="p-2">
+              {filteredConversations.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No conversations yet</p>
+                </div>
+              ) : (
+                filteredConversations.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                  />
+                ))
+              )}
+            </div>
           </ScrollArea>
         </div>
 
@@ -577,31 +599,31 @@ const Messages = () => {
                               isOwnMessage ? "flex flex-col items-end" : ""
                             }`}
                           >
+                            {!isOwnMessage && (
+                              <p className="text-xs mb-1 px-1 text-muted-foreground">
+                                {senderName}
+                              </p>
+                            )}
                             <div
-                              className={`flex items-center gap-2 ${
-                                isOwnMessage ? "flex-row-reverse" : ""
+                              className={`px-3 py-2 rounded-lg ${
+                                isOwnMessage
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
                               }`}
                             >
-                              {!isOwnMessage && (
-                                <span className="font-semibold text-sm">
-                                  {senderName}
-                                </span>
-                              )}
-                              <span className="text-xs text-muted-foreground">
+                              <p className="text-sm">{message.content}</p>
+                              <p
+                                className={`text-xs mt-1 ${
+                                  isOwnMessage
+                                    ? "text-primary-foreground/70"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
                                 {formatDistanceToNow(
                                   new Date(message.created_at),
                                   { addSuffix: true }
                                 )}
-                              </span>
-                            </div>
-                            <div
-                              className={`text-sm mt-1 px-4 py-2 rounded-2xl ${
-                                isOwnMessage
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
-                              }`}
-                            >
-                              {message.content}
+                              </p>
                             </div>
 
                             {isOwnMessage && (
@@ -633,23 +655,34 @@ const Messages = () => {
                 )}
               </ScrollArea>
 
-              <div className="p-4 border-t flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <Input
-                    ref={messageInputRef}
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    className="flex-1"
-                  />
+              <div className="p-4 border-t border-border flex-shrink-0">
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="icon">
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
+                  <div className="flex-1 relative">
+                    <Input
+                      ref={messageInputRef}
+                      placeholder="Type a message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                    >
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
-                    size="icon"
                     onClick={handleSendMessage}
                     disabled={
                       !newMessage.trim() || sendMessageMutation.isPending
@@ -661,11 +694,14 @@ const Messages = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">
-                  Select a conversation to start messaging
+                <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No chat selected
+                </h3>
+                <p className="text-muted-foreground">
+                  Choose a conversation to start messaging
                 </p>
               </div>
             </div>
