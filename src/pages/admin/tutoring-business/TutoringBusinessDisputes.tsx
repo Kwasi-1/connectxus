@@ -37,9 +37,11 @@ import {
 } from "lucide-react";
 import { mockDisputes } from "@/data/tutoringBusinessMockData";
 import { useCurrency } from "@/hooks/useCurrency";
+import { toast } from "sonner";
 
 export function TutoringBusinessDisputes() {
   const { formatCurrency } = useCurrency();
+  const [disputes, setDisputes] = useState(mockDisputes);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -50,18 +52,14 @@ export function TutoringBusinessDisputes() {
   const [adminNotes, setAdminNotes] = useState("");
 
   // Calculate metrics
-  const totalDisputes = mockDisputes.length;
-  const pendingDisputes = mockDisputes.filter(
-    (d) => d.status === "pending"
-  ).length;
-  const resolvedDisputes = mockDisputes.filter(
+  const totalDisputes = disputes.length;
+  const pendingDisputes = disputes.filter((d) => d.status === "pending").length;
+  const resolvedDisputes = disputes.filter(
     (d) => d.status === "resolved"
   ).length;
-  const urgentDisputes = mockDisputes.filter(
-    (d) => d.priority === "urgent"
-  ).length;
+  const urgentDisputes = disputes.filter((d) => d.priority === "urgent").length;
 
-  const filteredDisputes = mockDisputes.filter((dispute) => {
+  const filteredDisputes = disputes.filter((dispute) => {
     const matchesSearch =
       dispute.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dispute.tutorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -126,6 +124,143 @@ export function TutoringBusinessDisputes() {
         {days}d {hours % 24}h
       </span>
     );
+  };
+
+  // Action Handlers
+  const handleApproveRefund = () => {
+    if (!selectedDispute) return;
+
+    if (
+      !window.confirm(
+        `Are you sure you want to approve a refund of ${formatCurrency(
+          selectedDispute.amount
+        )} for this dispute?`
+      )
+    ) {
+      return;
+    }
+
+    setDisputes((prevDisputes) =>
+      prevDisputes.map((dispute) =>
+        dispute.id === selectedDispute.id
+          ? ({
+              ...dispute,
+              status: "resolved",
+              resolution: `Refund of ${formatCurrency(
+                selectedDispute.amount
+              )} approved and processed. ${
+                adminNotes ? `Admin notes: ${adminNotes}` : ""
+              }`,
+              resolvedDate: new Date().toISOString(),
+              adminNotes: adminNotes || dispute.adminNotes,
+            } as any)
+          : dispute
+      )
+    );
+
+    toast.success("Refund Approved", {
+      description: `Refund of ${formatCurrency(
+        selectedDispute.amount
+      )} has been approved and will be processed.`,
+    });
+
+    setSelectedDispute(null);
+    setAdminNotes("");
+  };
+
+  const handleRejectDispute = () => {
+    if (!selectedDispute) return;
+
+    if (!adminNotes.trim()) {
+      toast.error("Admin notes required", {
+        description: "Please provide a reason for rejecting this dispute.",
+      });
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Are you sure you want to reject this dispute? This action will close the dispute."
+      )
+    ) {
+      return;
+    }
+
+    setDisputes((prevDisputes) =>
+      prevDisputes.map((dispute) =>
+        dispute.id === selectedDispute.id
+          ? ({
+              ...dispute,
+              status: "resolved",
+              resolution: `Dispute rejected. Reason: ${adminNotes}`,
+              resolvedDate: new Date().toISOString(),
+              adminNotes: adminNotes,
+            } as any)
+          : dispute
+      )
+    );
+
+    toast.success("Dispute Rejected", {
+      description: "The dispute has been rejected and closed.",
+    });
+
+    setSelectedDispute(null);
+    setAdminNotes("");
+  };
+
+  const handleEscalate = () => {
+    if (!selectedDispute) return;
+
+    if (!adminNotes.trim()) {
+      toast.error("Admin notes required", {
+        description: "Please provide a reason for escalating this dispute.",
+      });
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Are you sure you want to escalate this dispute to urgent priority?"
+      )
+    ) {
+      return;
+    }
+
+    setDisputes((prevDisputes) =>
+      prevDisputes.map((dispute) =>
+        dispute.id === selectedDispute.id
+          ? ({
+              ...dispute,
+              priority: "urgent",
+              status: "under_review",
+              adminNotes: `${
+                dispute.adminNotes ? dispute.adminNotes + "\n\n" : ""
+              }[ESCALATED] ${adminNotes}`,
+            } as any)
+          : dispute
+      )
+    );
+
+    // Update selected dispute to reflect changes
+    setSelectedDispute((prev) =>
+      prev
+        ? ({
+            ...prev,
+            priority: "urgent",
+            status: "under_review",
+            adminNotes: `${
+              prev.adminNotes ? prev.adminNotes + "\n\n" : ""
+            }[ESCALATED] ${adminNotes}`,
+          } as any)
+        : null
+    );
+
+    toast.success("Dispute Escalated", {
+      description:
+        "The dispute has been escalated to urgent priority and is now under review.",
+    });
+
+    setAdminNotes("");
   };
 
   return (
@@ -543,15 +678,26 @@ export function TutoringBusinessDisputes() {
 
               {selectedDispute.status !== "resolved" && (
                 <div className="flex flex-wrap gap-2 pt-4 border-t">
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleApproveRefund}
+                  >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Approve Refund
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleRejectDispute}
+                  >
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject Dispute
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleEscalate}
+                  >
                     <ArrowUpCircle className="h-4 w-4 mr-2" />
                     Escalate
                   </Button>
