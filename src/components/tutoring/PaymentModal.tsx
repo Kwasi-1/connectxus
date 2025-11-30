@@ -139,6 +139,8 @@ export function PaymentModal({
     request.session_type || "single"
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [bulkEnabled, setBulkEnabled] = useState(false);
+  const [bulkSessionCount, setBulkSessionCount] = useState(12);
   const { formatCurrency } = useCurrency();
 
   // Check if user has seen onboarding before
@@ -160,7 +162,7 @@ export function PaymentModal({
 
   // Calculate pricing based on tutor's rates
   const singlePrice = hourlyRate;
-  const semesterPrice = semesterRate || hourlyRate * 12; // Fallback to 12x if no semester rate
+  const semesterPrice = semesterRate || hourlyRate * bulkSessionCount; // Use bulk count if no semester rate
   const hasSemesterRate = !!semesterRate;
 
   const selectedPrice = selectedType === "single" ? singlePrice : semesterPrice;
@@ -241,7 +243,6 @@ export function PaymentModal({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              {/* <CreditCard className="h-5 w-5" /> */}
               Complete Payment
             </DialogTitle>
             <DialogDescription>
@@ -267,11 +268,12 @@ export function PaymentModal({
             {/* Pricing Options */}
             <div className="space-y-3">
               {/* Single Session */}
-              <button
-                onClick={() => setSelectedType("single")}
-                className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
-                  selectedType === "single"
-                    ? "border-foreground shadow-sm"
+              {!bulkEnabled && (
+                <button
+                  onClick={() => setSelectedType("single")}
+                  className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
+                    selectedType === "single"
+                      ? "border-foreground shadow-sm"
                     : "border-border hover:border-foreground/30"
                 }`}
               >
@@ -290,6 +292,7 @@ export function PaymentModal({
                   One tutoring session
                 </p>
               </button>
+              )}
 
               {/* Semester Package - Only show if tutor has set a semester rate */}
               {hasSemesterRate ? (
@@ -318,29 +321,101 @@ export function PaymentModal({
                 </button>
               ) : (
                 /* Bulk Sessions Toggle - Show if no semester rate */
-                <button
-                  onClick={() => setSelectedType("semester")}
-                  className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
-                    selectedType === "semester"
-                      ? "border-foreground shadow-sm"
-                      : "border-border hover:border-foreground/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">Bulk Sessions (12)</h4>
-                      {selectedType === "semester" && (
-                        <CheckCircle2 className="h-5 w-5 text-foreground" />
-                      )}
+                <div className="rounded-sm border-2 border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="font-semibold">Bulk Sessions</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Pay for multiple sessions upfront
+                      </p>
                     </div>
-                    <div className="flex items-center text-xl font-bold">
-                      {formatCurrency(semesterPrice)}
-                    </div>
+                    <button
+                      onClick={() => {
+                        setBulkEnabled(!bulkEnabled);
+                        if (!bulkEnabled) {
+                          setSelectedType("semester");
+                        } else {
+                          setSelectedType("single");
+                        }
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        bulkEnabled
+                          ? "bg-primary"
+                          : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                      aria-label="Toggle bulk sessions"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          bulkEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Pay for 12 sessions upfront
-                  </p>
-                </button>
+
+                  {bulkEnabled && (
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Number of Sessions
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() =>
+                              setBulkSessionCount(
+                                Math.max(2, bulkSessionCount - 1)
+                              )
+                            }
+                            className="h-8 w-8 rounded-sm border border-border hover:bg-accent flex items-center justify-center"
+                            aria-label="Decrease session count"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="2"
+                            max="20"
+                            value={bulkSessionCount}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 2;
+                              setBulkSessionCount(
+                                Math.min(20, Math.max(2, value))
+                              );
+                            }}
+                            className="w-20 h-8 text-center rounded-sm border border-border bg-background"
+                            aria-label="Number of bulk sessions"
+                          />
+                          <button
+                            onClick={() =>
+                              setBulkSessionCount(
+                                Math.min(20, bulkSessionCount + 1)
+                              )
+                            }
+                            className="h-8 w-8 rounded-sm border border-border hover:bg-accent flex items-center justify-center"
+                            aria-label="Increase session count"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Min: 2 sessions • Max: 20 sessions
+                        </p>
+                      </div>
+
+                      <div className="rounded-sm bg-muted/50 p-3 space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {bulkSessionCount} sessions ×{" "}
+                            {formatCurrency(hourlyRate)}
+                          </span>
+                          <span className="font-semibold">
+                            {formatCurrency(semesterPrice)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -359,15 +434,6 @@ export function PaymentModal({
 
             {/* Actions */}
             <div className="flex gap-3">
-              {/* <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                Cancel
-              </Button> */}
               <div onClick={handlePaystackClick} className="flex-1">
                 <PaystackButton
                   {...componentProps}
