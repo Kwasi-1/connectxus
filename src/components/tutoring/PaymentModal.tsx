@@ -37,7 +37,7 @@ interface PaymentModalProps {
 function EscrowOnboarding({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-300">
+      <div className="relative w-full max-w-md mx-4 bg-background rounded shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-300">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent transition-colors"
@@ -240,7 +240,7 @@ export function PaymentModal({
       {showOnboarding && <EscrowOnboarding onClose={handleCloseOnboarding} />}
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               Complete Payment
@@ -274,24 +274,24 @@ export function PaymentModal({
                   className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
                     selectedType === "single"
                       ? "border-foreground shadow-sm"
-                    : "border-border hover:border-foreground/30"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold">Single Session</h4>
-                    {selectedType === "single" && (
-                      <CheckCircle2 className="h-5 w-5 text-foreground" />
-                    )}
+                      : "border-border hover:border-foreground/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold">Single Session</h4>
+                      {selectedType === "single" && (
+                        <CheckCircle2 className="h-5 w-5 text-foreground" />
+                      )}
+                    </div>
+                    <div className="flex items-center text-xl font-bold">
+                      {formatCurrency(singlePrice)}
+                    </div>
                   </div>
-                  <div className="flex items-center text-xl font-bold">
-                    {formatCurrency(singlePrice)}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  One tutoring session
-                </p>
-              </button>
+                  <p className="text-sm text-muted-foreground">
+                    One tutoring session
+                  </p>
+                </button>
               )}
 
               {/* Semester Package - Only show if tutor has set a semester rate */}
@@ -321,9 +321,9 @@ export function PaymentModal({
                 </button>
               ) : (
                 /* Bulk Sessions Toggle - Show if no semester rate */
-                <div className="rounded-sm border-2 border-border p-4 space-y-3">
+                <div className="rounded-sm border-2 border-border p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
+                    <div>
                       <h4 className="font-semibold">Bulk Sessions</h4>
                       <p className="text-sm text-muted-foreground">
                         Pay for multiple sessions upfront
@@ -354,8 +354,8 @@ export function PaymentModal({
                   </div>
 
                   {bulkEnabled && (
-                    <div className="space-y-3 pt-2 border-t border-border">
-                      <div className="space-y-2">
+                    <div className="space-y-4 pt-3 border-t border-border">
+                      <div className="space-y-3">
                         <label className="text-sm font-medium">
                           Number of Sessions
                         </label>
@@ -366,10 +366,10 @@ export function PaymentModal({
                                 Math.max(2, bulkSessionCount - 1)
                               )
                             }
-                            className="h-8 w-8 rounded-sm border border-border hover:bg-accent flex items-center justify-center"
+                            className="h-10 w-10 rounded-sm border border-border hover:bg-accent flex items-center justify-center font-medium"
                             aria-label="Decrease session count"
                           >
-                            -
+                            −
                           </button>
                           <input
                             type="number"
@@ -382,7 +382,7 @@ export function PaymentModal({
                                 Math.min(20, Math.max(2, value))
                               );
                             }}
-                            className="w-20 h-8 text-center rounded-sm border border-border bg-background"
+                            className="w-24 h-10 text-center text-lg font-semibold rounded-sm border border-border bg-background [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             aria-label="Number of bulk sessions"
                           />
                           <button
@@ -391,7 +391,7 @@ export function PaymentModal({
                                 Math.min(20, bulkSessionCount + 1)
                               )
                             }
-                            className="h-8 w-8 rounded-sm border border-border hover:bg-accent flex items-center justify-center"
+                            className="h-10 w-10 rounded-sm border border-border hover:bg-accent flex items-center justify-center font-medium"
                             aria-label="Increase session count"
                           >
                             +
@@ -402,13 +402,13 @@ export function PaymentModal({
                         </p>
                       </div>
 
-                      <div className="rounded-sm bg-muted/50 p-3 space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
+                      <div className="rounded-sm bg-muted/50 p-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
                             {bulkSessionCount} sessions ×{" "}
                             {formatCurrency(hourlyRate)}
                           </span>
-                          <span className="font-semibold">
+                          <span className="text-lg font-bold">
                             {formatCurrency(semesterPrice)}
                           </span>
                         </div>
