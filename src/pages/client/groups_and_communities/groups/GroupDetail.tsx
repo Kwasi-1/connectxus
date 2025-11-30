@@ -1007,9 +1007,9 @@ const GroupDetail = () => {
 
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
-            <Avatar className="h-16 w-16">
+            <Avatar className="h-16 w-16 rounded-sm">
               <AvatarImage src={group.avatar} alt={group.name} />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-lg h-16 w-16 rounded-sm">
                 {group.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>

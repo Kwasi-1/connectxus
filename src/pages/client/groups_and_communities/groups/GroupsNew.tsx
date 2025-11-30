@@ -305,7 +305,7 @@ const GroupsNew = () => {
                 onClick={() => setIsCreateModalOpen(true)}
               >
                 <Plus className="h-4 w-4" />
-                <span className="hidden md:block ml-2">Create Group</span>
+                <span className="hidden mdblock ml-2">Create Group</span>
               </Button>
             </div>
           </div>

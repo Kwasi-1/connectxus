@@ -372,9 +372,15 @@ const Hub = () => {
                   </Button>
                 </div>
                 <div className="space-y-3">
-                  {exploreCommunities.map((community) => (
-                    <CommunityCard key={community.id} community={community} />
-                  ))}
+                  {exploreCommunities.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      No communities to discover at the moment.
+                    </p>
+                  ) : (
+                    exploreCommunities.map((community) => (
+                      <CommunityCard key={community.id} community={community} />
+                    ))
+                  )}
                 </div>
               </div>
             </div>
