@@ -61,7 +61,7 @@ const createInitialMockData = (currentUserId: string): TutoringRequest[] => {
   const now = new Date();
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
   const expiresIn24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const refundEligibleUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -121,7 +121,7 @@ const createInitialMockData = (currentUserId: string): TutoringRequest[] => {
       preferred_schedule: ["Friday 1pm-3pm"],
       session_type: "single",
       status: "paid",
-      created_at: threeDaysAgo.toISOString(),
+      created_at: oneWeekAgo.toISOString(),
       responded_at: twoDaysAgo.toISOString(),
       payment_details: {
         amount: 28.75,

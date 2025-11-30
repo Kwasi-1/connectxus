@@ -426,6 +426,20 @@ const TutoringContent = () => {
     }
   };
 
+  // Request again (for completed sessions)
+  const handleRequestAgain = (request: TutoringRequest) => {
+    const tutor = tutors.find((t) => t.user_id === request.tutor_id);
+    if (tutor) {
+      handleRequestTutoring(tutor);
+    }
+  };
+
+  // Review session
+  const handleReviewSession = (request: TutoringRequest) => {
+    setSelectedRequest(request);
+    setCompletionModalOpen(true);
+  };
+
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
@@ -742,9 +756,10 @@ const TutoringContent = () => {
                           onProceedToPayment={() =>
                             handleProceedToPayment(request)
                           }
-                          onMarkComplete={() => handleMarkComplete(request)}
+                          onRequestAgain={() => handleRequestAgain(request)}
                           onRequestRefund={() => handleRequestRefund(request)}
                           onMessageTutor={() => handleMessageTutor(request)}
+                          onReviewSession={() => handleReviewSession(request)}
                         />
                       ))}
                     </div>
