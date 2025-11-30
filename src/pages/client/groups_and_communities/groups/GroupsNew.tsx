@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search, Users, Lock, Plus, ArrowLeft, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { mockGroups } from "@/data/mockCommunitiesData";
-import { Group, GroupCategory } from "@/types/communities";
+import { GroupCategory } from "@/types/communities";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getUserGroups, getRecommendedGroups, joinGroup, leaveGroup, createJoinRequest, Group as ApiGroup } from "@/api/groups.api";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,60 +35,91 @@ type HubTab = "my-groups" | "explore-groups";
 
 const GroupsNew = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("my-groups");
-  const [isLoading, setIsLoading] = useState(true);
   const [categorySearch, setCategorySearch] = useState("");
-  const [groups, setGroups] = useState<Group[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<
     GroupCategory | "All"
   >("All");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchGroups = async () => {
-      setIsLoading(true);
-      try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setGroups(mockGroups);
-      } catch (error) {
-        console.error("Error fetching groups:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch user's groups
+  const { data: userGroups = [], isLoading: loadingUserGroups } = useQuery({
+    queryKey: ["user-groups"],
+    queryFn: () => getUserGroups({ page: 1, limit: 100 }),
+    staleTime: 60000,
+  });
 
-    fetchGroups();
-  }, []);
+  // Fetch recommended groups
+  const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups } = useQuery({
+    queryKey: ["recommended-groups"],
+    queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
+    staleTime: 60000,
+  });
 
-  const filteredGroups = (groupsList: Group[]) => {
+  const isLoading = loadingUserGroups || loadingRecommendedGroups;
+
+  // Join group mutation
+  const joinGroupMutation = useMutation({
+    mutationFn: (groupId: string) => joinGroup(groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["recommended-groups"] });
+      toast.success("Successfully joined the group!");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to join group");
+    },
+  });
+
+  // Leave group mutation
+  const leaveGroupMutation = useMutation({
+    mutationFn: (groupId: string) => leaveGroup(groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["recommended-groups"] });
+      toast.success("Successfully left the group!");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to leave group");
+    },
+  });
+
+  // Join request mutation (for private groups)
+  const joinRequestMutation = useMutation({
+    mutationFn: (groupId: string) => createJoinRequest(groupId, {}),
+    onSuccess: () => {
+      toast.success("Join request sent successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to send join request");
+    },
+  });
+
+  const filteredGroups = (groupsList: ApiGroup[]) => {
     return groupsList.filter((group) => {
       const matchesSearch =
         group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.description.toLowerCase().includes(searchQuery.toLowerCase());
+        (group.description?.toLowerCase() || "").includes(searchQuery.toLowerCase());
       const matchesCategory =
         selectedCategory === "All" || group.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   };
 
-  const myGroups = groups.filter((g) => g.isJoined);
-  const exploreGroups = groups.filter((g) => !g.isJoined);
+  const myGroups = userGroups;
+  const exploreGroups = recommendedGroups;
 
-  const handleJoinGroup = (groupId: string) => {
-    setGroups(
-      groups.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              isJoined: !group.isJoined,
-              memberCount: group.isJoined
-                ? group.memberCount - 1
-                : group.memberCount + 1,
-            }
-          : group
-      )
-    );
+  const handleJoinGroup = (groupId: string, groupType: string) => {
+    if (groupType === 'private') {
+      joinRequestMutation.mutate(groupId);
+    } else {
+      joinGroupMutation.mutate(groupId);
+    }
+  };
+
+  const handleLeaveGroup = (groupId: string) => {
+    leaveGroupMutation.mutate(groupId);
   };
 
   if (isLoading) {
@@ -120,7 +153,7 @@ const GroupsNew = () => {
     group,
     showJoinButton = false,
   }: {
-    group: Group;
+    group: ApiGroup;
     showJoinButton?: boolean;
   }) => (
     <Card className="hover:shadow-md transition-shadow">
@@ -131,7 +164,7 @@ const GroupsNew = () => {
             onClick={() => navigate(`/groups/${group.id}`)}
           >
             <Avatar className="h-12 w-12 rounded-sm">
-              <AvatarImage src={group.avatar} alt={group.name} />
+              <AvatarImage src={group.avatar || undefined} alt={group.name} />
               <AvatarFallback>
                 {group.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -139,7 +172,7 @@ const GroupsNew = () => {
             <div className="flex-1">
               <CardTitle className="text-lg flex items-center gap-2">
                 {group.name}
-                {group.groupType === "private" && (
+                {group.group_type === 'private' && (
                   <Lock className="h-4 w-4 text-muted-foreground" />
                 )}
               </CardTitle>
@@ -147,20 +180,28 @@ const GroupsNew = () => {
                 <Badge variant="secondary">{group.category}</Badge>
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Users className="h-3 w-3 mr-1" />
-                  {group.memberCount}
+                  {group.member_count}
                 </span>
               </div>
             </div>
           </div>
           {showJoinButton && (
             <Button
-              onClick={() => handleJoinGroup(group.id)}
-              variant={group.isJoined ? "outline" : "default"}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (group.is_member) {
+                  handleLeaveGroup(group.id);
+                } else {
+                  handleJoinGroup(group.id, group.group_type);
+                }
+              }}
+              variant={group.is_member ? "outline" : "default"}
               size="sm"
+              disabled={joinGroupMutation.isPending || leaveGroupMutation.isPending || joinRequestMutation.isPending}
             >
-              {group.isJoined
+              {group.is_member
                 ? "Leave"
-                : group.groupType === "private"
+                : group.group_type === "private"
                 ? "Request"
                 : "Join"}
             </Button>
@@ -169,15 +210,17 @@ const GroupsNew = () => {
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground text-sm line-clamp-2">
-          {group.description}
+          {group.description || "No description available"}
         </p>
-        <div className="flex flex-wrap gap-1 mt-2">
-          {group.tags.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+        {group.tags && group.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {group.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
