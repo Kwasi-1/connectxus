@@ -883,6 +883,10 @@ const TutoringContent = () => {
               tutors.find((t) => t.user_id === selectedRequest.tutor_id)
                 ?.hourly_rate || 25
             }
+            semesterRate={
+              tutors.find((t) => t.user_id === selectedRequest.tutor_id)
+                ?.semester_rate
+            }
             userEmail={user?.email || ""}
             onPayment={handlePayment}
             isLoading={isProcessingPayment}
