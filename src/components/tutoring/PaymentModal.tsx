@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { TutoringRequest } from "@/api/mentorship.api";
 import {
   DollarSign,
   CreditCard,
   Shield,
-  AlertCircle,
   CheckCircle2,
+  Info,
+  X,
 } from "lucide-react";
 import { PaystackButton } from "react-paystack";
 import { variables } from "@/utils/env";
@@ -32,7 +32,79 @@ interface PaymentModalProps {
   isLoading?: boolean;
 }
 
-const PLATFORM_FEE_PERCENTAGE = 0.15;
+// Onboarding popup for first-time payment
+function EscrowOnboarding({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-300">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent transition-colors"
+          aria-label="Close onboarding"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="p-4 rounded-full bg-primary/10">
+            <Shield className="h-12 w-12 text-primary" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">Secure Payment Protection</h2>
+            <p className="text-muted-foreground">
+              Your payment is safe with our escrow system
+            </p>
+          </div>
+
+          <div className="w-full space-y-3 text-left">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-semibold text-primary">1</span>
+              </div>
+              <div>
+                <p className="font-medium">Payment Held Securely</p>
+                <p className="text-sm text-muted-foreground">
+                  Your money is held in escrow until the session is completed
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-semibold text-primary">2</span>
+              </div>
+              <div>
+                <p className="font-medium">Complete Your Session</p>
+                <p className="text-sm text-muted-foreground">
+                  Attend your tutoring session and mark it as complete
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-semibold text-primary">3</span>
+              </div>
+              <div>
+                <p className="font-medium">Tutor Gets Paid</p>
+                <p className="text-sm text-muted-foreground">
+                  Payment is released to the tutor on the next payout date
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full pt-2">
+            <Button onClick={onClose} className="w-full" size="lg">
+              Got it!
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PaymentModal({
   open,
@@ -47,23 +119,35 @@ export function PaymentModal({
   const [selectedType, setSelectedType] = useState<"single" | "semester">(
     request.session_type || "single"
   );
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { formatCurrency } = useCurrency();
+
+  // Check if user has seen onboarding before
+  useEffect(() => {
+    if (open) {
+      const hasSeenOnboarding = localStorage.getItem(
+        "tutoring_payment_onboarding_seen"
+      );
+      if (!hasSeenOnboarding) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [open]);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem("tutoring_payment_onboarding_seen", "true");
+    setShowOnboarding(false);
+  };
 
   const calculatePricing = (type: "single" | "semester") => {
     const baseAmount = type === "single" ? hourlyRate : hourlyRate * 12;
     const discount = type === "semester" ? 0.15 : 0;
-    const discountedAmount = baseAmount * (1 - discount);
-    const platformFee = discountedAmount * PLATFORM_FEE_PERCENTAGE;
-    const total = discountedAmount + platformFee;
-    const tutorAmount = discountedAmount;
+    const total = baseAmount * (1 - discount);
 
     return {
       baseAmount,
       discount: baseAmount * discount,
-      discountedAmount,
-      platformFee,
       total,
-      tutorAmount,
     };
   };
 
@@ -82,8 +166,8 @@ export function PaymentModal({
   const paystackConfig = {
     reference,
     email: userEmail,
-    amount: Math.round(selectedPricing.total * 100), // Convert to pesewas (smallest currency unit for GHS)
-    currency: "GHS", // Ghana Cedis
+    amount: Math.round(selectedPricing.total * 100), // Convert to pesewas
+    currency: "GHS",
     publicKey:
       variables().PAYSTACK_PUBLIC_API_KEY ||
       "pk_test_c8e9fcf6be7da2f938b8d277203a0b781fff6c39",
@@ -113,14 +197,11 @@ export function PaymentModal({
     },
   };
 
-  // Payment success callback
   const handlePaystackSuccessAction = (reference: any) => {
     onPayment(selectedType, reference.reference);
   };
 
-  // Payment close callback (user closed popup)
   const handlePaystackCloseAction = () => {
-    // User closed the payment popup
     console.log("Payment popup closed");
   };
 
@@ -139,93 +220,75 @@ export function PaymentModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Complete Payment
-          </DialogTitle>
-          <DialogDescription>
-            Secure your tutoring session with {tutorName}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {showOnboarding && <EscrowOnboarding onClose={handleCloseOnboarding} />}
 
-        <div className="space-y-6">
-          {/* Session Details */}
-          <div className="rounded-lg border p-4 space-y-2">
-            <h3 className="font-semibold">Session Details</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="text-muted-foreground">Tutor:</div>
-              <div className="font-medium">{tutorName}</div>
-              <div className="text-muted-foreground">Subject:</div>
-              <div className="font-medium">{request.subject}</div>
-              <div className="text-muted-foreground">Topic:</div>
-              <div className="font-medium line-clamp-2">{request.topic}</div>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <CreditCard className="h-5 w-5" />
+              Complete Payment
+            </DialogTitle>
+            <DialogDescription>
+              Secure your session with {tutorName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Session Summary */}
+            <div className="rounded-xl bg-muted/50 p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Subject</span>
+                <span className="font-medium">{request.subject}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Topic</span>
+                <span className="font-medium line-clamp-1">
+                  {request.topic}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Pricing Options */}
-          <div className="space-y-3">
-            <h3 className="font-semibold">Select Payment Option</h3>
-
-            {/* Single Session Option */}
-            <button
-              onClick={() => setSelectedType("single")}
-              className={`w-full text-left rounded-lg border-2 p-4 transition-all ${
-                selectedType === "single"
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+            {/* Pricing Options */}
+            <div className="space-y-3">
+              {/* Single Session */}
+              <button
+                onClick={() => setSelectedType("single")}
+                className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                  selectedType === "single"
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-primary/30"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
                     <h4 className="font-semibold">Single Session</h4>
                     {selectedType === "single" && (
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    One tutoring session
-                  </p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Session rate:
-                      </span>
-                      <span>{formatCurrency(singlePricing.baseAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Platform fee (15%):
-                      </span>
-                      <span>{formatCurrency(singlePricing.platformFee)}</span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-semibold text-base">
-                      <span>Total:</span>
-                      <span className="flex items-center">
-                        {formatCurrency(singlePricing.total)}
-                      </span>
-                    </div>
+                  <div className="flex items-center text-xl font-bold">
+                    <DollarSign className="h-5 w-5" />
+                    {singlePricing.total.toFixed(2)}
                   </div>
                 </div>
-              </div>
-            </button>
+                <p className="text-sm text-muted-foreground">
+                  One tutoring session
+                </p>
+              </button>
 
-            {/* Semester Package Option */}
-            <button
-              onClick={() => setSelectedType("semester")}
-              className={`w-full text-left rounded-lg border-2 p-4 transition-all ${
-                selectedType === "semester"
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+              {/* Semester Package */}
+              <button
+                onClick={() => setSelectedType("semester")}
+                className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                  selectedType === "semester"
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-primary/30"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
                     <h4 className="font-semibold">Semester Package</h4>
                     <Badge variant="default" className="text-xs">
                       Save{" "}
@@ -237,91 +300,50 @@ export function PaymentModal({
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    12 sessions with 15% discount
-                  </p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Regular price:
-                      </span>
-                      <span className="line-through">
-                        {formatCurrency(semesterPricing.baseAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-green-600">
-                      <span>Discounted (15% off):</span>
-                      <span>
-                        {formatCurrency(semesterPricing.discountedAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Platform fee (15%):
-                      </span>
-                      <span>{formatCurrency(semesterPricing.platformFee)}</span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-semibold text-base">
-                      <span>Total:</span>
-                      <span className="flex items-center">
-                        {formatCurrency(semesterPricing.total)}
-                      </span>
-                    </div>
+                  <div className="flex items-center text-xl font-bold">
+                    <DollarSign className="h-5 w-5" />
+                    {semesterPricing.total.toFixed(2)}
                   </div>
                 </div>
-              </div>
-            </button>
-          </div>
-
-          {/* Important Notices */}
-          <div className="space-y-3">
-            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 flex gap-3">
-              <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  Secure Escrow Payment
+                <p className="text-sm text-muted-foreground">
+                  12 sessions • 15% discount
                 </p>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Your payment is held securely until you mark the session as
-                  completed. The tutor receives payment on a biweekly payout
-                  schedule.
-                </p>
-              </div>
+              </button>
             </div>
 
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-4 flex gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            {/* Refund Info */}
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 p-4 flex gap-3">
+              <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
                   Refund Policy
                 </p>
                 <p className="text-amber-700 dark:text-amber-300">
-                  Full refund available within {refundWindow} of payment. After
-                  this period, refunds are subject to review.
+                  70% refund available within {refundWindow} of payment
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <PaystackButton
-              {...componentProps}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-8 py-2"
-              disabled={isLoading}
-            />
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <PaystackButton
+                {...componentProps}
+                className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                disabled={isLoading}
+              />
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
