@@ -22,7 +22,12 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getGroups, getRecommendedGroups, getUserGroups, Group } from "@/api/groups.api";
+import {
+  getGroups,
+  getRecommendedGroups,
+  getUserGroups,
+  Group,
+} from "@/api/groups.api";
 import {
   getCommunities,
   getUserCommunities,
@@ -40,11 +45,15 @@ const Hub = () => {
 
   const navigate = useNavigate();
 
-    const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups, error: groupsError } = useQuery({
-      queryKey: ["recommended-groups"],
-      queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
-      staleTime: 60000,
-    });
+  const {
+    data: recommendedGroups = [],
+    isLoading: loadingRecommendedGroups,
+    error: groupsError,
+  } = useQuery({
+    queryKey: ["recommended-groups"],
+    queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
+    staleTime: 60000,
+  });
 
   const { data: allGroups = [], isLoading: loadingAllGroups } = useQuery({
     queryKey: ["groups"],
@@ -82,16 +91,16 @@ const Hub = () => {
     loadingAllGroups ||
     loadingUserGroups ||
     loadingAllCommunities ||
-    loadingUserCommunities;
+    loadingUserCommunities ||
     loadingRecommendedGroups ||
-    groupsError;
-    
+    loadingPublicEvents;
+
   const myCommunities = userCommunities;
   const myGroups = userGroups;
   const exploreCommunities = allCommunities
     .filter((c) => !c.is_member)
     .slice(0, 3);
-  const exploreGroups = allGroups.filter((g) => !g.is_member).slice(0, 3);
+  const exploreGroups = recommendedGroups.slice(0, 3);
 
   if (isLoading) {
     return (
@@ -417,9 +426,15 @@ const Hub = () => {
                   </Button>
                 </div>
                 <div className="space-y-3">
-                  {exploreGroups.map((group) => (
-                    <GroupCard key={group.id} group={group} />
-                  ))}
+                  {exploreGroups.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      No groups to discover at the moment.
+                    </p>
+                  ) : (
+                    exploreGroups.map((group) => (
+                      <GroupCard key={group.id} group={group} />
+                    ))
+                  )}
                 </div>
               </div>
             </div>
