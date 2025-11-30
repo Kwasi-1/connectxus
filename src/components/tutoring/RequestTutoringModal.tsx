@@ -31,6 +31,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { TutorProfile } from "@/api/mentorship.api";
 import { BookOpen, Clock, DollarSign } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const requestSchema = z.object({
   subject: z.string().min(1, "Please select a subject"),
@@ -77,6 +78,8 @@ export function RequestTutoringModal({
       sessionType: initialData?.sessionType || "single",
     },
   });
+  const { formatCurrency } = useCurrency();
+
 
   // Reset form when modal opens with new initial data
   React.useEffect(() => {
@@ -247,8 +250,7 @@ export function RequestTutoringModal({
                               </p>
                             </div>
                             <div className="flex items-center text-lg font-semibold">
-                              <DollarSign className="h-5 w-5" />
-                              {hourlyRate}
+                              {formatCurrency(hourlyRate)}
                             </div>
                           </div>
                         </Label>
@@ -268,11 +270,10 @@ export function RequestTutoringModal({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm line-through text-muted-foreground">
-                                ${hourlyRate * 12}
+                                {formatCurrency(hourlyRate * 12)}
                               </span>
                               <div className="flex items-center text-lg font-semibold">
-                                <DollarSign className="h-5 w-5" />
-                                {Math.round(hourlyRate * 12 * 0.85)}
+                                {formatCurrency(Math.round(hourlyRate * 12 * 0.85))}
                               </div>
                             </div>
                           </div>

@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, DollarSign } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const refundSchema = z.object({
   reason: z.string().min(1, "Please select a reason"),
@@ -75,6 +76,8 @@ export function RefundRequestModal({
   const refundPercentage = 0.7;
   const actualRefundAmount = refundAmount * refundPercentage;
 
+  const { formatCurrency } = useCurrency();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -100,8 +103,7 @@ export function RefundRequestModal({
                   Original Payment:
                 </span>
                 <span className="text-sm font-medium flex items-center">
-                  <DollarSign className="h-4 w-4" />
-                  {refundAmount.toFixed(2)}
+                  {formatCurrency(refundAmount)}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -109,8 +111,7 @@ export function RefundRequestModal({
                   Refund Amount (70%):
                 </span>
                 <span className="text-lg font-bold flex items-center text-primary">
-                  <DollarSign className="h-5 w-5" />
-                  {actualRefundAmount.toFixed(2)}
+                  {formatCurrency(actualRefundAmount)}
                 </span>
               </div>
             </div>

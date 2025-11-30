@@ -227,7 +227,7 @@ export function PaymentModal({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <CreditCard className="h-5 w-5" />
+              {/* <CreditCard className="h-5 w-5" /> */}
               Complete Payment
             </DialogTitle>
             <DialogDescription>
@@ -237,7 +237,7 @@ export function PaymentModal({
 
           <div className="space-y-6">
             {/* Session Summary */}
-            <div className="rounded-xl bg-muted/50 p-4 space-y-2">
+            <div className="rounded-sm bg-muted/50 p-4 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Subject</span>
                 <span className="font-medium">{request.subject}</span>
@@ -255,22 +255,21 @@ export function PaymentModal({
               {/* Single Session */}
               <button
                 onClick={() => setSelectedType("single")}
-                className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
                   selectedType === "single"
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/30"
+                    ? "border-foreground bgforeground/5 shadow-sm"
+                    : "border-border hover:border-foreground/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <h4 className="font-semibold">Single Session</h4>
                     {selectedType === "single" && (
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <CheckCircle2 className="h-5 w-5 text-foreground" />
                     )}
                   </div>
                   <div className="flex items-center text-xl font-bold">
-                    <DollarSign className="h-5 w-5" />
-                    {singlePricing.total.toFixed(2)}
+                    {formatCurrency(singlePricing.total)}
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -281,10 +280,10 @@ export function PaymentModal({
               {/* Semester Package */}
               <button
                 onClick={() => setSelectedType("semester")}
-                className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
                   selectedType === "semester"
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/30"
+                    ? "border-foreground bgforeground/5 shadow-sm"
+                    : "border-border hover:border-foreground/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -297,12 +296,11 @@ export function PaymentModal({
                       })}
                     </Badge>
                     {selectedType === "semester" && (
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <CheckCircle2 className="h-5 w-5 text-foreground" />
                     )}
                   </div>
                   <div className="flex items-center text-xl font-bold">
-                    <DollarSign className="h-5 w-5" />
-                    {semesterPricing.total.toFixed(2)}
+                    {formatCurrency(semesterPricing.total)}
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -326,7 +324,7 @@ export function PaymentModal({
 
             {/* Actions */}
             <div className="flex gap-3">
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
@@ -334,10 +332,10 @@ export function PaymentModal({
                 className="flex-1"
               >
                 Cancel
-              </Button>
+              </Button> */}
               <PaystackButton
                 {...componentProps}
-                className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
                 disabled={isLoading}
               />
             </div>
