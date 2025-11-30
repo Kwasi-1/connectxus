@@ -78,7 +78,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
 
   // Dynamically calculate total steps
 
-  let totalSteps = 6;
+  let totalSteps = 5;
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -187,21 +187,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-semibold">Your University</h2>
-
-              <p className="text-muted-foreground">
-                Which university are you part of?
-              </p>
-            </div>
-
-            <UniversitySelector control={form.control} name="space_id" />
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Academic Details</h2>
               <p className="text-muted-foreground">
                 Help us understand your academic background
@@ -217,7 +202,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
@@ -231,7 +216,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
           </div>
         );
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
