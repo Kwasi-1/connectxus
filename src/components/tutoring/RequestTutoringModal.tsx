@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,6 +51,7 @@ interface RequestTutoringModalProps {
   tutor: TutorProfile;
   onSubmit: (data: RequestFormData) => void;
   isLoading?: boolean;
+  initialData?: Partial<RequestFormData>; // Add support for pre-filling data
 }
 
 const scheduleOptions = [
@@ -65,16 +66,29 @@ export function RequestTutoringModal({
   tutor,
   onSubmit,
   isLoading = false,
+  initialData,
 }: RequestTutoringModalProps) {
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
-      subject: "",
-      topic: "",
-      preferredSchedule: [],
-      sessionType: "single",
+      subject: initialData?.subject || "",
+      topic: initialData?.topic || "",
+      preferredSchedule: initialData?.preferredSchedule || [],
+      sessionType: initialData?.sessionType || "single",
     },
   });
+
+  // Reset form when modal opens with new initial data
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        subject: initialData?.subject || "",
+        topic: initialData?.topic || "",
+        preferredSchedule: initialData?.preferredSchedule || [],
+        sessionType: initialData?.sessionType || "single",
+      });
+    }
+  }, [open, initialData, form]);
 
   const handleSubmit = (data: RequestFormData) => {
     onSubmit(data);

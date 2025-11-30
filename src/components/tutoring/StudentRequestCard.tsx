@@ -139,7 +139,10 @@ export function StudentRequestCard({
               {request.tutor_full_name || request.tutor_username || "Unknown"}
             </p>
           </div>
-          <Badge variant={statusConfig.variant} className={`flex-shrink-0 ${statusConfig.color}`}>
+          <Badge
+            variant={statusConfig.variant}
+            className={`flex-shrink-0 ${statusConfig.color}`}
+          >
             {statusConfig.label}
           </Badge>
         </div>
@@ -197,7 +200,7 @@ export function StudentRequestCard({
 
         {/* Payment Details */}
         {request.payment_details && (
-          <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+          <div className="rounded bg-muted/50 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Amount Paid</span>
               <span className="text-sm font-semibold">
@@ -269,7 +272,7 @@ export function StudentRequestCard({
             onMessageTutor && (
               <Button
                 onClick={() => onMessageTutor(request)}
-                variant="default"
+                variant="outline"
                 className="w-full"
                 size="lg"
               >
@@ -318,6 +321,21 @@ export function StudentRequestCard({
               </div>
             </div>
           )}
+
+          {/* Show Request Again even after review is submitted */}
+          {request.rating &&
+            request.status === "completed" &&
+            onRequestAgain && (
+              <Button
+                onClick={() => onRequestAgain(request)}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Request Another Session
+              </Button>
+            )}
         </div>
       </CardContent>
     </Card>

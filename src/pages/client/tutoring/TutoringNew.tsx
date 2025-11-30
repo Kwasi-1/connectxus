@@ -72,6 +72,12 @@ const TutoringContent = () => {
   const [selectedTutor, setSelectedTutor] = useState<ApiTutorProfile | null>(
     null
   );
+  const [initialRequestData, setInitialRequestData] = useState<{
+    subject: string;
+    topic: string;
+    preferredSchedule: string[];
+    sessionType: "single" | "semester";
+  } | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
     useState<TutoringRequest | null>(null);
@@ -225,8 +231,9 @@ const TutoringContent = () => {
     });
   }, [filteredTutors, followingStatus]);
 
-  const handleRequestTutoring = (tutor: ApiTutorProfile) => {
+  const handleRequestTutoring = (tutor: ApiTutorProfile, initialData?: any) => {
     setSelectedTutor(tutor);
+    setInitialRequestData(initialData || null);
     setRequestModalOpen(true);
   };
 
@@ -430,7 +437,14 @@ const TutoringContent = () => {
   const handleRequestAgain = (request: TutoringRequest) => {
     const tutor = tutors.find((t) => t.user_id === request.tutor_id);
     if (tutor) {
-      handleRequestTutoring(tutor);
+      // Populate modal with previous request data
+      const initialData = {
+        subject: request.subject,
+        topic: request.topic,
+        preferredSchedule: request.preferred_schedule || [],
+        sessionType: request.session_type,
+      };
+      handleRequestTutoring(tutor, initialData);
     }
   };
 
@@ -850,6 +864,7 @@ const TutoringContent = () => {
           tutor={selectedTutor}
           onSubmit={handleSubmitRequest}
           isLoading={isCreatingRequest}
+          initialData={initialRequestData || undefined}
         />
       )}
 
