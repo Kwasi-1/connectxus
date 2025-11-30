@@ -206,7 +206,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               </p>
             </div>
 
-            <StudentFields control={form.control} />
+            {/* <StudentFields control={form.control} /> */}
             {watchedRole === "student" ? (
               <StudentFields control={form.control} />
             ) : (
@@ -245,11 +245,11 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                    <Input
+                      <Input
                         type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
-                      {...field}
-                    />
+                        placeholder="Create a password"
+                        {...field}
+                      />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -276,11 +276,11 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                    <Input
+                      <Input
                         type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
-                      {...field}
-                    />
+                        placeholder="Confirm your password"
+                        {...field}
+                      />
                       <button
                         type="button"
                         onClick={() =>

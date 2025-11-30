@@ -1,5 +1,5 @@
 
-export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
+export type UserRole = 'student' | 'not-student';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
