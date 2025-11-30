@@ -631,7 +631,7 @@ const Messages = () => {
                                 {message.is_read ? (
                                   <>
                                     <CheckCheck className="h-3 w-3 text-blue-500" />
-                                    {message.read_at && (
+                                    {/* {message.read_at && (
                                       <span className="text-xs text-muted-foreground">
                                         Read{" "}
                                         {formatDistanceToNow(
@@ -639,7 +639,7 @@ const Messages = () => {
                                           { addSuffix: true }
                                         )}
                                       </span>
-                                    )}
+                                    )} */}
                                   </>
                                 ) : (
                                   <Check className="h-3 w-3 text-muted-foreground" />
