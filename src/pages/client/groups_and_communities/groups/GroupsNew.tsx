@@ -11,8 +11,17 @@ import { Search, Users, Lock, Plus, ArrowLeft, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GroupCategory } from "@/types/communities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserGroups, getRecommendedGroups, joinGroup, leaveGroup, createJoinRequest, Group as ApiGroup } from "@/api/groups.api";
+import {
+  getUserGroups,
+  getRecommendedGroups,
+  joinGroup,
+  leaveGroup,
+  createJoinRequest,
+  createGroup,
+  Group as ApiGroup,
+} from "@/api/groups.api";
 import { toast } from "sonner";
+import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +41,6 @@ const categoryFilters: GroupCategory[] = [
 
 type HubTab = "my-groups" | "explore-groups";
 
-
 const GroupsNew = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("my-groups");
   const [categorySearch, setCategorySearch] = useState("");
@@ -40,6 +48,7 @@ const GroupsNew = () => {
   const [selectedCategory, setSelectedCategory] = useState<
     GroupCategory | "All"
   >("All");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -51,11 +60,12 @@ const GroupsNew = () => {
   });
 
   // Fetch recommended groups
-  const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups } = useQuery({
-    queryKey: ["recommended-groups"],
-    queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
-    staleTime: 60000,
-  });
+  const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups } =
+    useQuery({
+      queryKey: ["recommended-groups"],
+      queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
+      staleTime: 60000,
+    });
 
   const isLoading = loadingUserGroups || loadingRecommendedGroups;
 
@@ -92,7 +102,23 @@ const GroupsNew = () => {
       toast.success("Join request sent successfully!");
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error || "Failed to send join request");
+      toast.error(
+        error?.response?.data?.error || "Failed to send join request"
+      );
+    },
+  });
+
+  // Create group mutation
+  const createGroupMutation = useMutation({
+    mutationFn: (data: any) => createGroup(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["recommended-groups"] });
+      toast.success("Group created successfully!");
+      setIsCreateModalOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to create group");
     },
   });
 
@@ -100,7 +126,9 @@ const GroupsNew = () => {
     return groupsList.filter((group) => {
       const matchesSearch =
         group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (group.description?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+        (group.description?.toLowerCase() || "").includes(
+          searchQuery.toLowerCase()
+        );
       const matchesCategory =
         selectedCategory === "All" || group.category === selectedCategory;
       return matchesSearch && matchesCategory;
@@ -111,7 +139,7 @@ const GroupsNew = () => {
   const exploreGroups = recommendedGroups;
 
   const handleJoinGroup = (groupId: string, groupType: string) => {
-    if (groupType === 'private') {
+    if (groupType === "private") {
       joinRequestMutation.mutate(groupId);
     } else {
       joinGroupMutation.mutate(groupId);
@@ -120,6 +148,31 @@ const GroupsNew = () => {
 
   const handleLeaveGroup = (groupId: string) => {
     leaveGroupMutation.mutate(groupId);
+  };
+
+  const handleCreateGroup = (groupData: any) => {
+    // Transform the data to match the API expected format
+    const apiData = {
+      name: groupData.name,
+      description: groupData.description,
+      category: groupData.category,
+      group_type: groupData.groupType,
+      avatar: groupData.avatar,
+      banner: groupData.banner,
+      tags: groupData.tags,
+      allow_invites: groupData.groupType !== "private",
+      allow_member_posts: true,
+      ...(groupData.groupType === "project" &&
+        groupData.projectRoles && {
+          roles: groupData.projectRoles.map((role: any) => ({
+            name: role.name,
+            description: role.description,
+            slots_total: role.slots,
+          })),
+        }),
+    };
+
+    createGroupMutation.mutate(apiData);
   };
 
   if (isLoading) {
@@ -163,16 +216,16 @@ const GroupsNew = () => {
             className="flex items-center space-x-3 cursor-pointer flex-1"
             onClick={() => navigate(`/groups/${group.id}`)}
           >
-            <Avatar className="h-12 w-12 rounded-sm">
+            <Avatar className="h-14 w-14 rounded-sm">
               <AvatarImage src={group.avatar || undefined} alt={group.name} />
-              <AvatarFallback>
+              <AvatarFallback className="h-14 w-14 rounded-sm">
                 {group.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <CardTitle className="text-lg flex items-center gap-2">
                 {group.name}
-                {group.group_type === 'private' && (
+                {group.group_type === "private" && (
                   <Lock className="h-4 w-4 text-muted-foreground" />
                 )}
               </CardTitle>
@@ -197,7 +250,11 @@ const GroupsNew = () => {
               }}
               variant={group.is_member ? "outline" : "default"}
               size="sm"
-              disabled={joinGroupMutation.isPending || leaveGroupMutation.isPending || joinRequestMutation.isPending}
+              disabled={
+                joinGroupMutation.isPending ||
+                leaveGroupMutation.isPending ||
+                joinRequestMutation.isPending
+              }
             >
               {group.is_member
                 ? "Leave"
@@ -243,7 +300,10 @@ const GroupsNew = () => {
                 </Button>
                 <h1 className="text-xl font-bold text-foreground">Groups</h1>
               </div>
-              <Button className="bg-foreground hover:bg-foreground/90 text-background">
+              <Button
+                className="bg-foreground hover:bg-foreground/90 text-background"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 <span className="hidden md:block ml-2">Create Group</span>
               </Button>
@@ -419,6 +479,13 @@ const GroupsNew = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateGroup={handleCreateGroup}
+      />
     </AppLayout>
   );
 };
