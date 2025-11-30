@@ -25,6 +25,7 @@ import { UniversitySelector } from "./UniversitySelector";
 
 const signUpSchema = z
   .object({
+    role: z.enum(["student", "not-student"]),
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
@@ -60,6 +61,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
+      role: "student",
       name: "",
       email: "",
       password: "",
@@ -192,7 +194,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               </p>
             </div>
 
-            <UniversitySelector control={form.control} name="university" />
+            <UniversitySelector control={form.control} name="space_id" />
           </div>
         );
 
