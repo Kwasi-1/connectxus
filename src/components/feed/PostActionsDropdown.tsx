@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Post } from '@/types/global';
+import { Post } from '@/api/posts.api';
 
 interface PostActionsDropdownProps {
   post: Post;
@@ -30,22 +30,26 @@ export function PostActionsDropdown({
 }: PostActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onCopyLink();
     setIsOpen(false);
   };
 
-  const handleMuteUser = () => {
+  const handleMuteUser = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onMuteUser();
     setIsOpen(false);
   };
 
-  const handleReportPost = () => {
+  const handleReportPost = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onReportPost();
     setIsOpen(false);
   };
 
-  const handleDeletePost = () => {
+  const handleDeletePost = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (onDeletePost) {
       onDeletePost();
     }
@@ -74,9 +78,9 @@ export function PostActionsDropdown({
           <>
             <DropdownMenuItem onClick={handleMuteUser}>
               <UserX className="h-4 w-4 mr-2" />
-              Mute @{post.author.username}
+              Mute @{post.author?.username || post.username}
             </DropdownMenuItem>
-            
+
             <DropdownMenuItem onClick={handleReportPost}>
               <Flag className="h-4 w-4 mr-2" />
               Report post

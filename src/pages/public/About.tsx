@@ -44,7 +44,7 @@ const About: React.FC = () => {
       icon: BookOpen,
       title: "Academic Excellence",
       description:
-        "Access peer tutoring, mentorship programs, study groups, and academic resources tailored to your specific courses and degree requirements.",
+        "Access peer tutoring, programs, study groups, and academic resources tailored to your specific courses and degree requirements.",
     },
     {
       icon: MessageCircle,

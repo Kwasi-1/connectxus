@@ -1,5 +1,5 @@
 
-import apiClient, { setAccessToken, setRefreshToken, clearTokens, getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient, { setAccessToken, setRefreshToken, clearTokens } from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -38,7 +38,7 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  full_name: string;
+  is_student: boolean;
   level?: string | null;
   department_id?: string | null;
   major?: string | null;
@@ -70,6 +70,53 @@ export interface RefreshTokenRequest {
 export interface RefreshTokenResponseData {
   access_token: string;
   access_token_expires_at: string;
+}
+
+export interface GoogleSignInRequest {
+  id_token: string;
+}
+
+export interface GoogleSignInNewUserResponse {
+  new_user: boolean;
+  email: string;
+  full_name: string;
+  avatar: string;
+  id_token: string;
+  needs_onboarding: boolean;
+}
+
+export interface GoogleSignInExistingUserResponse {
+  new_user: boolean;
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+  refresh_token_expires_at: string;
+  user: User;
+  needs_onboarding: boolean;
+}
+
+export type GoogleSignInResponse = GoogleSignInNewUserResponse | GoogleSignInExistingUserResponse;
+
+export interface CompleteGoogleOnboardingRequest {
+  id_token: string;
+  space_id: string;
+  department_id: string;
+  username: string;
+  phone_number: string;
+  is_student: boolean;
+  level?: string;
+  major?: string;
+  year?: number;
+  interests?: string[];
+}
+
+export interface CompleteGoogleOnboardingResponse {
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+  refresh_token_expires_at: string;
+  user: User;
+  is_new_user: boolean;
 }
 
 export const login = async (data: LoginRequest): Promise<LoginResponseData> => {
@@ -110,11 +157,45 @@ export const refreshToken = async (refreshToken: string): Promise<RefreshTokenRe
   return response.data.data;
 };
 
+export const googleSignIn = async (idToken: string): Promise<GoogleSignInResponse> => {
+  const response = await apiClient.post<ApiResponse<GoogleSignInResponse>>(
+    '/users/auth/google',
+    { id_token: idToken }
+  );
+
+  const data = response.data.data;
+
+  if (!data.needs_onboarding && 'access_token' in data) {
+    setAccessToken(data.access_token);
+    setRefreshToken(data.refresh_token);
+  }
+
+  return data;
+};
+
+export const completeGoogleOnboarding = async (
+  data: CompleteGoogleOnboardingRequest
+): Promise<CompleteGoogleOnboardingResponse> => {
+  const response = await apiClient.post<ApiResponse<CompleteGoogleOnboardingResponse>>(
+    '/users/auth/google/complete-onboarding',
+    data
+  );
+
+  const responseData = response.data.data;
+
+  setAccessToken(responseData.access_token);
+  setRefreshToken(responseData.refresh_token);
+
+  return responseData;
+};
+
 export const authApi = {
   login,
   register,
   logout,
   refreshToken,
+  googleSignIn,
+  completeGoogleOnboarding,
 };
 
 export default authApi;

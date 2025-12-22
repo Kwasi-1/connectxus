@@ -55,7 +55,7 @@ const navItems = [
     permission: "community_management" as const,
   },
   {
-    name: "Tutoring & Mentorship",
+    name: "Tutoring",
     href: "/admin/tutoring",
     icon: GraduationCap,
     permission: "tutoring_management" as const,

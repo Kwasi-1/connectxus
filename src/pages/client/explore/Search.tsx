@@ -1,20 +1,17 @@
-
-import { useState, useEffect } from 'react';
-import { Search as SearchIcon, Clock, TrendingUp } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { mockTrendingTopics } from '@/data/mockData';
+import { useState, useEffect } from "react";
+import { Search as SearchIcon, Clock, TrendingUp } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Search = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load search history from localStorage
-    const history = localStorage.getItem('searchHistory');
+    const history = localStorage.getItem("searchHistory");
     if (history) {
       setSearchHistory(JSON.parse(history));
     }
@@ -22,26 +19,27 @@ const Search = () => {
 
   const handleSearch = (query: string = searchQuery) => {
     if (query.trim()) {
-      // Add to search history
-      const updatedHistory = [query, ...searchHistory.filter(item => item !== query)].slice(0, 3);
+      const updatedHistory = [
+        query,
+        ...searchHistory.filter((item) => item !== query),
+      ].slice(0, 3);
       setSearchHistory(updatedHistory);
-      localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
-      
-      // Navigate to explore with search query
+      localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+
       navigate(`/explore?q=${encodeURIComponent(query)}`);
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
 
   const clearHistory = () => {
     setSearchHistory([]);
-    localStorage.removeItem('searchHistory');
+    localStorage.removeItem("searchHistory");
   };
 
   return (
@@ -51,7 +49,7 @@ const Search = () => {
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 md:px-6 py-3">
             <h1 className="text-xl font-bold text-foreground mb-4">Search</h1>
-            
+
             {/* Search Input */}
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -102,27 +100,7 @@ const Search = () => {
               <TrendingUp className="h-5 w-5 mr-2" />
               Trending on Campus
             </h2>
-            <div className="">
-              {mockTrendingTopics.slice(0, 10).map((topic, index) => (
-                <div
-                  key={topic.id}
-                  onClick={() => handleSearch(topic.name)}
-                  className="p-4 hover:bg-muted rounded-lg cursor-pointer transition-colors tracking-wider"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground mb-1">
-                        {index + 1} · Trending in {topic.category}
-                      </p>
-                      <p className="font-medium text-foreground text-base mb-1 tracking-wider">{topic.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {topic.posts.toLocaleString()} posts
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className=""></div>
           </div>
         </div>
       </div>

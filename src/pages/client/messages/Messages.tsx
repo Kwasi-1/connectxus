@@ -17,6 +17,7 @@ import {
   sendMessage,
   markConversationAsRead,
 } from "@/api/messaging.api";
+import { uploadFile } from "@/api/files.api";
 import { getWebSocketClient } from "@/lib/websocket";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +31,9 @@ import {
   Smile,
   Paperclip,
   Pin,
+  X,
+  Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { NewChatModal } from "@/components/messages/NewChatModal";
 
@@ -48,8 +52,12 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const wsClient = useRef(getWebSocketClient());
   const markedAsReadRef = useRef<Set<string>>(new Set());
   const [wsConnected, setWsConnected] = useState(false);
@@ -83,10 +91,17 @@ const Messages = () => {
     mutationFn: ({
       conversationId,
       content,
+      attachments,
     }: {
       conversationId: string;
       content: string;
-    }) => sendMessage(conversationId, { content, message_type: "text" }),
+      attachments?: any;
+    }) =>
+      sendMessage(conversationId, {
+        content,
+        message_type: attachments ? "image" : "text",
+        attachments,
+      }),
     onMutate: async ({ conversationId, content }) => {
       await queryClient.cancelQueries({
         queryKey: ["conversation-messages", conversationId],
@@ -132,6 +147,8 @@ const Messages = () => {
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       setNewMessage("");
+      setSelectedImages([]);
+      setImagePreviews([]);
     },
     onError: (error, variables, context) => {
       if (context?.previousMessages) {
@@ -224,6 +241,18 @@ const Messages = () => {
   }, [messages]);
 
   useEffect(() => {
+    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    setSelectedImages([]);
+    setImagePreviews([]);
+  }, [selectedConversationId]);
+
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, []);
+
+  useEffect(() => {
     if (selectedConversationId && !loadingMessages && messages.length >= 0) {
       setTimeout(() => {
         messageInputRef.current?.focus();
@@ -302,12 +331,79 @@ const Messages = () => {
     navigate(`/messages/${conversationId}`, { replace: true });
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversationId) return;
-    sendMessageMutation.mutate({
-      conversationId: selectedConversationId,
-      content: newMessage.trim(),
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} is not an image file`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 5MB`);
+        return false;
+      }
+      return true;
     });
+
+    if (validFiles.length === 0) return;
+
+    const totalImages = selectedImages.length + validFiles.length;
+    if (totalImages > 4) {
+      toast.error("You can only upload up to 4 images per message");
+      const allowedCount = 4 - selectedImages.length;
+      validFiles.splice(allowedCount);
+    }
+
+    const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
+    setSelectedImages([...selectedImages, ...validFiles]);
+    setImagePreviews([...imagePreviews, ...newPreviews]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index]);
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  };
+
+  const handleSendMessage = async () => {
+    if ((!newMessage.trim() && selectedImages.length === 0) || !selectedConversationId) return;
+
+    try {
+      let attachments = null;
+
+      if (selectedImages.length > 0) {
+        setIsUploadingImages(true);
+        const uploadPromises = selectedImages.map((file) =>
+          uploadFile({
+            file,
+            moduleType: "messages",
+            moduleId: selectedConversationId,
+            accessLevel: "private",
+          })
+        );
+
+        const uploadedFiles = await Promise.all(uploadPromises);
+        attachments = uploadedFiles.map((file) => ({
+          url: file.url,
+          type: "image",
+          size: file.size,
+          filename: file.filename,
+        }));
+      }
+
+      sendMessageMutation.mutate({
+        conversationId: selectedConversationId,
+        content: newMessage.trim() || "(image)",
+        attachments,
+      });
+    } catch (error) {
+      console.error("Failed to upload images:", error);
+      toast.error("Failed to upload images");
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
 
   const filteredConversations = conversations.filter((conv) => {
@@ -611,7 +707,26 @@ const Messages = () => {
                                   : "bg-muted text-foreground"
                               }`}
                             >
-                              <p className="text-sm">{message.content}</p>
+                              {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                                <div className={`mb-2 grid gap-2 ${
+                                  message.attachments.length === 1 ? "grid-cols-1" :
+                                  message.attachments.length === 2 ? "grid-cols-2" :
+                                  "grid-cols-2"
+                                }`}>
+                                  {message.attachments.map((attachment: any, idx: number) => (
+                                    <img
+                                      key={idx}
+                                      src={attachment.url}
+                                      alt={`Attachment ${idx + 1}`}
+                                      className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => window.open(attachment.url, "_blank")}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {message.content && message.content !== "(image)" && (
+                                <p className="text-sm">{message.content}</p>
+                              )}
                               <p
                                 className={`text-xs mt-1 ${
                                   isOwnMessage
@@ -656,8 +771,40 @@ const Messages = () => {
               </ScrollArea>
 
               <div className="p-4 border-t border-border flex-shrink-0">
+                {imagePreviews.length > 0 && (
+                  <div className="mb-3 flex gap-2 flex-wrap">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="h-20 w-20 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isUploadingImages || selectedImages.length >= 4}
+                  >
                     <Paperclip className="h-5 w-5" />
                   </Button>
                   <div className="flex-1 relative">
@@ -673,6 +820,7 @@ const Messages = () => {
                         }
                       }}
                       className="pr-10"
+                      disabled={isUploadingImages}
                     />
                     <Button
                       variant="ghost"
@@ -685,10 +833,16 @@ const Messages = () => {
                   <Button
                     onClick={handleSendMessage}
                     disabled={
-                      !newMessage.trim() || sendMessageMutation.isPending
+                      (!newMessage.trim() && selectedImages.length === 0) ||
+                      sendMessageMutation.isPending ||
+                      isUploadingImages
                     }
                   >
-                    <Send className="h-4 w-4" />
+                    {isUploadingImages ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>

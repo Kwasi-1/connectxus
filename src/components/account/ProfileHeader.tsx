@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Edit, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Edit, MessageCircle, Camera, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,21 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { followUser, unfollowUser } from "@/api/users.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
+import { uploadFile } from "@/api/files.api";
 import { toast as sonnerToast } from "sonner";
+import { FollowersFollowingModal } from "./FollowersFollowingModal";
+import { UpdatePasswordModal } from "./UpdatePasswordModal";
+import { useQuery } from "@tanstack/react-query";
+import { getSpaces } from "@/api/spaces.api";
+import { getDepartmentsBySpace } from "@/api/departments.api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ProfileHeaderProps {
   user: UserProfile;
@@ -30,38 +44,138 @@ export const ProfileHeader = ({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isMessageLoading, setIsMessageLoading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(
+    null
+  );
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     setIsFollowing(initialIsFollowing);
   }, [initialIsFollowing]);
+
   const [editForm, setEditForm] = useState({
     displayName: user.username,
     bio: user.bio || "",
-    major: user.major || "",
-    year: user.year || 1,
+    level: user.level || "",
+    departmentId: user.department_id || "",
   });
 
-  const handleSave = () => {
-    onUserUpdate({
-      ...user,
-      displayName: editForm.displayName,
-      bio: editForm.bio,
-      major: editForm.major,
-      year: editForm.year,
-    });
-    setIsEditing(false);
+  const { data: spacesData, isLoading: isLoadingSpaces } = useQuery({
+    queryKey: ["spaces"],
+    queryFn: getSpaces,
+    enabled: isEditing && isOwnProfile, 
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: departments, isLoading: isLoadingDepartments } = useQuery({
+    queryKey: ["departments", user.space_id],
+    queryFn: () => getDepartmentsBySpace(user.space_id),
+    enabled: isEditing && isOwnProfile && !!user.space_id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const spaces = (spacesData as any)?.spaces || [];
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      sonnerToast.error("Please select an image file");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; 
+    if (file.size > maxSize) {
+      sonnerToast.error("Image must be less than 5MB");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+    setSelectedAvatarFile(file);
+  };
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      sonnerToast.error("Please select an image file");
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      sonnerToast.error("Image must be less than 10MB");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCoverPreview(previewUrl);
+    setSelectedCoverFile(file);
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsUploadingAvatar(true);
+      let avatarUrl = user.avatar;
+
+      if (selectedAvatarFile) {
+        const uploadedFile = await uploadFile({
+          file: selectedAvatarFile,
+          moduleType: "users",
+          moduleId: user.id,
+          accessLevel: "public",
+        });
+        avatarUrl = uploadedFile.url;
+        sonnerToast.success("Avatar uploaded successfully");
+      }
+
+      onUserUpdate({
+        ...user,
+        displayName: editForm.displayName,
+        bio: editForm.bio,
+        level: editForm.level,
+        department_id: editForm.departmentId,
+        avatar: avatarUrl,
+      });
+
+      setIsEditing(false);
+      setAvatarPreview(null);
+      setSelectedAvatarFile(null);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      sonnerToast.error("Failed to save profile");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleCancel = () => {
     setEditForm({
       displayName: user.username,
       bio: user.bio || "",
-      major: user.major || "",
-      year: user.year || 1,
+      level: user.level || "",
+      departmentId: user.department_id || "",
     });
     setIsEditing(false);
+    setAvatarPreview(null);
+    setSelectedAvatarFile(null);
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
   };
 
   const handleFollow = async () => {
@@ -123,12 +237,39 @@ export const ProfileHeader = ({
     <div className="relative">
       <div className="h-36 bg-gradient-to-r from-blue-400 to-purple-600 relative">
         <div className="absolute -bottom-16 left-4">
-          <Avatar className="h-32 w-32 border-4 border-background">
-            <AvatarImage src={user.avatar} alt={user.username} />
-            <AvatarFallback className="text-4xl">
-              {user.username.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-32 w-32 border-4 border-background">
+              <AvatarImage
+                src={avatarPreview || user.avatar}
+                alt={user.username}
+              />
+              <AvatarFallback className="text-4xl">
+                {user.username.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {isEditing && isOwnProfile && (
+              <>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
+                  disabled={isUploadingAvatar}
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Camera className="h-5 w-5" />
+                  )}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -189,31 +330,122 @@ export const ProfileHeader = ({
               placeholder="Bio"
               rows={3}
             />
-            <div className="flex gap-3">
-              <Input
-                value={editForm.major}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, major: e.target.value })
-                }
-                placeholder="Major"
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                value={editForm.year}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, year: parseInt(e.target.value) })
-                }
-                placeholder="Year"
-                className="w-20"
-              />
+
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="space" className="text-sm font-medium">
+                  University (Space)
+                </Label>
+                {isLoadingSpaces ? (
+                  <div className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading universities...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Input
+                      id="space"
+                      value={
+                        spaces?.find((s: any) => s.id === user.space_id)
+                          ?.name || "Not set"
+                      }
+                      disabled
+                      className="mt-1.5 bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Contact support to change your university
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="department" className="text-sm font-medium">
+                  Department
+                </Label>
+                {isLoadingDepartments ? (
+                  <div className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading departments...</span>
+                  </div>
+                ) : (
+                  <Select
+                    value={editForm.departmentId}
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, departmentId: value })
+                    }
+                    disabled={!departments || departments.length === 0}
+                  >
+                    <SelectTrigger id="department" className="mt-1.5">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments?.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="level" className="text-sm font-medium">
+                  Level
+                </Label>
+                <Select
+                  value={editForm.level}
+                  onValueChange={(value) =>
+                    setEditForm({ ...editForm, level: value })
+                  }
+                >
+                  <SelectTrigger id="level" className="mt-1.5">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100 Level</SelectItem>
+                    <SelectItem value="200">200 Level</SelectItem>
+                    <SelectItem value="300">300 Level</SelectItem>
+                    <SelectItem value="400">400 Level</SelectItem>
+                    <SelectItem value="500">500 Level</SelectItem>
+                    <SelectItem value="600">600 Level</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} size="sm">
-                Save
+
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={handleSave}
+                size="sm"
+                disabled={isUploadingAvatar}
+              >
+                {isUploadingAvatar ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
-              <Button onClick={handleCancel} variant="outline" size="sm">
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                size="sm"
+                disabled={isUploadingAvatar}
+              >
                 Cancel
+              </Button>
+              <Button
+                onClick={() => setShowPasswordModal(true)}
+                variant="secondary"
+                size="sm"
+                type="button"
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                Change Password
               </Button>
             </div>
           </div>
@@ -230,21 +462,58 @@ export const ProfileHeader = ({
               </p>
             )}
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {user.major && <span>🎓 {user.major}</span>}
-              {user.year && <span>📅 Year {user.year}</span>}
-              {user.university && <span>🏫 {user.university}</span>}
+              {user.space_name && <span>🏫 {user.space_name}</span>}
+              {user.department_name && <span>🎓 {user.department_name}</span>}
+              {user.level && <span>📚 Level {user.level}</span>}
             </div>
             <div className="flex gap-6 text-sm">
-              <span>
+              <button
+                onClick={() => setShowFollowingModal(true)}
+                className="hover:underline cursor-pointer transition-all"
+              >
                 <strong>{user.following}</strong> Following
-              </span>
-              <span>
+              </button>
+              <button
+                onClick={() => setShowFollowersModal(true)}
+                className="hover:underline cursor-pointer transition-all"
+              >
                 <strong>{user.followers}</strong> Followers
-              </span>
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Followers Modal */}
+      <FollowersFollowingModal
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        userId={user.id}
+        username={user.username}
+        department={user.department}
+        level={user.level}
+        type="followers"
+      />
+
+      {/* Following Modal */}
+      <FollowersFollowingModal
+        isOpen={showFollowingModal}
+        onClose={() => setShowFollowingModal(false)}
+        userId={user.id}
+        username={user.username}
+        department={user.department}
+        level={user.level}
+        type="following"
+      />
+
+      {/* Password Update Modal */}
+      {isOwnProfile && (
+        <UpdatePasswordModal
+          isOpen={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 };

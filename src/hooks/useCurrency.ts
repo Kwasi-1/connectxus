@@ -19,40 +19,53 @@ const CURRENCY_CONFIG: CurrencyConfig = {
 export function useCurrency() {
   /**
    * Format a number as currency
-   * @param amount - The amount to format
+   * @param amount - The amount to format (number or string)
    * @param options - Optional formatting options
    * @returns Formatted currency string
    */
   const formatCurrency = (
-    amount: number,
+    amount: number | string,
     options?: {
       showSymbol?: boolean;
       decimals?: number;
     }
   ): string => {
     const { showSymbol = true, decimals = 2 } = options || {};
-    
-    const formattedAmount = amount.toFixed(decimals);
-    
+
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+    if (isNaN(numericAmount)) {
+      return showSymbol ? `${CURRENCY_CONFIG.symbol}0.00` : '0.00';
+    }
+
+    const formattedAmount = numericAmount.toFixed(decimals);
+
     if (showSymbol) {
       return `${CURRENCY_CONFIG.symbol}${formattedAmount}`;
     }
-    
+
     return formattedAmount;
   };
 
-  /**
-   * Format currency using Intl.NumberFormat for proper localization
-   * @param amount - The amount to format
-   * @returns Formatted currency string with proper locale
-   */
-  const formatCurrencyLocale = (amount: number): string => {
+ 
+  const formatCurrencyLocale = (amount: number | string): string => {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+    if (isNaN(numericAmount)) {
+      return new Intl.NumberFormat(CURRENCY_CONFIG.locale, {
+        style: "currency",
+        currency: CURRENCY_CONFIG.code,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(0);
+    }
+
     return new Intl.NumberFormat(CURRENCY_CONFIG.locale, {
       style: "currency",
       currency: CURRENCY_CONFIG.code,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(numericAmount);
   };
 
   return {

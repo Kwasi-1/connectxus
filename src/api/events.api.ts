@@ -1,5 +1,5 @@
 
-import apiClient, { getValidatedSpaceId } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -11,6 +11,8 @@ export interface PaginationParams {
 export interface Event {
   id: string;
   space_id: string;
+  group_id?: string | null;
+  community_id?: string | null;
   title: string;
   description?: string | null;
   category: string;                  location?: string | null;
@@ -57,10 +59,9 @@ export interface ListEventsParams extends PaginationParams {
 }
 
 export const getEvents = async (params?: Omit<ListEventsParams, 'space_id'>): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
   return response.data.data;
 };
@@ -71,19 +72,17 @@ export const getEventById = async (eventId: string): Promise<Event> => {
 };
 
 export const getUpcomingEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/upcoming', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
   return response.data.data;
 };
 
 export const searchEvents = async (query: string, params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/search', {
-    params: { q: query, space_id: spaceId, ...params },
+    params: { q: query, ...params },
   });
   return response.data.data;
 };
@@ -94,12 +93,10 @@ export const getEventCategories = async (): Promise<string[]> => {
 };
 
 export const createEvent = async (data: Omit<CreateEventRequest, 'space_id'>): Promise<Event> => {
-  const spaceId = getValidatedSpaceId();
 
   const requestData: CreateEventRequest = {
     ...data,
-    space_id: spaceId,
-  };
+      };
 
   const response = await apiClient.post<ApiResponse<Event>>('/events', requestData);
   return response.data.data;
@@ -158,27 +155,38 @@ export const markAttendance = async (
 };
 
 export const getUserEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
   const response = await apiClient.get<ApiResponse<Event[]>>('/users/events', {
-    params: { space_id: spaceId, ...params },
+    params: {...params},
+  });
+  return response.data.data;
+};
+
+export const getUserRegisteredEvents = async (params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>('/users/events/registered', {
+    params,
+  });
+  return response.data.data;
+};
+
+export const getRecommendedEvents = async (params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>('/users/events/recommended', {
+    params,
   });
   return response.data.data;
 };
 
 export const getTrendingEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events/trending', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
   return response.data.data;
 };
 
 export const getPublicEvents = async (params?: PaginationParams): Promise<Event[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Event[]>>('/events', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
 
   const events = response.data.data;
@@ -188,13 +196,65 @@ export const getPublicEvents = async (params?: PaginationParams): Promise<Event[
         if (!event.is_public) return false;
 
         const endDate = new Date(event.end_date);
-    if (endDate < now) return false; 
+    if (endDate < now) return false;
         if (event.registration_required && event.registration_deadline) {
       const deadline = new Date(event.registration_deadline);
       if (deadline < now) return false;     }
 
     return true;
   });
+};
+
+export const createGroupEvent = async (groupId: string, data: Omit<CreateEventRequest, 'space_id'>): Promise<Event> => {
+  const response = await apiClient.post<ApiResponse<Event>>(`/groups/${groupId}/events`, data);
+  return response.data.data;
+};
+
+export const getGroupEvents = async (groupId: string, params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/groups/${groupId}/events`, {
+    params,
+  });
+  return response.data.data;
+};
+
+export const getGroupUpcomingEvents = async (groupId: string, limit?: number): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/groups/${groupId}/events/upcoming`, {
+    params: { limit },
+  });
+  return response.data.data;
+};
+
+export const getGroupPastEvents = async (groupId: string, params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/groups/${groupId}/events/past`, {
+    params,
+  });
+  return response.data.data;
+};
+
+export const createCommunityEvent = async (communityId: string, data: Omit<CreateEventRequest, 'space_id'>): Promise<Event> => {
+  const response = await apiClient.post<ApiResponse<Event>>(`/communities/${communityId}/events`, data);
+  return response.data.data;
+};
+
+export const getCommunityEvents = async (communityId: string, params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/communities/${communityId}/events`, {
+    params,
+  });
+  return response.data.data;
+};
+
+export const getCommunityUpcomingEvents = async (communityId: string, limit?: number): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/communities/${communityId}/events/upcoming`, {
+    params: { limit },
+  });
+  return response.data.data;
+};
+
+export const getCommunityPastEvents = async (communityId: string, params?: PaginationParams): Promise<Event[]> => {
+  const response = await apiClient.get<ApiResponse<Event[]>>(`/communities/${communityId}/events/past`, {
+    params,
+  });
+  return response.data.data;
 };
 
 export const eventsApi = {
@@ -214,8 +274,18 @@ export const eventsApi = {
   removeEventCoOrganizer,
   markAttendance,
   getUserEvents,
+  getUserRegisteredEvents,
+  getRecommendedEvents,
   getTrendingEvents,
   getPublicEvents,
+  createGroupEvent,
+  getGroupEvents,
+  getGroupUpcomingEvents,
+  getGroupPastEvents,
+  createCommunityEvent,
+  getCommunityEvents,
+  getCommunityUpcomingEvents,
+  getCommunityPastEvents,
 };
 
 export default eventsApi;

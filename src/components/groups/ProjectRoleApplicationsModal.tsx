@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { RoleApplication, ProjectRole } from '@/types/communities';
 import { Check, X, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import moment from 'moment';
 
 interface ProjectRoleApplicationsModalProps {
   open: boolean;
@@ -63,7 +64,7 @@ export const ProjectRoleApplicationsModal = ({
         <DialogHeader>
           <DialogTitle>{role.name} Applications</DialogTitle>
           <DialogDescription>
-            {role.slotsFilled} of {role.slotsTotal} slots filled • {pendingApplications.length} pending application{pendingApplications.length !== 1 ? 's' : ''}
+            {(role as any).slots_filled || 0} of {(role as any).slots_total || 0} slots filled • {pendingApplications.length} pending application{pendingApplications.length !== 1 ? 's' : ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -83,7 +84,7 @@ export const ProjectRoleApplicationsModal = ({
                       onAccept={() => handleAccept(application.id)}
                       onReject={() => handleReject(application.id)}
                       isProcessing={processingId === application.id}
-                      canAccept={role.slotsFilled < role.slotsTotal}
+                      canAccept={((role as any).slots_filled || 0) < ((role as any).slots_total || 0)}
                     />
                   ))}
                 </div>
@@ -142,15 +143,15 @@ const ApplicationCard = ({
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={application.userAvatar} alt={application.userName} />
+            <AvatarImage src={application.userAvatar} alt={application.username} />
             <AvatarFallback>
-              {application.userName.substring(0, 2).toUpperCase()}
+              {application.username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h4 className="font-medium">{application.userName}</h4>
+            <h4 className="font-medium">{application.username}</h4>
             <p className="text-xs text-muted-foreground">
-              Applied {application.appliedAt.toLocaleDateString()}
+              Applied {moment(application.appliedAt).fromNow()}
             </p>
           </div>
         </div>

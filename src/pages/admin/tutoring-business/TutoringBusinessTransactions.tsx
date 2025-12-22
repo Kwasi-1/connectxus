@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,34 +32,104 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
-import { mockTransactions } from "@/data/tutoringBusinessMockData";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/hooks/useCurrency";
+import { adminApi } from "@/api/admin.api";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+
+interface Transaction {
+  id: string;
+  studentName: string;
+  tutorName: string;
+  subject: string;
+  topic: string;
+  amount: number;
+  platformFee: number;
+  tutorAmount: number;
+  sessionType: string;
+  status: string;
+  date: string;
+  paymentMethod: string;
+  transactionRef: string;
+  refundDate?: string;
+  refundReason?: string;
+}
 
 export function TutoringBusinessTransactions() {
   const { formatCurrency } = useCurrency();
+  const { selectedSpaceId } = useAdminSpace();
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
-  const [selectedTransaction, setSelectedTransaction] = useState<
-    (typeof mockTransactions)[0] | null
-  >(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
 
-  // Calculate metrics
-  const totalTransactions = mockTransactions.length;
-  const totalRevenue = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalPlatformFees = mockTransactions.reduce(
+  useEffect(() => {
+    loadData();
+  }, [selectedSpaceId, statusFilter]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await adminApi.getTutoringBusinessTransactions(
+        selectedSpaceId,
+        100, 
+        0, 
+        undefined, 
+        statusFilter === "all" ? undefined : statusFilter
+      );
+
+      const transformedTransactions: Transaction[] = result.transactions.map(
+        (tx) => {
+          const amount = parseFloat(tx.amount);
+          return {
+            id: tx.id,
+            studentName: tx.student_name,
+            tutorName: tx.tutor_name,
+            subject: tx.subject,
+            topic: tx.topic,
+            amount: amount,
+            platformFee: amount * 0.15,
+            tutorAmount: amount * 0.85,
+            sessionType: tx.session_type,
+            status: tx.status,
+            date: tx.created_at,
+            paymentMethod: tx.payment_method || "Card",
+            transactionRef: tx.transaction_reference || "",
+          };
+        }
+      );
+
+      setTransactions(transformedTransactions);
+    } catch (err: any) {
+      console.error("Failed to load transactions:", err);
+      setError(err.message || "Failed to load transactions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalTransactions = transactions.length;
+  const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalPlatformFees = transactions.reduce(
     (sum, t) => sum + t.platformFee,
     0
   );
-  const totalRefundedAmount = mockTransactions
+  const totalRefundedAmount = transactions
     .filter((t) => t.status === "refunded")
     .reduce((sum, t) => sum + t.amount, 0);
-  const refundedCount = mockTransactions.filter(
+  const refundedCount = transactions.filter(
     (t) => t.status === "refunded"
   ).length;
 
-  const filteredTransactions = mockTransactions.filter((transaction) => {
+  const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch =
       transaction.studentName
         .toLowerCase()
@@ -68,15 +138,11 @@ export function TutoringBusinessTransactions() {
       transaction.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSubject =
       subjectFilter === "all" || transaction.subject === subjectFilter;
-    const matchesStatus =
-      statusFilter === "all" || transaction.status === statusFilter;
     const matchesSessionType =
       sessionTypeFilter === "all" ||
       transaction.sessionType === sessionTypeFilter;
 
-    return (
-      matchesSearch && matchesSubject && matchesStatus && matchesSessionType
-    );
+    return matchesSearch && matchesSubject && matchesSessionType;
   });
 
   const getStatusBadge = (status: string) => {
@@ -94,8 +160,53 @@ export function TutoringBusinessTransactions() {
 
   const subjects = [
     "all",
-    ...Array.from(new Set(mockTransactions.map((t) => t.subject))),
+    ...Array.from(new Set(transactions.map((t) => t.subject))),
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold custom-font">Transactions</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-32 mb-2" />
+                <Skeleton className="h-3 w-40" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold custom-font">Transactions</h1>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <p>Failed to load transactions: {error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -240,7 +351,6 @@ export function TutoringBusinessTransactions() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
-                          <AvatarImage src={transaction.studentAvatar} />
                           <AvatarFallback>
                             {transaction.studentName.charAt(0)}
                           </AvatarFallback>
@@ -251,7 +361,6 @@ export function TutoringBusinessTransactions() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
-                          <AvatarImage src={transaction.tutorAvatar} />
                           <AvatarFallback>
                             {transaction.tutorName.charAt(0)}
                           </AvatarFallback>
@@ -295,7 +404,6 @@ export function TutoringBusinessTransactions() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={transaction.studentAvatar} />
                       <AvatarFallback>
                         {transaction.studentName.charAt(0)}
                       </AvatarFallback>
@@ -373,7 +481,6 @@ export function TutoringBusinessTransactions() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 p-3 border rounded-lg">
                     <Avatar>
-                      <AvatarImage src={selectedTransaction.studentAvatar} />
                       <AvatarFallback>
                         {selectedTransaction.studentName.charAt(0)}
                       </AvatarFallback>
@@ -389,7 +496,6 @@ export function TutoringBusinessTransactions() {
                   </div>
                   <div className="flex items-center gap-3 p-3 border rounded-lg">
                     <Avatar>
-                      <AvatarImage src={selectedTransaction.tutorAvatar} />
                       <AvatarFallback>
                         {selectedTransaction.tutorName.charAt(0)}
                       </AvatarFallback>

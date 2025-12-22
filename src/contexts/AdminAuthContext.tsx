@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AdminUser, AdminAuthContextType, AdminPermission, AdminRole } from '@/types/admin';
+import { adminApi, AdminUser as ApiAdminUser } from '@/api/admin.api';
+import { toast } from 'sonner';
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
@@ -30,32 +32,75 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-            const mockAdmin: AdminUser = {
-        id: '1',
-        email,
-        name: 'John Admin',
-        role: email.includes('super') ? 'super_admin' : 'admin',
-        permissions: email.includes('super') 
-          ? ['user_management', 'content_management', 'community_management', 'tutoring_management', 'analytics', 'admin_management', 'system_settings', 'reports', 'notifications']
-          : ['user_management', 'content_management', 'community_management', 'tutoring_management', 'analytics', 'reports'],
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-        university: 'University of Ghana',
-        department: 'Student Affairs',
-        createdAt: new Date(),
+      const response = await adminApi.login({ email, password });
+
+      const apiUser = response.user;
+
+      const getPermissionsByRole = (role: string): AdminPermission[] => {
+        const rolePermissions: Record<string, AdminPermission[]> = {
+          'super_admin': [
+            'user_management',
+            'content_management',
+            'community_management',
+            'tutoring_management',
+            'analytics',
+            'admin_management',
+            'system_settings',
+            'reports',
+            'notifications'
+          ],
+          'admin': [
+            'user_management',
+            'content_management',
+            'community_management',
+            'tutoring_management',
+            'analytics',
+            'reports',
+            'notifications'
+          ],
+          'moderator': [
+            'content_management',
+            'community_management',
+            'reports'
+          ]
+        };
+
+        return rolePermissions[role] || rolePermissions['moderator'];
+      };
+
+      const adminUser: AdminUser = {
+        id: apiUser.id,
+        email: apiUser.email,
+        name: apiUser.full_name,
+        role: apiUser.role as AdminRole,
+        permissions: getPermissionsByRole(apiUser.role),
+        avatar: apiUser.avatar || undefined,
+        university: 'University', // Can be fetched from space data if needed
+        department: apiUser.department_id || undefined,
+        createdAt: apiUser.created_at ? new Date(apiUser.created_at) : new Date(),
         lastLogin: new Date(),
         isActive: true,
       };
-      
-      setAdmin(mockAdmin);
-      localStorage.setItem('admin-user', JSON.stringify(mockAdmin));
+
+      setAdmin(adminUser);
+      localStorage.setItem('admin-user', JSON.stringify(adminUser));
+    } catch (error: any) {
+      console.error('Admin sign in error:', error);
+      throw new Error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signOut = () => {
-    setAdmin(null);
-    localStorage.removeItem('admin-user');
+  const signOut = async () => {
+    try {
+      await adminApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setAdmin(null);
+      localStorage.removeItem('admin-user');
+    }
   };
 
   const hasPermission = (permission: AdminPermission): boolean => {

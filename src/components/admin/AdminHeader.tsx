@@ -16,7 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
-import { Bell, Menu, Search, Settings, LogOut, Shield } from "lucide-react";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { Bell, Menu, Search, Settings, LogOut, Shield, Building2, Check, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -27,8 +28,11 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const { admin, signOut, hasRole } = useAdminAuth();
+  const { selectedSpaceId, setSelectedSpaceId, spaces, isLoadingSpaces } = useAdminSpace();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const selectedSpace = spaces.find(s => s.id === selectedSpaceId);
 
   const handleSignOut = () => {
     signOut();
@@ -76,7 +80,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   };
 
   return (
-    <header className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+    <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center space-x-4">
           <Button
@@ -100,6 +104,43 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Space Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="min-w-[180px] justify-between">
+                <div className="flex items-center space-x-2">
+                  <Building2 className="h-4 w-4" />
+                  <span className="truncate">
+                    {isLoadingSpaces ? 'Loading...' : selectedSpace ? selectedSpace.name : 'All Spaces'}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuLabel>Select Space</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setSelectedSpaceId(null)}
+                className="cursor-pointer"
+              >
+                <Check className={cn("mr-2 h-4 w-4", selectedSpaceId === null ? "opacity-100" : "opacity-0")} />
+                All Spaces
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {spaces.map((space) => (
+                <DropdownMenuItem
+                  key={space.id}
+                  onClick={() => setSelectedSpaceId(space.id)}
+                  className="cursor-pointer"
+                >
+                  <Check className={cn("mr-2 h-4 w-4", selectedSpaceId === space.id ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{space.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">

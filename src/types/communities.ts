@@ -65,9 +65,19 @@ export interface Group {
   banner?: string;
   admins: string[];
   moderators: string[];
-  members?: MemberWithRole[];     requireApproval?: boolean;   allowMemberInvites?: boolean;     projectRoles?: ProjectRole[];
+  members?: MemberWithRole[];
+  requireApproval?: boolean;
+  allowMemberInvites?: boolean;
+  projectRoles?: ProjectRole[];
   projectDeadline?: Date;
   isAcceptingApplications?: boolean;
+  join_request_status?: 'pending' | 'approved' | 'rejected';
+  user_role_applications?: UserRoleApplicationStatus[];
+}
+
+export interface UserRoleApplicationStatus {
+  role_id: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface CommunityPost {

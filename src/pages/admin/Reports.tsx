@@ -68,10 +68,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ContentModerationItem } from "@/types/admin";
 import { adminApi } from "@/api/admin.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 
 export function Reports() {
   const { toast } = useToast();
+  const { selectedSpaceId } = useAdminSpace();
   const [reports, setReports] = useState<ContentModerationItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -94,14 +95,12 @@ export function Reports() {
 
   const loadReports = useCallback(async () => {
     try {
-      setIsLoading(true);
-      const spaceId = getDefaultSpaceId();
-      const status = statusFilter === "all" ? undefined : statusFilter;
+      setIsLoading(true);      const status = statusFilter === "all" ? undefined : statusFilter;
       const contentType = typeFilter === "all" ? undefined : typeFilter;
       const offset = (currentPage - 1) * pageSize;
 
       const response = await adminApi.getContentReports(
-        spaceId,
+        selectedSpaceId,
         status,
         contentType,
         pageSize,
@@ -118,7 +117,7 @@ export function Reports() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, typeFilter, currentPage, pageSize, toast]);
+  }, [statusFilter, typeFilter, currentPage, pageSize, selectedSpaceId, toast]);
 
   useEffect(() => {
     loadReports();

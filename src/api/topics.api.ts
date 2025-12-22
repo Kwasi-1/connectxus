@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -20,10 +20,8 @@ export interface TrendingTopicsParams extends PaginationParams {
   timeframe?: '24h' | '7d' | '30d'; }
 
 export const getTrendingTopics = async (params?: TrendingTopicsParams): Promise<TrendingTopic[]> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.get<ApiResponse<TrendingTopic[]>>('/topics/trending', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
   return response.data.data;
 };

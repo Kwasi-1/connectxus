@@ -75,7 +75,6 @@ import {
 } from "@/types/admin";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi } from "@/api/admin.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
 import moment from "moment";
 
 export function ContentManagement() {
@@ -131,10 +130,7 @@ export function ContentManagement() {
 
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
-      const spaceId = getDefaultSpaceId();
-
-      const [moderationData, announcementData, eventData] = await Promise.all([
+      setLoading(true);      const [moderationData, announcementData, eventData] = await Promise.all([
         adminApi.getContentReports(
           spaceId,
           statusFilter === "all" ? undefined : statusFilter
@@ -177,10 +173,7 @@ export function ContentManagement() {
   }, [fetchData]);
 
   const handleCreateAnnouncement = useCallback(async () => {
-    try {
-      const spaceId = getDefaultSpaceId();
-      await adminApi.createAnnouncement({
-        space_id: spaceId,
+    try {      await adminApi.createAnnouncement({
         title: newAnnouncement.title,
         content: newAnnouncement.content,
         type: newAnnouncement.type,
@@ -221,10 +214,7 @@ export function ContentManagement() {
   }, [newAnnouncement, toast, fetchData]);
 
   const handleCreateEvent = useCallback(async () => {
-    try {
-      const spaceId = getDefaultSpaceId();
-      await adminApi.createEvent({
-        space_id: spaceId,
+    try {      await adminApi.createEvent({
         title: newEvent.title,
         description: newEvent.description,
         category: newEvent.category,
@@ -1287,7 +1277,7 @@ export function ContentManagement() {
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : getFilteredAnnouncements().length === 0 ? (
+                  ) : getFilteredAnnouncements() && getFilteredAnnouncements().length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8">
                         <div className="flex flex-col items-center gap-2">
@@ -1299,7 +1289,7 @@ export function ContentManagement() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    getFilteredAnnouncements().map((announcement) => (
+                    getFilteredAnnouncements() && getFilteredAnnouncements().map((announcement) => (
                       <TableRow key={announcement.id}>
                         <TableCell>
                           <Checkbox

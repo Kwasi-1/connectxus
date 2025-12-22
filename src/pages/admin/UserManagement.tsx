@@ -71,10 +71,13 @@ import {
 import { User, UserRole } from "@/types/global";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi } from "@/api/admin.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 
 export function UserManagement() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { selectedSpaceId } = useAdminSpace();
   const [users, setUsers] = useState<User[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,15 +106,14 @@ export function UserManagement() {
     bio: "",
     department: "",
     level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
-    roles: ["student"] as UserRole[],
+    role: "user" as string,
   });
   const [resetPassword, setResetPassword] = useState("");
 
   const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const spaceId = getDefaultSpaceId();
-      const response = await adminApi.getUsers(spaceId, currentPage, pageSize);
+      const response = await adminApi.getUsers(currentPage, pageSize, selectedSpaceId);
       setUsers(response.users as User[]);
       setTotalUsers(response.total);
     } catch (error) {
@@ -124,7 +126,7 @@ export function UserManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, toast]);
+  }, [currentPage, pageSize, selectedSpaceId, toast]);
 
   useEffect(() => {
     loadUsers();
@@ -135,23 +137,20 @@ export function UserManagement() {
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole =
-      selectedRole === "all" || user.roles.includes(selectedRole as UserRole);
+      selectedRole === "all" || user.role === selectedRole;
 
     return matchesSearch && matchesRole;
   });
 
   const handleCreateUser = async () => {
-    try {
-      const spaceId = getDefaultSpaceId();
-      await adminApi.createUser({
-        space_id: spaceId,
+    try {      await adminApi.createUser({
         username: newUser.username,
         email: newUser.email,
         password: newUser.password,
         full_name: newUser.username,
         department: newUser.department,
         level: newUser.level,
-        roles: newUser.roles,
+        role: newUser.role,
         status: "active",
         verified: true,
       });
@@ -169,7 +168,7 @@ export function UserManagement() {
         bio: "",
         department: "",
         level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
-        roles: ["student"] as UserRole[],
+        role: "user",
       });
 
       setAddUserModalOpen(false);
@@ -192,7 +191,7 @@ export function UserManagement() {
         email: editingUser.email,
         full_name: editingUser.username,
         department: editingUser.department,
-        roles: editingUser.roles,
+        role: editingUser.role,
         status: editingUser.isActive ? "active" : "inactive",
       });
 
@@ -408,24 +407,40 @@ export function UserManagement() {
   };
 
   const getStatusBadge = (user: User) => {
-    if (user.roles.includes("lecturer")) {
-      return <Badge className="bg-campus-purple text-white">Faculty</Badge>;
-    }
-    if (user.roles.includes("tutor")) {
-      return <Badge className="bg-primary">Tutor</Badge>;
-    }
-    if (user.roles.includes("mentor")) {
-      return <Badge className="bg-campus-orange text-white">Mentor</Badge>;
-    }
-    return <Badge variant="secondary">Student</Badge>;
+    const roleColors: Record<string, string> = {
+      'super_admin': 'bg-red-600 text-white',
+      'admin': 'bg-campus-purple text-white',
+      'support_staff': 'bg-blue-600 text-white',
+      'content_moderator': 'bg-green-600 text-white',
+      'finance_officer': 'bg-yellow-600 text-white',
+      'operations_manager': 'bg-indigo-600 text-white',
+      'developer_admin': 'bg-gray-700 text-white',
+      'user': 'bg-gray-400 text-white'
+    };
+
+    const roleLabels: Record<string, string> = {
+      'super_admin': 'Super Admin',
+      'admin': 'Admin',
+      'support_staff': 'Support Staff',
+      'content_moderator': 'Content Moderator',
+      'finance_officer': 'Finance Officer',
+      'operations_manager': 'Operations Manager',
+      'developer_admin': 'Developer Admin',
+      'user': 'User'
+    };
+
+    const roleClass = roleColors[user.role] || 'bg-gray-400 text-white';
+    const roleLabel = roleLabels[user.role] || user.role;
+
+    return <Badge className={roleClass}>{roleLabel}</Badge>;
   };
 
   const userStats = {
     total: users.length,
-    students: users.filter((u) => u.roles.includes("student")).length,
-    tutors: users.filter((u) => u.roles.includes("tutor")).length,
-    mentors: users.filter((u) => u.roles.includes("mentor")).length,
-    faculty: users.filter((u) => u.roles.includes("lecturer")).length,
+    admins: users.filter((u) => u.role === 'super_admin' || u.role === 'admin').length,
+    staff: users.filter((u) => u.role === 'support_staff' || u.role === 'content_moderator' || u.role === 'finance_officer' || u.role === 'operations_manager').length,
+    developers: users.filter((u) => u.role === 'developer_admin').length,
+    regularUsers: users.filter((u) => u.role === 'user').length,
   };
 
   if (isLoading) {
@@ -613,35 +628,27 @@ export function UserManagement() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Roles</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(
-                      ["student", "tutor", "mentor", "lecturer"] as UserRole[]
-                    ).map((role) => (
-                      <div key={role} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={role}
-                          checked={newUser.roles.includes(role)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewUser((prev) => ({
-                                ...prev,
-                                roles: [...prev.roles, role as UserRole],
-                              }));
-                            } else {
-                              setNewUser((prev) => ({
-                                ...prev,
-                                roles: prev.roles.filter((r) => r !== role),
-                              }));
-                            }
-                          }}
-                        />
-                        <Label htmlFor={role} className="capitalize">
-                          {role}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  <Label>Role</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value) =>
+                      setNewUser((prev) => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="support_staff">Support Staff</SelectItem>
+                      <SelectItem value="content_moderator">Content Moderator</SelectItem>
+                      <SelectItem value="finance_officer">Finance Officer</SelectItem>
+                      <SelectItem value="operations_manager">Operations Manager</SelectItem>
+                      <SelectItem value="developer_admin">Developer Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>
@@ -714,15 +721,19 @@ export function UserManagement() {
                 />
               </div>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-40">
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="tutor">Tutor</SelectItem>
-                  <SelectItem value="mentor">Mentor</SelectItem>
-                  <SelectItem value="lecturer">Faculty</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="support_staff">Support Staff</SelectItem>
+                  <SelectItem value="content_moderator">Content Moderator</SelectItem>
+                  <SelectItem value="finance_officer">Finance Officer</SelectItem>
+                  <SelectItem value="operations_manager">Operations Manager</SelectItem>
+                  <SelectItem value="developer_admin">Developer Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>

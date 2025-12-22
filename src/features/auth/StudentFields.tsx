@@ -22,7 +22,7 @@ interface StudentFieldsProps {
   control: Control<any>;
 }
 
-const levels = ["100", "200", "300", "400", "400+"];
+const levels = ["100", "200", "300", "400", "500", "600"];
 
 export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
   const selectedSpaceId = useWatch({
@@ -47,13 +47,11 @@ export const StudentFields: React.FC<StudentFieldsProps> = ({ control }) => {
     spacesData && spacesData.spaces.length > 0 ? spacesData.spaces : [];
   const safeDepartments = Array.isArray(departments) ? departments : [];
 
-  // Transform spaces to SelectInput format
   const spaceItems = safeSpaces.map((space: Space) => ({
     value: space.id,
     label: space.name,
   }));
 
-  // Transform departments to SelectInput format
   const departmentItems = safeDepartments.map((dept: Department) => ({
     value: dept.id,
     label: dept.name,

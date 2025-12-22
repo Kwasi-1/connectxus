@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -36,47 +35,123 @@ import {
   TrendingUp,
   Banknote,
   Calendar,
+  AlertCircle,
 } from "lucide-react";
-import {
-  mockPendingPayouts,
-  mockPayoutHistory,
-} from "@/data/tutoringBusinessMockData";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/hooks/useCurrency";
+import { adminApi } from "@/api/admin.api";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { useToast } from "@/hooks/use-toast";
+
+interface PendingPayout {
+  id: string;
+  tutorId: string;
+  applicantId: string;
+  tutorName: string;
+  amount: number;
+  sessionsCount: number;
+  dueDate: string;
+  status: string;
+}
+
+interface PayoutHistory {
+  id: string;
+  tutorId: string;
+  applicantId: string;
+  tutorName: string;
+  amount: number;
+  paymentMethod: string;
+  paidDate: string;
+  status: string;
+  referenceNumber?: string;
+}
 
 export function TutoringBusinessPayouts() {
   const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
+  const { selectedSpaceId } = useAdminSpace();
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
+  const [pendingPayouts, setPendingPayouts] = useState<PendingPayout[]>([]);
+  const [payoutHistory, setPayoutHistory] = useState<PayoutHistory[]>([]);
   const [selectedPayout, setSelectedPayout] = useState<
-    (typeof mockPendingPayouts)[0] | (typeof mockPayoutHistory)[0] | null
+    PendingPayout | PayoutHistory | null
   >(null);
-  const [payoutToPay, setPayoutToPay] = useState<
-    (typeof mockPendingPayouts)[0] | null
-  >(null);
+  const [payoutToPay, setPayoutToPay] = useState<PendingPayout | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Calculate metrics
-  const totalPendingAmount = mockPendingPayouts.reduce(
+  useEffect(() => {
+    loadData();
+  }, [selectedSpaceId, activeTab]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (activeTab === "pending") {
+        const pending = await adminApi.getTutoringBusinessPendingPayouts(
+          selectedSpaceId
+        );
+
+        const transformedPending: PendingPayout[] = pending.map((p, idx) => ({
+          id: `PO-${Date.now()}-${idx}`,
+          tutorId: p.tutor_id,
+          applicantId: p.applicant_id,
+          tutorName: p.tutor_name,
+          amount: parseFloat(p.pending_amount),
+          sessionsCount: p.pending_sessions,
+          dueDate: p.oldest_request_date,
+          status: "pending",
+        }));
+
+        setPendingPayouts(transformedPending);
+      } else {
+        const history = await adminApi.getTutoringBusinessPayoutHistory(
+          selectedSpaceId,
+          50
+        );
+
+        const transformedHistory: PayoutHistory[] = history.payouts.map(
+          (p) => ({
+            id: p.id,
+            tutorId: p.tutor_id,
+            applicantId: p.applicant_id,
+            tutorName: p.tutor_name,
+            amount: parseFloat(p.amount),
+            paymentMethod: p.payment_method,
+            paidDate: p.completed_at || p.created_at,
+            status: p.status,
+            referenceNumber: p.transaction_reference,
+          })
+        );
+
+        setPayoutHistory(transformedHistory);
+      }
+    } catch (err: any) {
+      console.error("Failed to load payouts:", err);
+      setError(err.message || "Failed to load payouts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalPendingAmount = pendingPayouts.reduce(
     (sum, p) => sum + p.amount,
     0
   );
-  const totalPendingPayouts = mockPendingPayouts.length;
-  const totalCompletedPayouts = mockPayoutHistory.length;
-  const totalPaidAmount = mockPayoutHistory.reduce(
-    (sum, p) => sum + p.amount,
-    0
-  );
+  const totalPendingPayouts = pendingPayouts.length;
+  const totalCompletedPayouts = payoutHistory.length;
+  const totalPaidAmount = payoutHistory.reduce((sum, p) => sum + p.amount, 0);
 
-  // Calculate commission (20% of total amount)
-  const incomingCommission = totalPendingAmount * 0.2;
-  const totalCommission = mockPayoutHistory.reduce(
-    (sum, p) => sum + p.amount * 0.2,
-    0
-  );
+  const incomingCommission = totalPendingAmount * 0.15;
+  const totalCommission = totalPaidAmount * 0.15;
 
-  // Calculate next payout date (mock - would come from schedule)
   const nextPayoutDate = new Date();
-  nextPayoutDate.setDate(nextPayoutDate.getDate() + 7); // 7 days from now
+  nextPayoutDate.setDate(nextPayoutDate.getDate() + 7); 
   const daysUntilPayout = Math.ceil(
     (nextPayoutDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
@@ -97,22 +172,78 @@ export function TutoringBusinessPayouts() {
 
     setIsProcessingPayment(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const result = await adminApi.processTutoringBusinessPayout(
+        payoutToPay.tutorId,
+        payoutToPay.applicantId,
+        "bank_transfer" 
+      );
 
-    // Here you would call your actual payment API
-    console.log("Processing payment for:", payoutToPay);
+      toast({
+        title: "Payment Processed",
+        description: `Payment of ${formatCurrency(
+          parseFloat(result.amount)
+        )} processed successfully for ${payoutToPay.tutorName}`,
+      });
 
-    setIsProcessingPayment(false);
-    setPayoutToPay(null);
-
-    // Show success message (you can use toast here)
-    alert(
-      `Payment of ${formatCurrency(
-        payoutToPay.amount
-      )} processed successfully for ${payoutToPay.tutorName}`
-    );
+      setPayoutToPay(null);
+      loadData();
+    } catch (err: any) {
+      console.error("Failed to process payout:", err);
+      toast({
+        title: "Payment Failed",
+        description: err.message || "Failed to process payout",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold custom-font">Payouts</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-32 mb-2" />
+                <Skeleton className="h-3 w-40" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold custom-font">Payouts</h1>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <p>Failed to load payouts: {error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,20 +273,20 @@ export function TutoringBusinessPayouts() {
           </CardContent>
         </Card>
         {activeTab === "pending" ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Amount
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalPendingAmount)}
-            </div>
-            <p className="text-xs text-muted-foreground">To be paid out</p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pending Amount
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(totalPendingAmount)}
+              </div>
+              <p className="text-xs text-muted-foreground">To be paid out</p>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -280,7 +411,7 @@ export function TutoringBusinessPayouts() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockPendingPayouts.map((payout) => (
+                    {pendingPayouts.map((payout) => (
                       <TableRow
                         key={payout.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -292,21 +423,22 @@ export function TutoringBusinessPayouts() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar className="w-8 h-8">
-                              <AvatarImage src={payout.tutorAvatar} />
                               <AvatarFallback>
-                                {payout.tutorName.charAt(0)}
+                                {payout.tutorName?.charAt(0) || "T"}
                               </AvatarFallback>
                             </Avatar>
-                            <span>{payout.tutorName}</span>
+                            <span>{payout.tutorName || "Unknown Tutor"}</span>
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold">
-                          {formatCurrency(payout.amount / 0.8)}
+                          {formatCurrency(payout.amount / 0.85)}
                         </TableCell>
                         <TableCell className="font-semibold text-green-600">
                           {formatCurrency(payout.amount)}
                         </TableCell>
-                        <TableCell>{payout.sessionsCount} sessions</TableCell>
+                        <TableCell>
+                          {payout.sessionsCount || 0} sessions
+                        </TableCell>
                         <TableCell>
                           {new Date(payout.dueDate).toLocaleDateString()}
                         </TableCell>
@@ -332,7 +464,7 @@ export function TutoringBusinessPayouts() {
 
               {/* Mobile View */}
               <div className="md:hidden space-y-4">
-                {mockPendingPayouts.map((payout) => (
+                {pendingPayouts.map((payout) => (
                   <Card
                     key={payout.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
@@ -345,17 +477,16 @@ export function TutoringBusinessPayouts() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
-                          <AvatarImage src={payout.tutorAvatar} />
                           <AvatarFallback>
-                            {payout.tutorName.charAt(0)}
+                            {payout.tutorName?.charAt(0) || "T"}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="font-medium text-sm">
-                            {payout.tutorName}
+                            {payout.tutorName || "Unknown Tutor"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {payout.sessionsCount} sessions
+                            {payout.sessionsCount || 0} sessions
                           </div>
                         </div>
                         <div className="text-right">
@@ -407,7 +538,7 @@ export function TutoringBusinessPayouts() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockPayoutHistory.map((payout) => (
+                    {payoutHistory.map((payout) => (
                       <TableRow
                         key={payout.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -419,25 +550,24 @@ export function TutoringBusinessPayouts() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar className="w-8 h-8">
-                              <AvatarImage src={payout.tutorAvatar} />
                               <AvatarFallback>
-                                {payout.tutorName.charAt(0)}
+                                {payout.tutorName?.charAt(0) || "T"}
                               </AvatarFallback>
                             </Avatar>
-                            <span>{payout.tutorName}</span>
+                            <span>{payout.tutorName || "Unknown Tutor"}</span>
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold">
-                          {formatCurrency(payout.amount / 0.8)}
+                          {formatCurrency(payout.amount / 0.85)}
                         </TableCell>
                         <TableCell className="font-semibold text-green-600">
                           {formatCurrency(payout.amount)}
                         </TableCell>
-                        <TableCell>{payout.sessionsCount} sessions</TableCell>
+                        <TableCell>N/A</TableCell>
                         <TableCell>
                           {new Date(payout.paidDate).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{payout.paymentMethod}</TableCell>
+                        <TableCell>{payout.paymentMethod || "N/A"}</TableCell>
                         <TableCell>{getStatusBadge(payout.status)}</TableCell>
                       </TableRow>
                     ))}
@@ -447,7 +577,7 @@ export function TutoringBusinessPayouts() {
 
               {/* Mobile View */}
               <div className="md:hidden space-y-4">
-                {mockPayoutHistory.map((payout) => (
+                {payoutHistory.map((payout) => (
                   <Card
                     key={payout.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
@@ -460,22 +590,21 @@ export function TutoringBusinessPayouts() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
-                          <AvatarImage src={payout.tutorAvatar} />
                           <AvatarFallback>
-                            {payout.tutorName.charAt(0)}
+                            {payout.tutorName?.charAt(0) || "T"}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="font-medium text-sm">
-                            {payout.tutorName}
+                            {payout.tutorName || "Unknown Tutor"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {payout.sessionsCount} sessions
+                            {payout.paymentMethod || "N/A"}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-semibold">
-                            ${payout.amount.toFixed(2)}
+                            {formatCurrency(payout.amount)}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(payout.paidDate).toLocaleDateString()}
@@ -534,7 +663,7 @@ export function TutoringBusinessPayouts() {
                   <div>
                     <div className="text-sm font-medium">Payment Method</div>
                     <div className="text-sm text-muted-foreground">
-                      {selectedPayout.paymentMethod}
+                      {selectedPayout.paymentMethod || "N/A"}
                     </div>
                   </div>
                 )}
@@ -544,14 +673,13 @@ export function TutoringBusinessPayouts() {
                 <h3 className="font-semibold">Tutor Information</h3>
                 <div className="flex items-center gap-3 p-3 border rounded-lg">
                   <Avatar>
-                    <AvatarImage src={selectedPayout.tutorAvatar} />
                     <AvatarFallback>
-                      {selectedPayout.tutorName.charAt(0)}
+                      {selectedPayout.tutorName?.charAt(0) || "T"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="font-medium">
-                      {selectedPayout.tutorName}
+                      {selectedPayout.tutorName || "Unknown Tutor"}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Tutor ID: {selectedPayout.tutorId}
@@ -563,14 +691,16 @@ export function TutoringBusinessPayouts() {
               <div className="space-y-4">
                 <h3 className="font-semibold">Payout Summary</h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Total Sessions
-                    </span>
-                    <span className="text-sm font-medium">
-                      {selectedPayout.sessionsCount}
-                    </span>
-                  </div>
+                  {"sessionsCount" in selectedPayout && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total Sessions
+                      </span>
+                      <span className="text-sm font-medium">
+                        {selectedPayout.sessionsCount}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t pt-2">
                     <span className="text-sm font-semibold">Total Amount</span>
                     <span className="text-sm font-semibold">
@@ -580,37 +710,12 @@ export function TutoringBusinessPayouts() {
                 </div>
               </div>
 
-              {"sessions" in selectedPayout && selectedPayout.sessions && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Included Sessions</h3>
-                  <div className="space-y-2">
-                    {selectedPayout.sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex justify-between p-3 border rounded-lg"
-                      >
-                        <div>
-                          <div className="text-sm font-medium">
-                            {session.id}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {session.date}
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium">
-                          {formatCurrency(session.amount)}
-                        </div>
-                      </div>
-                    ))}
+              {"referenceNumber" in selectedPayout &&
+                selectedPayout.referenceNumber && (
+                  <div className="text-xs text-muted-foreground">
+                    Reference: {selectedPayout.referenceNumber}
                   </div>
-                </div>
-              )}
-
-              {"referenceNumber" in selectedPayout && (
-                <div className="text-xs text-muted-foreground">
-                  Reference: {selectedPayout.referenceNumber}
-                </div>
-              )}
+                )}
             </div>
           )}
         </SheetContent>
@@ -630,7 +735,6 @@ export function TutoringBusinessPayouts() {
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={payoutToPay.tutorAvatar} />
                   <AvatarFallback>
                     {payoutToPay.tutorName.charAt(0)}
                   </AvatarFallback>

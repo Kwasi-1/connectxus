@@ -70,8 +70,8 @@ const navItems: NavItem[] = [
     permission: "community_management" as const,
   },
   {
-    name: "Tutoring & Mentorship",
-    href: "/admin/tutoring-mentorship",
+    name: "Tutoring",
+    href: "/admin/tutoring",
     icon: GraduationCap,
     permission: "tutoring_management" as const,
   },

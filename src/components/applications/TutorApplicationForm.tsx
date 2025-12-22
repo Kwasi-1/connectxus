@@ -1,16 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { X, Plus, Clock } from "lucide-react";
+import { X, Plus, Clock, Paperclip, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
-import { submitTutorApplication } from "@/api/mentorship.api";
+import { submitTutorApplication, updateTutorApplication } from "@/api/tutoring.api";
+import { uploadFile } from "@/api/files.api";
 import { toast as sonnerToast } from "sonner";
-import SelectInput from "@/components/shared/SelectInput";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useEffect } from "react";
 import {
@@ -21,23 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const availableSubjects = [
-  "DCIT 101",
-  "DCIT 201",
-  "DCIT 301",
-  "DCIT 401",
-  "Mathematics",
-  "Calculus I",
-  "Calculus II",
-  "Linear Algebra",
-  "Statistics",
-  "Programming",
-  "Data Science",
-  "Web Development",
-  "Database Systems",
-  "Computer Networks",
-  "Software Engineering",
+const subjectTypes = [
+  { value: "course", label: "Course (e.g., DCIT 101)" },
+  { value: "general", label: "General (e.g., Mathematics)" },
 ];
+
+const levelOptions = ["100", "200", "300", "400", "Graduate", "All Levels"];
 
 const daysOfWeek = [
   "Monday",
@@ -62,20 +50,23 @@ export function TutorApplicationForm() {
   const { currencySymbol } = useCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get application data from navigation state (for editing)
   const existingApplication = location.state?.application;
 
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [currentSubject, setCurrentSubject] = useState("");
+  const [subject, setSubject] = useState("");
   const [sessionRate, setSessionRate] = useState("");
   const [semesterRate, setSemesterRate] = useState("");
-  const [showSemesterRate, setShowSemesterRate] = useState(false);
+  const [discount, setDiscount] = useState("");
+  const [subjectType, setSubjectType] = useState("");
+  const [level, setLevel] = useState("");
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [experience, setExperience] = useState("");
   const [qualifications, setQualifications] = useState("");
   const [teachingStyle, setTeachingStyle] = useState("");
   const [motivation, setMotivation] = useState("");
-  const [references, setReferences] = useState("");
+  const [attachments, setAttachments] = useState("");
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [isUploadingAttachmentFiles, setIsUploadingAttachmentFiles] = useState(false);
+  const attachmentFilesInputRef = useRef<HTMLInputElement>(null);
 
   const [newSlot, setNewSlot] = useState<AvailabilitySlot>({
     day: "Monday",
@@ -83,7 +74,6 @@ export function TutorApplicationForm() {
     endTime: "10:00",
   });
 
-  // Helper function to parse availability strings (e.g., "Monday: 09:00-10:00")
   const parseAvailabilityString = (
     availStr: string
   ): AvailabilitySlot | null => {
@@ -98,15 +88,19 @@ export function TutorApplicationForm() {
     return null;
   };
 
-  // Populate form when editing existing application
   useEffect(() => {
     if (existingApplication) {
-      // Set subjects
-      if (existingApplication.subjects) {
-        setSelectedSubjects(existingApplication.subjects);
-      }
+      if (existingApplication.subject) setSubject(existingApplication.subject);
+      if (existingApplication.session_rate)
+        setSessionRate(existingApplication.session_rate.toString());
+      if (existingApplication.semester_rate)
+        setSemesterRate(existingApplication.semester_rate.toString());
+      if (existingApplication.discount)
+        setDiscount(existingApplication.discount.toString());
+      if (existingApplication.subject_type)
+        setSubjectType(existingApplication.subject_type);
+      if (existingApplication.level) setLevel(existingApplication.level);
 
-      // Set availability
       if (
         existingApplication.availability &&
         Array.isArray(existingApplication.availability)
@@ -117,29 +111,18 @@ export function TutorApplicationForm() {
         setAvailability(parsedSlots);
       }
 
-      // Set text fields
       if (existingApplication.experience)
         setExperience(existingApplication.experience);
       if (existingApplication.qualifications)
         setQualifications(existingApplication.qualifications);
       if (existingApplication.motivation)
         setMotivation(existingApplication.motivation);
-
-      // Note: teaching_style and references might not be in the API response
-      // Add them if they exist in your API
+      if (existingApplication.teaching_style)
+        setTeachingStyle(existingApplication.teaching_style);
+      if (existingApplication.attachments)
+        setAttachments(existingApplication.attachments);
     }
   }, [existingApplication]);
-
-  const handleSubjectSelect = (value: string) => {
-    if (value && !selectedSubjects.includes(value)) {
-      setSelectedSubjects([...selectedSubjects, value]);
-      setCurrentSubject("");
-    }
-  };
-
-  const handleSubjectRemove = (subject: string) => {
-    setSelectedSubjects(selectedSubjects.filter((s) => s !== subject));
-  };
 
   const handleAddAvailability = () => {
     if (newSlot.day && newSlot.startTime && newSlot.endTime) {
@@ -156,6 +139,48 @@ export function TutorApplicationForm() {
     }
   };
 
+  const handleAttachmentFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles = files.filter((file) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/',
+      ];
+
+      const isValidType = allowedTypes.some((type) => file.type.startsWith(type));
+      if (!isValidType) {
+        sonnerToast.error(`${file.name} is not a supported file type`);
+        return false;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        sonnerToast.error(`${file.name} is larger than 5MB`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    const totalFiles = attachmentFiles.length + validFiles.length;
+    if (totalFiles > 3) {
+      sonnerToast.error('You can only upload up to 3 attachment files');
+      const allowedCount = 3 - attachmentFiles.length;
+      validFiles.splice(allowedCount);
+    }
+
+    setAttachmentFiles([...attachmentFiles, ...validFiles]);
+  };
+
+  const handleRemoveAttachmentFile = (index: number) => {
+    setAttachmentFiles(attachmentFiles.filter((_, i) => i !== index));
+  };
+
   const handleRemoveAvailability = (index: number) => {
     setAvailability(availability.filter((_, i) => i !== index));
   };
@@ -163,10 +188,37 @@ export function TutorApplicationForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedSubjects.length === 0) {
+    if (!subject.trim()) {
       toast({
         title: "Error",
-        description: "Please select at least one subject to tutor.",
+        description: "Please enter a subject to tutor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!subjectType) {
+      toast({
+        title: "Error",
+        description: "Please select a subject type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!sessionRate || parseFloat(sessionRate) <= 0) {
+      toast({
+        title: "Error",
+        description: "Please provide a valid session rate.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!semesterRate || parseFloat(semesterRate) <= 0) {
+      toast({
+        title: "Error",
+        description: "Please provide a valid semester rate.",
         variant: "destructive",
       });
       return;
@@ -193,35 +245,71 @@ export function TutorApplicationForm() {
     setIsSubmitting(true);
 
     try {
+      let attachmentUrls: string | undefined = attachments || undefined;
+
+      if (attachmentFiles.length > 0) {
+        setIsUploadingAttachmentFiles(true);
+        const uploadPromises = attachmentFiles.map((file) =>
+          uploadFile({
+            file,
+            moduleType: 'tutoring',
+            accessLevel: 'public',
+          })
+        );
+        const uploadedFiles = await Promise.all(uploadPromises);
+        attachmentUrls = uploadedFiles.map((file) => file.url).join('\n');
+        setIsUploadingAttachmentFiles(false);
+      }
+
       const availabilityStrings = availability.map(
         (slot) => `${slot.day}: ${slot.startTime}-${slot.endTime}`
       );
 
-      await submitTutorApplication({
+      const applicationData = {
         space_id: "",
-        subjects: selectedSubjects,
+        subject: subject.trim(),
+        session_rate: sessionRate,
+        semester_rate: semesterRate,
+        discount: discount || "0",
+        subject_type: subjectType,
+        level: level || undefined,
         experience: experience || undefined,
         qualifications: qualifications || undefined,
+        teaching_style: teachingStyle || undefined,
         motivation: motivation.trim(),
+        attachments: attachmentUrls,
         availability: availabilityStrings,
-      });
+      };
 
-      sonnerToast.success("Application Submitted!", {
-        description:
-          "Your tutor application has been submitted successfully. We'll review it within 2-3 business days.",
-      });
+      if (existingApplication && existingApplication.id) {
+        await updateTutorApplication(existingApplication.id, applicationData);
+        sonnerToast.success("Application Updated!", {
+          description:
+            "Your tutor application has been updated successfully.",
+        });
+      } else {
+        await submitTutorApplication(applicationData);
+        sonnerToast.success("Application Submitted!", {
+          description:
+            "Your tutor application has been submitted successfully. We'll review it within 2-3 business days.",
+        });
+      }
 
       navigate("/tutoring");
     } catch (err: any) {
       console.error("Error submitting tutor application:", err);
-      sonnerToast.error("Failed to submit application", {
-        description:
-          err.response?.data?.error?.message ||
-          err.message ||
-          "Please try again later.",
-      });
+      sonnerToast.error(
+        existingApplication ? "Failed to update application" : "Failed to submit application",
+        {
+          description:
+            err.response?.data?.error?.message ||
+            err.message ||
+            "Please try again later.",
+        }
+      );
     } finally {
       setIsSubmitting(false);
+      setIsUploadingAttachmentFiles(false);
     }
   };
 
@@ -242,45 +330,55 @@ export function TutorApplicationForm() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Subjects You Can Tutor</CardTitle>
+              <CardTitle>Subject Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SelectInput
-                id="subject-select"
-                label="Search and select subjects"
-                placeholder="Type to search subjects..."
-                items={availableSubjects.map((subject) => ({
-                  value: subject,
-                  label: subject,
-                }))}
-                onChange={handleSubjectSelect}
-                values={{ "subject-select": currentSubject }}
-                wrapperClassName="mb-4"
-              />
+              <div>
+                <Label htmlFor="subject">Subject/Course *</Label>
+                <Input
+                  id="subject"
+                  placeholder="e.g., DCIT 101 or Mathematics"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter one subject or course per application
+                </p>
+              </div>
 
-              {selectedSubjects.length > 0 && (
-                <div>
-                  <Label className="text-sm font-medium">
-                    Selected Subjects:
-                  </Label>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedSubjects.map((subject) => (
-                      <Badge key={subject} variant="secondary" className="pr-1">
-                        {subject}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 ml-1"
-                          onClick={() => handleSubjectRemove(subject)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
+              <div>
+                <Label htmlFor="subject-type">Subject Type *</Label>
+                <Select value={subjectType} onValueChange={setSubjectType}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjectTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
                     ))}
-                  </div>
-                </div>
-              )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="level">Level (Optional)</Label>
+                <Select value={level} onValueChange={setLevel}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levelOptions.map((lvl) => (
+                      <SelectItem key={lvl} value={lvl}>
+                        {lvl}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
 
@@ -289,7 +387,6 @@ export function TutorApplicationForm() {
               <CardTitle>Pricing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Session Rate */}
               <div>
                 <Label htmlFor="session-rate">Session Rate *</Label>
                 <div className="flex items-center gap-2 mt-2">
@@ -311,52 +408,46 @@ export function TutorApplicationForm() {
                 </div>
               </div>
 
-              {/* Toggle for Semester Rate */}
-              <div className="flex items-center justify-between pt-2">
-                <Label htmlFor="semester-toggle" className="cursor-pointer">
-                  Offer semester package?
-                </Label>
-                <button
-                  id="semester-toggle"
-                  type="button"
-                  onClick={() => {
-                    setShowSemesterRate(!showSemesterRate);
-                    if (showSemesterRate) setSemesterRate("");
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    showSemesterRate ? "bg-primary" : "bg-gray-200"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showSemesterRate ? "translate-x-6" : "translate-x-1"
-                    }`}
+              <div>
+                <Label htmlFor="semester-rate">Semester Rate *</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xl">{currencySymbol}</span>
+                  <Input
+                    id="semester-rate"
+                    type="number"
+                    placeholder="306"
+                    value={semesterRate}
+                    onChange={(e) => setSemesterRate(e.target.value)}
+                    className="w-32"
+                    min="0"
+                    step="0.50"
+                    required
                   />
-                </button>
+                  <span className="text-sm text-muted-foreground">
+                    12 sessions package
+                  </span>
+                </div>
               </div>
 
-              {/* Semester Rate (Conditional) */}
-              {showSemesterRate && (
-                <div className="pl-4 border-l-2 border-primary/20">
-                  <Label htmlFor="semester-rate">Semester Rate</Label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xl">{currencySymbol}</span>
-                    <Input
-                      id="semester-rate"
-                      type="number"
-                      placeholder="306"
-                      value={semesterRate}
-                      onChange={(e) => setSemesterRate(e.target.value)}
-                      className="w-32"
-                      min="0"
-                      step="0.50"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      12 sessions
-                    </span>
-                  </div>
+              <div>
+                <Label htmlFor="discount">Discount % (Optional)</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <Input
+                    id="discount"
+                    type="number"
+                    placeholder="0"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    className="w-32"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    % off (for promotions)
+                  </span>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
@@ -521,21 +612,67 @@ export function TutorApplicationForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>References (Optional)</CardTitle>
+              <CardTitle>Attachments (Optional)</CardTitle>
             </CardHeader>
             <CardContent>
               <div>
-                <Label htmlFor="references">
-                  Academic or Professional References
+                <Label>
+                  Attachments & Credentials
                 </Label>
-                <Textarea
-                  id="references"
-                  placeholder="Provide contact information for references..."
-                  value={references}
-                  onChange={(e) => setReferences(e.target.value)}
-                  rows={3}
-                  className="mt-2"
-                />
+                <div className="space-y-3 mt-3">
+                  {attachmentFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {attachmentFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveAttachmentFile(index)}
+                            disabled={isSubmitting || isUploadingAttachmentFiles}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    ref={attachmentFilesInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,image/*"
+                    onChange={handleAttachmentFilesSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => attachmentFilesInputRef.current?.click()}
+                    disabled={isSubmitting || isUploadingAttachmentFiles || attachmentFiles.length >= 3}
+                    className="w-full"
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    {attachmentFiles.length > 0
+                      ? `Add More Files (${attachmentFiles.length}/3)`
+                      : 'Attach Documents'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Upload supporting documents, certificates, or credentials (PDF, DOC, or images. Max 3 files, 5MB each)
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -548,14 +685,17 @@ export function TutorApplicationForm() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? existingApplication
-                  ? "Updating..."
-                  : "Submitting..."
-                : existingApplication
-                ? "Update Application"
-                : "Submit Application"}
+            <Button type="submit" disabled={isSubmitting || isUploadingAttachmentFiles}>
+              {isUploadingAttachmentFiles ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading Files...
+                </>
+              ) : isSubmitting ? (
+                existingApplication ? "Updating..." : "Submitting..."
+              ) : (
+                existingApplication ? "Update Application" : "Submit Application"
+              )}
             </Button>
           </div>
         </div>

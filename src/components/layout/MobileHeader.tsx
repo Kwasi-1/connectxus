@@ -1,15 +1,32 @@
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import Logo from "../shared/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
 }
 
 export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
+  const { user } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const getFallbackInitials = () => {
+    if (user?.full_name) {
+      const names = user.full_name.trim().split(' ');
+      if (names.length >= 2) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+      }
+      return user.full_name.substring(0, 2).toUpperCase();
+    }
+    if (user?.username) {
+      return user.username.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
 
   return (
     <>
@@ -22,9 +39,12 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
               onClick={onMenuClick}
               className="rounded-full p-0 w-8 h-8"
             >
-              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium">U</span>
-              </div>
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={user?.avatar || undefined} alt={user?.full_name || user?.username || 'User'} />
+                <AvatarFallback className="text-xs font-medium">
+                  {getFallbackInitials()}
+                </AvatarFallback>
+              </Avatar>
             </Button>
           </div>
 

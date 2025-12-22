@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTutoringRequest } from '@/api/mentorship.api';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTutoringRequest } from "@/api/tutoring.api";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { MessageSquare } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { MessageSquare } from "lucide-react";
 
 interface RequestTutoringSessionModalProps {
   open: boolean;
@@ -32,19 +32,21 @@ export const RequestTutoringSessionModal = ({
 }: RequestTutoringSessionModalProps) => {
   const queryClient = useQueryClient();
 
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
   const requestMutation = useMutation({
     mutationFn: createTutoringRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tutoring-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['available-tutoring-sessions'] });
-      toast.success('Request sent successfully!');
+      queryClient.invalidateQueries({ queryKey: ["tutoring-requests"] });
+      queryClient.invalidateQueries({
+        queryKey: ["available-tutoring-sessions"],
+      });
+      toast.success("Request sent successfully!");
       onOpenChange(false);
-      setMessage('');
+      setMessage("");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to send request');
+      toast.error(error.response?.data?.message || "Failed to send request");
     },
   });
 
@@ -52,13 +54,14 @@ export const RequestTutoringSessionModal = ({
     e.preventDefault();
 
     if (!sessionId) {
-      toast.error('Invalid session');
+      toast.error("Invalid session");
       return;
     }
 
     requestMutation.mutate({
-      session_id: sessionId,
+      tutor_id: sessionId,
       message: message || undefined,
+      session_type: "single",
     });
   };
 
@@ -101,7 +104,7 @@ export const RequestTutoringSessionModal = ({
               Cancel
             </Button>
             <Button type="submit" disabled={requestMutation.isPending}>
-              {requestMutation.isPending ? 'Sending...' : 'Send Request'}
+              {requestMutation.isPending ? "Sending..." : "Send Request"}
             </Button>
           </DialogFooter>
         </form>

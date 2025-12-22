@@ -70,10 +70,9 @@ const Contact: React.FC = () => {
     {
       icon: BookOpen,
       title: "Academic Features",
-      description: "Tutoring, mentoring, study groups, and academic tools",
+      description: "Tutoring, study groups, and academic tools",
       topics: [
         "Finding tutors",
-        "Mentorship matching",
         "Study group creation",
         "Academic resources",
       ],
@@ -136,7 +135,7 @@ const Contact: React.FC = () => {
         "Each account is tied to one university for security and community integrity. If you're a transfer student or have affiliations with multiple institutions, contact our support team to discuss options for your specific situation.",
     },
     {
-      question: "How do I find tutors and mentors on the platform?",
+      question: "How do I find tutors on the platform?",
       answer:
         'Use our smart matching system in the "Academic Support" section. Filter by subject, availability, and expertise level. You can also browse tutor profiles, read reviews, and book sessions directly through the platform.',
     },
@@ -158,7 +157,7 @@ const Contact: React.FC = () => {
     {
       question: "Can faculty and staff join Campus Connect?",
       answer:
-        "Yes! Faculty and staff with verified university email addresses can join their institution's community. They have access to special features for academic collaboration and can connect with students for mentorship and research opportunities.",
+        "Yes! Faculty and staff with verified university email addresses can join their institution's community. They have access to special features for academic collaboration and can connect with students  and research opportunities.",
     },
     {
       question: "How does the project collaboration feature work?",

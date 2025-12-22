@@ -324,34 +324,6 @@ const SpaceActivities = () => {
       title="Space Activities"
     >
       <div className="space-y-3">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="text-lg">Current Space</CardTitle>
-                <CardDescription className="mt-1">
-                  Switch between spaces or create a new one
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <SpaceSwitcher
-                  currentSpaceId={currentSpaceId}
-                  onSpaceChange={handleSpaceChange}
-                  onCreateSpace={handleCreateSpace}
-                />
-                <Button
-                  onClick={handleCreateSpace}
-                  size="default"
-                  className="hover:scale-105 transition-transform duration-200"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Space
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-
         {/* Stats Grid */}
         {currentSpaceId && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">

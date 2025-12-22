@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   updateTutoringRequestStatus,
   TutoringRequest,
-} from "@/api/mentorship.api";
+} from "@/api/tutoring.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
   Dialog,
@@ -97,7 +97,7 @@ export const TutoringRequestDetailsModal = ({
 
   const handleMessage = () => {
     if (!request) return;
-    const userId = isTutor ? request.requester_id : request.session_id;
+    const userId = isTutor ? request.requester_id : request.tutor_id;
     messageMutation.mutate(userId);
   };
 
@@ -172,15 +172,13 @@ export const TutoringRequestDetailsModal = ({
             </div>
           </div>
 
-          {!isTutor && request.subjects && request.subjects.length > 0 && (
+          {!isTutor && request.subject && (
             <div>
-              <p className="text-sm font-medium mb-2">Subjects</p>
+              <p className="text-sm font-medium mb-2">Subject</p>
               <div className="flex flex-wrap gap-1">
-                {request.subjects.map((subject, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {subject}
-                  </Badge>
-                ))}
+                <Badge variant="secondary" className="text-xs">
+                  {request.subject}
+                </Badge>
               </div>
             </div>
           )}

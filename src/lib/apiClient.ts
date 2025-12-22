@@ -5,7 +5,6 @@ import { variables } from '@/utils/env';
 
 const API_BASE_URL = variables().API_BASE_URL || 'http://localhost:8000';
 const API_URL = variables().API_URL || 'http://localhost:8000/api';
-const DEFAULT_SPACE_ID = variables().DEFAULT_SPACE_ID || '';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -24,6 +23,11 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error: AxiosError) => {
@@ -148,67 +152,6 @@ export const clearTokens = (): void => {
 
 export const isAuthenticated = (): boolean => {
   return !!getAccessToken();
-};
-
-export const getDefaultSpaceId = (): string => {
-    if (DEFAULT_SPACE_ID) {
-    return DEFAULT_SPACE_ID;
-  }
-
-    const storedSpaceId = localStorage.getItem('currentSpaceId');
-  if (storedSpaceId) {
-    return storedSpaceId;
-  }
-
-  console.warn('VITE_DEFAULT_SPACE_ID is not set and no currentSpaceId in localStorage');
-  return '';
-};
-
-export const getValidatedSpaceId = (): string => {
-  if (!DEFAULT_SPACE_ID || DEFAULT_SPACE_ID.trim() === '') {
-    const errorMessage = `
-❌ Space ID Not Configured!
-
-To fix this error:
-1. Open frontend/.env.local
-2. Set VITE_DEFAULT_SPACE_ID to a valid UUID
-
-How to get a space ID:
-• Create a space: POST http://localhost:8000/api/spaces
-  Body: {"name": "My University Space"}
-• Or list existing spaces: GET http://localhost:8000/api/spaces
-• Copy the UUID from the response
-
-Example:
-VITE_DEFAULT_SPACE_ID=123e4567-e89b-12d3-a456-426614174000
-
-Then restart the frontend server.
-    `.trim();
-
-    toast.error('Space ID not configured. Check console for details.');
-    console.error(errorMessage);
-    throw new Error('VITE_DEFAULT_SPACE_ID is not configured in .env.local');
-  }
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(DEFAULT_SPACE_ID)) {
-    const errorMessage = `
-❌ Invalid Space ID Format!
-
-Current value: ${DEFAULT_SPACE_ID}
-
-Space ID must be a valid UUID in the format:
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-
-Please check your .env.local file and use a valid UUID.
-    `.trim();
-
-    toast.error('Invalid Space ID format. Check console for details.');
-    console.error(errorMessage);
-    throw new Error('VITE_DEFAULT_SPACE_ID must be a valid UUID');
-  }
-
-  return DEFAULT_SPACE_ID;
 };
 
 export { apiClient, API_BASE_URL, API_URL };

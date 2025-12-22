@@ -10,7 +10,7 @@ interface AppLayoutProps {
   children: ReactNode;
   showRightSidebar?: boolean;
   rightSidebarContent?: ReactNode;
-  onCreatePost?: (content: string, audience: string) => void;
+  onCreatePost?: (content: string, mediaUrls?: string[]) => void;
 }
 
 export function AppLayout({

@@ -38,11 +38,12 @@ import {
   Pie,
 } from "recharts";
 import { adminApi } from "@/api/admin.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 
 export function Analytics() {
   const { toast } = useToast();
+  const { selectedSpaceId } = useAdminSpace();
   const [timeRange, setTimeRange] = useState("30d");
   const [isLoading, setIsLoading] = useState(true);
   const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
@@ -74,14 +75,11 @@ export function Analytics() {
 
   useEffect(() => {
     loadAnalytics();
-  }, [timeRange]);
+  }, [timeRange, selectedSpaceId]);
 
   const loadAnalytics = async () => {
     try {
-      setIsLoading(true);
-      const spaceId = getDefaultSpaceId();
-
-      const now = new Date();
+      setIsLoading(true);      const now = new Date();
       const since = new Date();
       switch (timeRange) {
         case "7d":
@@ -99,9 +97,9 @@ export function Analytics() {
       }
 
       const [userGrowth, engagement, activity] = await Promise.all([
-        adminApi.getUserGrowth(spaceId, since),
-        adminApi.getEngagementMetrics(spaceId, since),
-        adminApi.getActivityAnalytics(spaceId, since),
+        adminApi.getUserGrowth(selectedSpaceId, since),
+        adminApi.getEngagementMetrics(selectedSpaceId, since),
+        adminApi.getActivityAnalytics(selectedSpaceId, since),
       ]);
 
       setUserGrowthData(userGrowth || []);

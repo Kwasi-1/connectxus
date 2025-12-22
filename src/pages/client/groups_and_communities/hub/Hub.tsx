@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,9 +19,10 @@ import {
   MapPin,
   Clock,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import {
   getGroups,
   getRecommendedGroups,
@@ -31,19 +32,26 @@ import {
 import {
   getCommunities,
   getUserCommunities,
+  getRecommendedCommunities,
   Community,
 } from "@/api/communities.api";
-import { getPublicEvents, Event } from "@/api/events.api";
+import { getRecommendedEvents, getUserRegisteredEvents, Event } from "@/api/events.api";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { EventCard } from "@/components/events/EventCard";
+import { EventDetailModal } from "@/components/events/EventDetailModal";
+import { useInView } from "react-intersection-observer";
 
 import { HubTab } from "@/types/communities";
 
 const Hub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("communities");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventFilter, setEventFilter] = useState<"registered" | "not-registered">("not-registered");
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const navigate = useNavigate();
+  const { ref: infiniteScrollRef, inView } = useInView();
 
   const {
     data: recommendedGroups = [],
@@ -81,11 +89,42 @@ const Hub = () => {
       staleTime: 60000,
     });
 
-  const { data: publicEvents = [], isLoading: loadingPublicEvents } = useQuery({
-    queryKey: ["public-events"],
-    queryFn: () => getPublicEvents({ page: 1, limit: 100 }),
-    staleTime: 60000,
+  const { data: recommendedCommunities = [], isLoading: loadingRecommendedCommunities } =
+    useQuery({
+      queryKey: ["recommended-communities"],
+      queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
+      staleTime: 60000,
+    });
+
+  const {
+    data: eventsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: loadingEvents,
+  } = useInfiniteQuery({
+    queryKey: ["hub-events", eventFilter],
+    queryFn: ({ pageParam = 1 }) => {
+      if (eventFilter === "registered") {
+        return getUserRegisteredEvents({ page: pageParam, limit: 20 });
+      } else {
+        return getRecommendedEvents({ page: pageParam, limit: 20 });
+      }
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < 20) return undefined;
+      return allPages.length + 1;
+    },
+    initialPageParam: 1,
   });
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const allEvents = eventsData?.pages.flatMap((page) => page) || [];
 
   const isLoading =
     loadingAllGroups ||
@@ -93,14 +132,20 @@ const Hub = () => {
     loadingAllCommunities ||
     loadingUserCommunities ||
     loadingRecommendedGroups ||
-    loadingPublicEvents;
+    loadingRecommendedCommunities;
 
   const myCommunities = userCommunities;
   const myGroups = userGroups;
-  const exploreCommunities = allCommunities
-    .filter((c) => !c.is_member)
+
+  const joinedCommunityIds = new Set(userCommunities.map(c => c.id));
+  const exploreCommunities = recommendedCommunities
+    .filter(c => !joinedCommunityIds.has(c.id))
     .slice(0, 3);
-  const exploreGroups = recommendedGroups.slice(0, 3);
+
+  const joinedGroupIds = new Set(userGroups.map(g => g.id));
+  const exploreGroups = recommendedGroups
+    .filter(g => !joinedGroupIds.has(g.id))
+    .slice(0, 3);
 
   if (isLoading) {
     return (
@@ -209,79 +254,6 @@ const Hub = () => {
       </CardContent>
     </Card>
   );
-
-  const EventCard = ({ event }: { event: Event }) => {
-    const startDate = new Date(event.start_date);
-    const endDate = new Date(event.end_date);
-    const isMultiDay = startDate.toDateString() !== endDate.toDateString();
-
-    return (
-      <Card
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate(`/events/${event.id}`)}
-      >
-        <CardHeader className="pb-3">
-          <div className="flex items-start gap-3">
-            {event.image_url ? (
-              <img
-                src={event.image_url}
-                alt={event.title}
-                className="h-12 w-12 rounded object-cover"
-              />
-            ) : (
-              <div className="h-12 w-12 rounded bg-primary/10 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-primary" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base mb-1 truncate">
-                {event.title}
-              </CardTitle>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">
-                  {event.category}
-                </Badge>
-                {event.registration_required && (
-                  <Badge variant="secondary" className="text-xs">
-                    Registration Required
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-2">
-          {event.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {event.description}
-            </p>
-          )}
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>
-              {format(startDate, "MMM dd, yyyy")}
-              {isMultiDay && ` - ${format(endDate, "MMM dd, yyyy")}`}
-            </span>
-          </div>
-          {event.location && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span className="truncate">{event.location}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{event.registered_count} registered</span>
-            </div>
-            <Button size="sm" variant="ghost">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   return (
     <AppLayout>
@@ -446,7 +418,8 @@ const Hub = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="events" className="p-4 space-y-6 mt-0">
+          <TabsContent value="events" className="p-4 space-y-4 mt-0">
+            {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -457,46 +430,102 @@ const Hub = () => {
               />
             </div>
 
-            {publicEvents.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">
-                  Upcoming Public Events
-                </h3>
-                <div className="grid gap-4">
-                  {publicEvents
-                    .filter(
-                      (event) =>
-                        !eventSearchQuery ||
-                        event.title
-                          .toLowerCase()
-                          .includes(eventSearchQuery.toLowerCase()) ||
-                        event.description
-                          ?.toLowerCase()
-                          .includes(eventSearchQuery.toLowerCase()) ||
-                        event.category
-                          .toLowerCase()
-                          .includes(eventSearchQuery.toLowerCase())
-                    )
-                    .slice(0, 10)
-                    .map((event) => (
-                      <EventCard key={event.id} event={event} />
-                    ))}
-                </div>
-              </div>
-            )}
+            {/* Filter Tabs */}
+            <div className="flex gap-2">
+              <Button
+                variant={eventFilter === "not-registered" ? "default" : "outline"}
+                onClick={() => setEventFilter("not-registered")}
+                className="flex-1"
+              >
+                Recommended
+              </Button>
+              <Button
+                variant={eventFilter === "registered" ? "default" : "outline"}
+                onClick={() => setEventFilter("registered")}
+                className="flex-1"
+              >
+                Registered
+              </Button>
+            </div>
 
-            {publicEvents.length === 0 && (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Public Events</h3>
-                <p className="text-muted-foreground">
-                  No upcoming public events are available
-                </p>
+            {/* Events List */}
+            {loadingEvents && allEvents.length === 0 ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            ) : (
+              <>
+                {allEvents.length > 0 ? (
+                  <div className="space-y-4">
+                    {allEvents
+                      .filter(
+                        (event) =>
+                          !eventSearchQuery ||
+                          event.title
+                            .toLowerCase()
+                            .includes(eventSearchQuery.toLowerCase()) ||
+                          event.description
+                            ?.toLowerCase()
+                            .includes(eventSearchQuery.toLowerCase()) ||
+                          event.category
+                            .toLowerCase()
+                            .includes(eventSearchQuery.toLowerCase())
+                      )
+                      .map((event) => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => {
+                            if (event.group_id) {
+                              navigate(`/groups/${event.group_id}?tab=events`);
+                            } else if (event.community_id) {
+                              navigate(`/communities/${event.community_id}?tab=events`);
+                            } else {
+                              setSelectedEvent(event);
+                            }
+                          }}
+                          showRegistrationStatus={true}
+                        />
+                      ))}
+
+                    {hasNextPage && (
+                      <div ref={infiniteScrollRef} className="flex justify-center py-4">
+                        {isFetchingNextPage && (
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {eventFilter === "registered" ? "No Registered Events" : "No Events Available"}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {eventFilter === "registered"
+                        ? "You haven't registered for any events yet"
+                        : "No recommended events are available at the moment"}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Event Detail Modal */}
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => {
+            if (!open) setSelectedEvent(null);
+          }}
+          canManage={false}
+        />
+      )}
     </AppLayout>
   );
 };

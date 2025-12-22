@@ -23,33 +23,27 @@ const availableSubjects = [
   'Statistics', 'Programming', 'Data Science', 'Web Development'
 ];
 
-export function EditTutorApplicationModal({ 
-  isOpen, 
-  onClose, 
-  application, 
-  onSave 
+export function EditTutorApplicationModal({
+  isOpen,
+  onClose,
+  application,
+  onSave
 }: EditTutorApplicationModalProps) {
   const { toast } = useToast();
-  const [subjects, setSubjects] = useState(application.subjects);
+  const [subject, setSubject] = useState(application.subject || '');
   const [hourlyRate, setHourlyRate] = useState(application.hourlyRate?.toString() || '');
   const [teachingStyle, setTeachingStyle] = useState(application.teachingStyle);
   const [motivation, setMotivation] = useState(application.motivation);
   const [customSubject, setCustomSubject] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubjectAdd = (subject: string) => {
-    if (!subjects.includes(subject)) {
-      setSubjects([...subjects, subject]);
-    }
-  };
-
-  const handleSubjectRemove = (subject: string) => {
-    setSubjects(subjects.filter(s => s !== subject));
+  const handleSubjectSelect = (selectedSubject: string) => {
+    setSubject(selectedSubject);
   };
 
   const handleAddCustomSubject = () => {
-    if (customSubject.trim() && !subjects.includes(customSubject.trim())) {
-      setSubjects([...subjects, customSubject.trim()]);
+    if (customSubject.trim()) {
+      setSubject(customSubject.trim());
       setCustomSubject('');
     }
   };
@@ -62,7 +56,7 @@ export function EditTutorApplicationModal({
 
     const updatedApplication: TutorApplication = {
       ...application,
-      subjects,
+      subject,
       hourlyRate: hourlyRate ? parseFloat(hourlyRate) : undefined,
       teachingStyle,
       motivation,
@@ -87,22 +81,22 @@ export function EditTutorApplicationModal({
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label>Subjects</Label>
+            <Label>Subject (Select One)</Label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-              {availableSubjects.map(subject => (
+              {availableSubjects.map(subjectOption => (
                 <Button
-                  key={subject}
+                  key={subjectOption}
                   type="button"
-                  variant={subjects.includes(subject) ? "default" : "outline"}
+                  variant={subject === subjectOption ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handleSubjectAdd(subject)}
+                  onClick={() => handleSubjectSelect(subjectOption)}
                   className="justify-start text-xs"
                 >
-                  {subject}
+                  {subjectOption}
                 </Button>
               ))}
             </div>
-            
+
             <div className="flex gap-2 mt-2">
               <Input
                 placeholder="Add custom subject..."
@@ -115,22 +109,20 @@ export function EditTutorApplicationModal({
               </Button>
             </div>
 
-            {subjects.length > 0 && (
+            {subject && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {subjects.map(subject => (
-                  <Badge key={subject} variant="secondary" className="pr-1">
-                    {subject}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 ml-1"
-                      onClick={() => handleSubjectRemove(subject)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                ))}
+                <Badge variant="secondary" className="pr-1">
+                  Selected: {subject}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1"
+                    onClick={() => setSubject('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
               </div>
             )}
           </div>

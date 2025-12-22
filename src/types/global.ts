@@ -1,6 +1,13 @@
-
-export type UserRole = 'student' | 'tutor' | 'mentor' | 'ta' | 'lecturer' | 'admin';
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type UserRole =
+  | "user"
+  | "super_admin"
+  | "admin"
+  | "support_staff"
+  | "content_moderator"
+  | "finance_officer"
+  | "operations_manager"
+  | "developer_admin";
+export type ApprovalStatus = "pending" | "approved" | "rejected";
 
 export interface User {
   id: string;
@@ -12,15 +19,16 @@ export interface User {
   verified: boolean;
   followers: number;
   following: number;
-  university?: string;
-  major?: string;
-  year?: number;
-  createdAt: Date;
-    roles: UserRole[];
+  space_id?: string;
+  space_name?: string;
+  department_id?: string;
+  department_name?: string;
   department?: string;
   level?: string;
-  mentorStatus?: ApprovalStatus;
-  tutorStatus?: ApprovalStatus;
+  createdAt: Date;
+  role: string;
+  isActive?: boolean;
+  status?: string;
 }
 
 export interface Post {
@@ -76,21 +84,6 @@ export interface TutorProfile {
   verified: boolean;
 }
 
-export interface MentorProfile {
-  id: string;
-  user: User;
-  industry: string;
-  company?: string;
-  position?: string;
-  experience: number;
-  specialties: string[];
-  rating: number;
-  reviewCount: number;
-  availability: TimeSlot[];
-  description: string;
-  verified: boolean;
-}
-
 export interface Message {
   id: string;
   sender: User;
@@ -113,26 +106,25 @@ export interface TimeSlot {
   endTime: string;
 }
 
-export type GroupCategory = 
-  | 'Academic'
-  | 'Sports'
-  | 'Arts'
-  | 'Technology'
-  | 'Social'
-  | 'Professional'
-  | 'Study Group'
-  | 'Other';
+export type GroupCategory =
+  | "Academic"
+  | "Sports"
+  | "Arts"
+  | "Technology"
+  | "Social"
+  | "Professional"
+  | "Study Group"
+  | "Other";
 
-export type NotificationType = 
-  | 'like'
-  | 'comment'
-  | 'repost'
-  | 'follow'
-  | 'mention'
-  | 'message'
-  | 'group_invite'
-  | 'tutoring_request'
-  | 'mentor_request';
+export type NotificationType =
+  | "like"
+  | "comment"
+  | "repost"
+  | "follow"
+  | "mention"
+  | "message"
+  | "group_invite"
+  | "tutoring_request";
 
 export interface Notification {
   id: string;
@@ -142,7 +134,8 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  relatedId?: string; }
+  relatedId?: string;
+}
 
 export interface TrendingTopic {
   id: string;
@@ -161,15 +154,19 @@ export interface CampusHighlight {
   createdAt: Date;
 }
 
-export type ExploreTab = 'for-you' | 'trending' | 'news' | 'sports' | 'entertainment';
+export type ExploreTab =
+  | "for-you"
+  | "trending"
+  | "news"
+  | "sports"
+  | "entertainment";
 
-export type NotificationTab = 'all' | 'verified' | 'mentions';
+export type NotificationTab = "all" | "verified" | "mentions";
 
 export interface UserProfile extends User {
   posts: Post[];
   joinedGroups: Group[];
   tutoringRequests: TutoringRequest[];
-  mentorProfile?: MentorProfile;
 }
 
 export interface TutoringRequest {
@@ -178,7 +175,7 @@ export interface TutoringRequest {
   description: string;
   studentId: string;
   tutorId?: string;
-  status: 'pending' | 'accepted' | 'completed';
+  status: "pending" | "accepted" | "completed";
   createdAt: Date;
 }
 

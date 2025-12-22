@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,28 +17,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { TutorProfile } from "@/api/mentorship.api";
-import { BookOpen, Clock, DollarSign } from "lucide-react";
-import { useCurrency } from "@/hooks/useCurrency";
+import { TutorProfile } from "@/api/tutoring.api";
+import { BookOpen, Clock, DollarSign, Calendar } from "lucide-react";
 
 const requestSchema = z.object({
-  subject: z.string().min(1, "Please select a subject"),
-  topic: z.string().min(10, "Please provide at least 10 characters"),
-  preferredSchedule: z
-    .array(z.string())
-    .min(1, "Please select at least one time slot"),
+  message: z.string().min(10, "Please provide at least 10 characters"),
+  schedules: z.array(z.string()).min(1, "Please select at least one schedule"),
   sessionType: z.enum(["single", "semester"], {
     required_error: "Please select a session type",
   }),
@@ -50,16 +39,9 @@ interface RequestTutoringModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tutor: TutorProfile;
-  onSubmit: (data: RequestFormData) => void;
+  onSubmit: (data: RequestFormData & { schedules: string[] }) => void;
   isLoading?: boolean;
-  initialData?: Partial<RequestFormData>; // Add support for pre-filling data
 }
-
-const scheduleOptions = [
-  { id: "morning", label: "Morning (8AM - 12PM)" },
-  { id: "afternoon", label: "Afternoon (12PM - 5PM)" },
-  { id: "evening", label: "Evening (5PM - 9PM)" },
-];
 
 export function RequestTutoringModal({
   open,
@@ -67,38 +49,39 @@ export function RequestTutoringModal({
   tutor,
   onSubmit,
   isLoading = false,
-  initialData,
 }: RequestTutoringModalProps) {
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
-      subject: initialData?.subject || "",
-      topic: initialData?.topic || "",
-      preferredSchedule: initialData?.preferredSchedule || [],
-      sessionType: initialData?.sessionType || "single",
+      message: "",
+      schedules: [],
+      sessionType: "single",
     },
   });
-  const { formatCurrency } = useCurrency();
 
-
-  // Reset form when modal opens with new initial data
-  React.useEffect(() => {
-    if (open) {
-      form.reset({
-        subject: initialData?.subject || "",
-        topic: initialData?.topic || "",
-        preferredSchedule: initialData?.preferredSchedule || [],
-        sessionType: initialData?.sessionType || "single",
-      });
-    }
-  }, [open, initialData, form]);
+  const sessionType = form.watch("sessionType");
+  const selectedSchedules = form.watch("schedules");
 
   const handleSubmit = (data: RequestFormData) => {
     onSubmit(data);
   };
 
   const tutorName = tutor.full_name || tutor.username || "this tutor";
-  const hourlyRate = tutor.hourly_rate || 25;
+  const sessionRate = tutor.session_rate ? parseFloat(tutor.session_rate) : 25;
+  const semesterRate = tutor.semester_rate
+    ? parseFloat(tutor.semester_rate)
+    : sessionRate * 12 * 0.85;
+
+  const availableSchedules =
+    tutor.availability && tutor.availability.length > 0
+      ? tutor.availability
+      : [
+          "Monday 9AM - 12PM",
+          "Tuesday 2PM - 5PM",
+          "Wednesday 9AM - 12PM",
+          "Thursday 2PM - 5PM",
+          "Friday 9AM - 12PM",
+        ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,110 +102,6 @@ export function RequestTutoringModal({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
           >
-            {/* Subject Selection */}
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {tutor.subjects?.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Topic/Description */}
-            <FormField
-              control={form.control}
-              name="topic"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Topic / What you need help with</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe what you'd like to learn or work on..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Preferred Schedule */}
-            <FormField
-              control={form.control}
-              name="preferredSchedule"
-              render={() => (
-                <FormItem>
-                  <div className="mb-4">
-                    <FormLabel className="text-base">
-                      Preferred Schedule
-                    </FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Select all time slots that work for you
-                    </p>
-                  </div>
-                  {scheduleOptions.map((option) => (
-                    <FormField
-                      key={option.id}
-                      control={form.control}
-                      name="preferredSchedule"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
-                            key={option.id}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(option.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([
-                                        ...field.value,
-                                        option.id,
-                                      ])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== option.id
-                                        )
-                                      );
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              {option.label}
-                            </FormLabel>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                  ))}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* Session Type */}
             <FormField
               control={form.control}
@@ -232,7 +111,10 @@ export function RequestTutoringModal({
                   <FormLabel>Session Type</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue("schedules", []);
+                      }}
                       defaultValue={field.value}
                       className="space-y-3"
                     >
@@ -246,11 +128,12 @@ export function RequestTutoringModal({
                             <div>
                               <p className="font-medium">Single Session</p>
                               <p className="text-sm text-muted-foreground">
-                                One tutoring session
+                                One tutoring session - Select 1 time slot
                               </p>
                             </div>
                             <div className="flex items-center text-lg font-semibold">
-                              {formatCurrency(hourlyRate)}
+                              <DollarSign className="h-5 w-5" />
+                              {sessionRate.toFixed(2)}
                             </div>
                           </div>
                         </Label>
@@ -265,21 +148,113 @@ export function RequestTutoringModal({
                             <div>
                               <p className="font-medium">Semester Package</p>
                               <p className="text-sm text-muted-foreground">
-                                12 sessions with 15% discount
+                                Multiple sessions - Select your preferred times
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm line-through text-muted-foreground">
-                                {formatCurrency(hourlyRate * 12)}
-                              </span>
                               <div className="flex items-center text-lg font-semibold">
-                                {formatCurrency(Math.round(hourlyRate * 12 * 0.85))}
+                                <DollarSign className="h-5 w-5" />
+                                {semesterRate.toFixed(2)}
                               </div>
                             </div>
                           </div>
                         </Label>
                       </div>
                     </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Schedule Selection from Availability */}
+            <FormField
+              control={form.control}
+              name="schedules"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel className="text-base flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Available Time Slots
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      {sessionType === "single"
+                        ? "Select 1 time slot that works for you"
+                        : "Select one or more time slots for your sessions"}
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                    {availableSchedules.map((schedule, index) => (
+                      <FormField
+                        key={index}
+                        control={form.control}
+                        name="schedules"
+                        render={({ field }) => {
+                          const isChecked = field.value?.includes(schedule);
+                          const canSelect =
+                            sessionType === "semester" ||
+                            !field.value?.length ||
+                            isChecked;
+
+                          return (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={isChecked}
+                                  disabled={!canSelect}
+                                  onCheckedChange={(checked) => {
+                                    if (sessionType === "single") {
+                                      field.onChange(checked ? [schedule] : []);
+                                    } else {
+                                      return checked
+                                        ? field.onChange([
+                                            ...field.value,
+                                            schedule,
+                                          ])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== schedule
+                                            )
+                                          );
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal flex items-center gap-2 cursor-pointer">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                {schedule}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {selectedSchedules.length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Selected: {selectedSchedules.length} time slot
+                      {selectedSchedules.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Message/Description */}
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>What you need help with</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe what you'd like to learn or work on in this subject..."
+                      className="min-h-[100px]"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -296,7 +271,9 @@ export function RequestTutoringModal({
                   • If accepted, you'll proceed to payment to confirm the
                   session
                 </li>
-                <li>• After payment, you can message them to schedule</li>
+                <li>
+                  • After payment, you can message them to finalize schedule
+                </li>
               </ul>
             </div>
 

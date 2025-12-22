@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,9 @@ import {
   Megaphone,
   Pin,
   Trash2,
+  MoreVertical,
+  MapPin,
+  Plus,
 } from "lucide-react";
 import {
   ProjectRole,
@@ -41,6 +44,8 @@ import {
 import { User } from "@/types/global";
 import { ProjectRoleApplicationsModal } from "@/components/groups/ProjectRoleApplicationsModal";
 import { AddMemberModal } from "@/components/groups/AddMemberModal";
+import { uploadFile } from "@/api/files.api";
+import { toast as sonnerToast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getGroupById,
@@ -53,6 +58,7 @@ import {
   getJoinRequests,
   approveJoinRequest,
   rejectJoinRequest,
+  createJoinRequest,
   JoinRequest,
   getGroupAnnouncements,
   createGroupAnnouncement,
@@ -71,6 +77,8 @@ import {
   getGroupResources,
   GroupResource,
   getGroupApplications,
+  createGroupResource,
+  deleteGroupResource,
   } from "@/api/groups.api";
 import { getPostsByGroup } from "@/api/posts.api";
 import { Input } from "@/components/ui/input";
@@ -109,22 +117,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  getGroupEvents,
+  getGroupUpcomingEvents,
+  createGroupEvent,
+  updateEvent,
+  Event,
+  CreateEventRequest,
+} from "@/api/events.api";
+import moment from "moment";
+import { EventCard } from "@/components/events/EventCard";
+import { EventForm } from "@/components/events/EventForm";
+import { EventDetailModal } from "@/components/events/EventDetailModal";
 
-type GroupTab = "members" | "resources" | "roles" | "settings" | "requests" | "announcements";
+type GroupTab = "members" | "resources" | "roles" | "settings" | "requests" | "announcements" | "events";
 
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const currentUserId = user?.id || "";
 
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<GroupTab>("members");
+  
+  const initialTab = (searchParams.get("tab") as GroupTab) || "members";
+  const [activeTab, setActiveTab] = useState<GroupTab>(initialTab);
   const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
+  const [resourceName, setResourceName] = useState("");
+  const [resourceDescription, setResourceDescription] = useState("");
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [resourceToDelete, setResourceToDelete] = useState<string | null>(null);
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -135,7 +164,7 @@ const GroupDetail = () => {
   const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: ["group-members", id],
     queryFn: () => getGroupMembers(id || "", { page: 1, limit: 100 }),
-    enabled: !!id && activeTab === "members",
+    enabled: !!id && activeTab === "members" && (group?.is_member || group?.group_type === "public"),
   });
 
   const { data: roles = [] } = useQuery({
@@ -153,7 +182,7 @@ const GroupDetail = () => {
     const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ["group-resources", id],
     queryFn: () => getGroupResources(id || "", { page: 1, limit: 100 }),
-    enabled: !!id && activeTab === "resources",
+    enabled: !!id && activeTab === "resources" && (group?.is_member || group?.group_type === "public"),
   });
 
   const joinMutation = useMutation({
@@ -184,6 +213,27 @@ const GroupDetail = () => {
       toast({
         title: "Error",
         description: "Failed to leave group",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const joinRequestMutation = useMutation({
+    mutationFn: (message: string) => createJoinRequest(id || "", { message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      queryClient.invalidateQueries({ queryKey: ["group-join-requests", id] });
+      setIsJoinRequestModalOpen(false);
+      setJoinRequestMessage("");
+      toast({
+        title: "Request sent",
+        description: "Your join request has been sent to the group admins",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send join request",
         variant: "destructive",
       });
     },
@@ -239,12 +289,20 @@ const GroupDetail = () => {
       applicationId: string;
       status: "approved" | "rejected";
     }) => updateApplicationStatus(applicationId, status),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["group-roles", id] });
       queryClient.invalidateQueries({ queryKey: ["group-applications", id] });
       queryClient.invalidateQueries({ queryKey: ["group-members", id] });
       queryClient.invalidateQueries({ queryKey: ["group", id] });
-      toast({ title: "Application updated", description: "Application status has been updated" });
+
+      const statusText = variables.status === "approved" ? "approved" : "rejected";
+      toast({
+        title: `Application ${statusText}`,
+        description: `The application has been ${statusText}`
+      });
+
+      
+      setIsApplicationsModalOpen(false);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update application", variant: "destructive" });
@@ -310,7 +368,15 @@ const GroupDetail = () => {
   });
 
     const updateGroupMutation = useMutation({
-    mutationFn: (data: any) => updateGroup(id || "", data),
+    mutationFn: (data: any) => {
+      
+      const updateData = {
+        name: group?.name || "",
+        category: group?.category || "",
+        ...data,
+      };
+      return updateGroup(id || "", updateData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group", id] });
       toast({ title: "Group updated", description: "Group has been updated successfully" });
@@ -384,6 +450,41 @@ const GroupDetail = () => {
     },
   });
 
+  const createResourceMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; file_url: string; file_type?: string; file_size?: number }) =>
+      createGroupResource(id || "", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-resources", id] });
+      setIsResourceModalOpen(false);
+      setResourceName("");
+      setResourceDescription("");
+      setResourceFile(null);
+      toast({
+        title: "Resource uploaded",
+        description: "Resource has been added to the group",
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to upload resource", variant: "destructive" });
+    },
+  });
+
+  const deleteResourceMutation = useMutation({
+    mutationFn: (resourceId: string) => deleteGroupResource(resourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group-resources", id] });
+      setResourceToDelete(null);
+      toast({
+        title: "Resource deleted",
+        description: "The resource has been removed from the group",
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete resource", variant: "destructive" });
+      setResourceToDelete(null);
+    },
+  });
+
     const { data: joinRequests = [] } = useQuery({
     queryKey: ["group-join-requests", id],
     queryFn: () => getJoinRequests(id || ""),
@@ -393,8 +494,15 @@ const GroupDetail = () => {
     const { data: announcements = [] } = useQuery({
     queryKey: ["group-announcements", id],
     queryFn: () => getGroupAnnouncements(id || ""),
-    enabled: !!id && activeTab === "announcements",
+    enabled: !!id && activeTab === "announcements" && (group?.is_member || group?.group_type === "public"),
   });
+
+  
+  const userApplications = group?.user_role_applications || [];
+  const hasPendingApplications = userApplications.some(app => app.status === "pending");
+  const hasRejectedApplications = userApplications.some(app => app.status === "rejected");
+  const hasApprovedApplications = userApplications.some(app => app.status === "approved");
+  const hasAnyApplications = userApplications.length > 0;
 
   const [followedUsers, setFollowedUsers] = useState<User[]>([]);
   const [showFollowedUsers, setShowFollowedUsers] = useState(false);
@@ -404,16 +512,14 @@ const GroupDetail = () => {
   const [announcementToPinned, setAnnouncementToPinned] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
 
-  const [hasPendingJoinRequest, setHasPendingJoinRequest] = useState(false);
-  const [pendingRoleApplications, setPendingRoleApplications] = useState<
-    string[]
-  >([]);
   const [
     isProjectRoleApplicationModalOpen,
     setIsProjectRoleApplicationModalOpen,
   ] = useState(false);
   const [selectedRoleForApplication, setSelectedRoleForApplication] =
     useState<ProjectRole | null>(null);
+  const [isJoinRequestModalOpen, setIsJoinRequestModalOpen] = useState(false);
+  const [joinRequestMessage, setJoinRequestMessage] = useState("");
 
   const [memberToRemove, setMemberToRemove] = useState<MemberWithRole | null>(
     null
@@ -443,9 +549,6 @@ const GroupDetail = () => {
   const [editedProfileImage, setEditedProfileImage] = useState<string | null>(
     null
   );
-  const [editedBannerImage, setEditedBannerImage] = useState<string | null>(
-    null
-  );
 
   useEffect(() => {
     if (group) {
@@ -460,31 +563,18 @@ const GroupDetail = () => {
     }
   }, [group]);
 
+  
   useEffect(() => {
-        if (group && !group.is_member && group.group_type === "private") {
-      const userHasPending = joinRequests.some(
-        (req) => req.user_id === currentUserId && req.status === "pending"
-      );
-      setHasPendingJoinRequest(userHasPending);
-    }
+    if (group && !group.is_member && group.group_type === "project") {
+      const userApplications = group.user_role_applications || [];
+      const hasApprovedApplication = userApplications.some(app => app.status === "approved");
 
-        if (group && !group.is_member && group.group_type === "project" && applications) {
-      const userPendingRoles: string[] = [];
-      applications.forEach((app) => {
-        if (app.user_id === currentUserId && app.status === "pending") {
-          userPendingRoles.push(app.role_id);
-        }
-      });
-      setPendingRoleApplications(userPendingRoles);
+      
+      if (userApplications.length === 0 || !hasApprovedApplication) {
+        setActiveTab("roles");
+      }
     }
-  }, [
-    group?.group_type,
-    group?.id,
-    group?.is_member,
-    applications,
-    joinRequests,
-    currentUserId,
-  ]);
+  }, [group?.id, group?.is_member, group?.group_type, group?.user_role_applications]);
   const handleUpdateGroupInfo = useCallback(() => {
     updateGroupMutation.mutate({
       name: groupName,
@@ -545,77 +635,60 @@ const GroupDetail = () => {
     });
   }, [toast]);
 
-  const handleProfileImageEdit = (
+  const handleProfileImageEdit = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Profile image must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        setEditedProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Profile image must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      sonnerToast.error("Please select an image file");
+      return;
+    }
+
+    try {
+      const uploaded = await uploadFile({
+        file,
+        moduleType: "groups",
+        moduleId: id,
+        accessLevel: "public",
+      });
+      setEditedProfileImage(uploaded.url);
+      sonnerToast.success("Profile image uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      sonnerToast.error("Failed to upload profile image");
     }
   };
 
-  const handleBannerImageEdit = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Banner image must be less than 10MB",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        setEditedBannerImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const saveImageChanges = useCallback(() => {
     const updates: any = {};
     if (editedProfileImage !== null) {
       updates.avatar = editedProfileImage;
     }
-    if (editedBannerImage !== null) {
-      updates.banner = editedBannerImage;
-    }
 
     if (Object.keys(updates).length > 0) {
       updateGroupMutation.mutate(updates);
       setEditedProfileImage(null);
-      setEditedBannerImage(null);
     }
-  }, [editedProfileImage, editedBannerImage, updateGroupMutation]);
+  }, [editedProfileImage, updateGroupMutation]);
 
   const cancelImageChanges = useCallback(() => {
     setEditedProfileImage(null);
-    setEditedBannerImage(null);
   }, []);
 
   const removeGroupProfileImage = useCallback(() => {
     setEditedProfileImage("");
-  }, []);
-
-  const removeGroupBannerImage = useCallback(() => {
-    setEditedBannerImage("");
   }, []);
 
   const handleJoinGroup = () => {
@@ -641,7 +714,11 @@ const GroupDetail = () => {
           variant: "destructive",
         });
       }
+    } else if (group.group_type === "private") {
+      
+      setIsJoinRequestModalOpen(true);
     } else {
+      
       joinMutation.mutate();
     }
   };
@@ -668,11 +745,17 @@ const GroupDetail = () => {
       );
 
       navigate(`/messages/${response.conversation_id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to open group chat:", error);
+
+      
+      const isForbidden = error?.response?.status === 403;
+
       toast({
         title: "Error",
-        description: "Failed to open group chat. Please try again.",
+        description: isForbidden
+          ? "You must be a member of this group to access the group chat."
+          : "Failed to open group chat. Please try again.",
         variant: "destructive",
       });
     }
@@ -761,10 +844,41 @@ const GroupDetail = () => {
   const handleApplyForRole = useCallback(
     (role: ProjectRole, message: string) => {
       applyForRoleMutation.mutate({ roleId: role.id, message });
-      setPendingRoleApplications([...pendingRoleApplications, role.id]);
     },
-    [applyForRoleMutation, pendingRoleApplications]
+    [applyForRoleMutation]
   );
+
+  const handleUploadResource = () => {
+    if (!resourceName.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a resource name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!resourceFile) {
+      toast({
+        title: "Missing file",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    
+    
+    const fileUrl = URL.createObjectURL(resourceFile);
+
+    createResourceMutation.mutate({
+      name: resourceName,
+      description: resourceDescription || undefined,
+      file_url: fileUrl,
+      file_type: resourceFile.type,
+      file_size: resourceFile.size,
+    });
+  };
 
   const handleOpenRoleApplication = (role: ProjectRole) => {
     setSelectedRoleForApplication(role);
@@ -994,17 +1108,6 @@ const GroupDetail = () => {
           </div>
         </div>
 
-        {group.banner && (
-          <div className="relative h-48 bg-gradient-to-r from-primary/20 to-primary/10">
-            <img
-              src={group.banner}
-              alt={`${group.name} banner`}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/20" />
-          </div>
-        )}
-
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16 rounded-sm">
@@ -1045,31 +1148,66 @@ const GroupDetail = () => {
               <div className="flex gap-2">
                 {!canManage && !group.is_member && (
                   <>
-                    <Button
-                      onClick={handleJoinGroup}
-                      variant="default"
-                      disabled={
-                        hasPendingJoinRequest ||
-                        (group.group_type === "project" &&
-                          pendingRoleApplications.length > 0)
-                      }
-                    >
-                      {hasPendingJoinRequest ? (
-                        "Request Pending"
-                      ) : group.group_type === "private" ? (
-                        "Request Access"
-                      ) : group.group_type === "project" ? (
-                        pendingRoleApplications.length > 0 ? (
-                          `Applied for ${pendingRoleApplications.length} role${
-                            pendingRoleApplications.length > 1 ? "s" : ""
-                          }`
+                    {group.join_request_status === "pending" ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+                          <Clock className="h-3 w-3 mr-1.5" />
+                          Join Request Pending
+                        </Badge>
+                      </div>
+                    ) : group.join_request_status === "rejected" ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="px-3 py-1.5 text-sm">
+                          <AlertTriangle className="h-3 w-3 mr-1.5" />
+                          Join Request Rejected
+                        </Badge>
+                        {group.group_type === "private" && (
+                          <Button
+                            onClick={handleJoinGroup}
+                            variant="default"
+                            size="sm"
+                          >
+                            Request Again
+                          </Button>
+                        )}
+                      </div>
+                    ) : group.group_type === "project" && hasPendingApplications ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+                          <Clock className="h-3 w-3 mr-1.5" />
+                          Application Pending ({userApplications.filter(a => a.status === "pending").length} role{userApplications.filter(a => a.status === "pending").length > 1 ? "s" : ""})
+                        </Badge>
+                      </div>
+                    ) : group.group_type === "project" && hasRejectedApplications && !hasPendingApplications && !hasApprovedApplications ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="px-3 py-1.5 text-sm">
+                            <AlertTriangle className="h-3 w-3 mr-1.5" />
+                            Application Rejected
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Briefcase className="h-4 w-4" />
+                          You can reapply - view roles below
+                        </div>
+                      </div>
+                    ) : group.group_type === "project" && !hasAnyApplications ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Briefcase className="h-4 w-4" />
+                        View roles below to apply
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={handleJoinGroup}
+                        variant="default"
+                      >
+                        {group.group_type === "private" ? (
+                          "Request Access"
                         ) : (
-                          "View Roles & Apply"
-                        )
-                      ) : (
-                        "Join Group"
-                      )}
-                    </Button>
+                          "Join Group"
+                        )}
+                      </Button>
+                    )}
                     <Button
                       onClick={handleShareGroup}
                       variant="outline"
@@ -1104,24 +1242,13 @@ const GroupDetail = () => {
                     </Button>
                   </>
                 )}
-                {(canManage ||
-                  (group?.is_member &&
-                    (group?.allowMemberInvites ?? true))) && (
-                  <div className="flex gap-2">
-                    {canManage && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setActiveTab("settings")}
-                      >
-                        Manage Group
-                      </Button>
-                    )}
-
-                    <Button onClick={() => setIsAddMemberModalOpen(true)}>
-                      <UserPlus className="h-4 w-4" />
-                      <span className="hidden md:block ml-2">Add Member</span>
-                    </Button>
-                  </div>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab("settings")}
+                  >
+                    Manage Group
+                  </Button>
                 )}
               </div>
             </div>
@@ -1133,13 +1260,15 @@ const GroupDetail = () => {
           onValueChange={(value) => setActiveTab(value as GroupTab)}
         >
           <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
-            <TabsTrigger
-              value="members"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Members
-            </TabsTrigger>
-            {group.group_type === "project" && (
+            {(group.is_member || group.group_type === "public") && (
+              <TabsTrigger
+                value="members"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Members
+              </TabsTrigger>
+            )}
+            {group.group_type === "project" && (!group.is_member || canManage) && (
               <TabsTrigger
                 value="roles"
                 className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -1147,18 +1276,30 @@ const GroupDetail = () => {
                 Roles
               </TabsTrigger>
             )}
-            <TabsTrigger
-              value="resources"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Resources
-            </TabsTrigger>
-            <TabsTrigger
-              value="announcements"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-            >
-              Announcements
-            </TabsTrigger>
+            {(group.is_member || group.group_type === "public") && (
+              <TabsTrigger
+                value="resources"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Resources
+              </TabsTrigger>
+            )}
+            {(group.is_member || group.group_type === "public") && (
+              <TabsTrigger
+                value="announcements"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Announcements
+              </TabsTrigger>
+            )}
+            {(group.is_member || group.group_type === "public") && (
+              <TabsTrigger
+                value="events"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Events
+              </TabsTrigger>
+            )}
             {canManage &&
               (group?.requireApproval ?? group?.group_type === "private") && (
                 <TabsTrigger
@@ -1176,7 +1317,7 @@ const GroupDetail = () => {
                   )}
                 </TabsTrigger>
               )}
-            {canManage && (
+            {isAdmin && (
               <TabsTrigger
                 value="settings"
                 className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
@@ -1209,7 +1350,10 @@ const GroupDetail = () => {
                         return (
                           <div key={member.id} className="p-4 hover:bg-muted/5">
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12">
+                              <Avatar
+                                className="h-12 w-12 cursor-pointer"
+                                onClick={() => navigate(`/profile/${member.id}`)}
+                              >
                                 <AvatarImage
                                   src={member.avatar || undefined}
                                   alt={member.full_name}
@@ -1220,7 +1364,10 @@ const GroupDetail = () => {
                                     .toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
+                              <div
+                                className="flex-1 cursor-pointer"
+                                onClick={() => navigate(`/profile/${member.id}`)}
+                              >
                                 <div className="flex items-center gap-2">
                                   <h3 className="font-semibold">
                                     {member.full_name}
@@ -1265,6 +1412,21 @@ const GroupDetail = () => {
                                   <Badge variant="outline" className="text-xs">
                                     Moderator
                                   </Badge>
+                                )}
+
+                                {member.project_roles && member.project_roles.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {member.project_roles.map((roleName, idx) => (
+                                      <Badge
+                                        key={idx}
+                                        variant="default"
+                                        className="text-xs gap-1"
+                                      >
+                                        <Briefcase className="h-3 w-3" />
+                                        {roleName}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 )}
 
                                 {canManage &&
@@ -1403,29 +1565,41 @@ const GroupDetail = () => {
                                     : "View"}
                                 </Button>
                               )}
-                              {!canManage && !group?.is_member && (
-                                <Button
-                                  variant={
-                                    pendingRoleApplications.includes(role.id)
-                                      ? "outline"
-                                      : "default"
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenRoleApplication(role)
-                                  }
-                                  disabled={
-                                    isFilled ||
-                                    pendingRoleApplications.includes(role.id)
-                                  }
-                                >
-                                  {pendingRoleApplications.includes(role.id)
-                                    ? "Applied"
-                                    : isFilled
-                                    ? "Full"
-                                    : "Apply"}
-                                </Button>
-                              )}
+                              {!canManage && !group?.is_member && (() => {
+                                const roleApp = userApplications.find(app => app.role_id === role.id);
+                                const isPending = roleApp?.status === "pending";
+                                const isRejected = roleApp?.status === "rejected";
+                                const isApproved = roleApp?.status === "approved";
+
+                                if (isPending) {
+                                  return (
+                                    <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+                                      <Clock className="h-3 w-3 mr-1.5" />
+                                      Pending
+                                    </Badge>
+                                  );
+                                }
+
+                                if (isRejected) {
+                                  return (
+                                    <Badge variant="destructive" className="px-3 py-1.5 text-sm">
+                                      <AlertTriangle className="h-3 w-3 mr-1.5" />
+                                      Rejected
+                                    </Badge>
+                                  );
+                                }
+
+                                return (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleOpenRoleApplication(role)}
+                                    disabled={isFilled}
+                                  >
+                                    {isFilled ? "Full" : "Apply"}
+                                  </Button>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -1474,60 +1648,82 @@ const GroupDetail = () => {
               )}
 
               <TabsContent value="resources" className="mt-0">
-                {resourcesLoading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <div className="divide-y divide-border">
-                    {resources.length === 0 ? (
-                      <div className="p-8 text-center">
-                        <Files className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground">
-                          No resources shared yet
-                        </p>
-                      </div>
-                    ) : (
-                      resources.map((resource) => (
-                        <div key={resource.id} className="p-4 hover:bg-muted/5">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-muted rounded-lg">
-                              <Files className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-medium">{resource.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {resource.file_type || "File"} • Shared by{" "}
-                                {resource.uploader_full_name} •{" "}
-                                {new Date(resource.created_at).toLocaleDateString()} •{" "}
-                                {resource.download_count} downloads
-                              </p>
-                              {resource.description && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {resource.description}
-                                </p>
-                              )}
-                              {resource.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {resource.tags.map((tag) => (
-                                    <Badge key={tag} variant="outline" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(resource.file_url, '_blank')}
-                            >
-                              Download
-                            </Button>
-                          </div>
-                        </div>
-                      ))
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Resources</h3>
+                    {canManage && (
+                      <Button onClick={() => setIsResourceModalOpen(true)}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Add Resource
+                      </Button>
                     )}
                   </div>
-                )}
+                  {resourcesLoading ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {resources.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <Files className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground">
+                            No resources shared yet
+                          </p>
+                        </div>
+                      ) : (
+                        resources.map((resource) => (
+                          <div key={resource.id} className="p-4 hover:bg-muted/5">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-muted rounded-lg">
+                                <Files className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-medium">{resource.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {resource.file_type || "File"} • Shared by{" "}
+                                  {resource.uploader_full_name} •{" "}
+                                  {new Date(resource.created_at).toLocaleDateString()} •{" "}
+                                  {resource.download_count} downloads
+                                </p>
+                                {resource.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {resource.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(resource.file_url, '_blank')}
+                                >
+                                  Download
+                                </Button>
+                                {canManage && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => setResourceToDelete(resource.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="announcements" className="mt-0">
@@ -1703,6 +1899,16 @@ const GroupDetail = () => {
                   </TabsContent>
                 )}
 
+              
+              {(group.is_member || group.group_type === "public") && (
+                <TabsContent value="events" className="mt-0">
+                  <GroupEventsTab
+                    groupId={id || ""}
+                    canManage={canManage}
+                  />
+                </TabsContent>
+              )}
+
               {canManage && (
                 <TabsContent value="settings" className="mt-0">
                   <div className="p-6 space-y-6">
@@ -1826,74 +2032,7 @@ const GroupDetail = () => {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">
-                            Banner Image
-                          </Label>
-                          <div className="space-y-2">
-                            {(
-                              editedBannerImage !== null
-                                ? editedBannerImage
-                                : group?.banner
-                            ) ? (
-                              <div className="relative">
-                                <img
-                                  src={
-                                    editedBannerImage !== null
-                                      ? editedBannerImage
-                                      : group?.banner
-                                  }
-                                  alt="Group banner"
-                                  className="w-full h-32 object-cover rounded-lg border"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={removeGroupBannerImage}
-                                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                                <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  No banner image
-                                </p>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleBannerImageEdit}
-                                  className="hidden"
-                                  id="banner-image-edit"
-                                  aria-label="Upload new banner image"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    document
-                                      .getElementById("banner-image-edit")
-                                      ?.click()
-                                  }
-                                >
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Upload Banner
-                                </Button>
-                              </div>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                              Max 10MB. JPG, PNG, or GIF. Recommended size:
-                              800x200px.
-                            </p>
-                          </div>
-                        </div>
-
-                        {(editedProfileImage !== null ||
-                          editedBannerImage !== null) && (
+                        {editedProfileImage !== null && (
                           <div className="flex gap-2 pt-2">
                             <Button size="sm" onClick={saveImageChanges}>
                               Save Changes
@@ -2148,46 +2287,58 @@ const GroupDetail = () => {
                     </p>
                   </div>
                   <div className="pt-2">
-                    <Button
-                      onClick={handleJoinGroup}
-                      size="lg"
-                      className="px-8 py-3 text-base font-medium"
-                      disabled={
-                        hasPendingJoinRequest ||
-                        (group?.group_type === "project" &&
-                          pendingRoleApplications.length > 0)
-                      }
-                    >
-                      {hasPendingJoinRequest ? (
-                        <>
+                    {group?.join_request_status === "pending" ? (
+                      <div className="flex justify-center">
+                        <Badge variant="secondary" className="px-4 py-2 text-base">
                           <Clock className="h-4 w-4 mr-2" />
-                          Request Pending
-                        </>
-                      ) : group?.group_type === "private" ? (
-                        <>
-                          <Lock className="h-4 w-4 mr-2" />
-                          Request Access
-                        </>
-                      ) : group?.group_type === "project" ? (
-                        pendingRoleApplications.length > 0 ? (
+                          Join Request Pending
+                        </Badge>
+                      </div>
+                    ) : group?.join_request_status === "rejected" ? (
+                      <div className="flex justify-center">
+                        <Badge variant="destructive" className="px-4 py-2 text-base">
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Join Request Rejected
+                        </Badge>
+                      </div>
+                    ) : group?.group_type === "project" && hasPendingApplications ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="px-4 py-2 text-base">
+                          <Clock className="h-4 w-4 mr-2" />
+                          Application Pending ({userApplications.filter(a => a.status === "pending").length} role{userApplications.filter(a => a.status === "pending").length > 1 ? "s" : ""})
+                        </Badge>
+                      </div>
+                    ) : group?.group_type === "project" && hasRejectedApplications && !hasPendingApplications && !hasApprovedApplications ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="px-4 py-2 text-base">
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Application Rejected
+                        </Badge>
+                      </div>
+                    ) : group?.group_type === "project" && !hasAnyApplications ? (
+                      <div className="flex items-center gap-2 text-base text-muted-foreground">
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Scroll down to view roles and apply
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={handleJoinGroup}
+                        size="lg"
+                        className="px-8 py-3 text-base font-medium"
+                      >
+                        {group?.group_type === "private" ? (
                           <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Applied for {pendingRoleApplications.length} role
-                            {pendingRoleApplications.length > 1 ? "s" : ""}
+                            <Lock className="h-4 w-4 mr-2" />
+                            Request Access
                           </>
                         ) : (
                           <>
-                            <Briefcase className="h-4 w-4 mr-2" />
-                            View Roles & Apply
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Join Group
                           </>
-                        )
-                      ) : (
-                        <>
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Join Group
-                        </>
-                      )}
-                    </Button>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2460,7 +2611,316 @@ const GroupDetail = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      
+      <Dialog open={isJoinRequestModalOpen} onOpenChange={setIsJoinRequestModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request to Join {group?.name}</DialogTitle>
+            <DialogDescription>
+              This is a private group. Your request will be reviewed by the group admins.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="join-request-message">
+                Message (Optional)
+              </Label>
+              <Textarea
+                id="join-request-message"
+                value={joinRequestMessage}
+                onChange={(e) => setJoinRequestMessage(e.target.value)}
+                placeholder="Tell the admins why you'd like to join..."
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsJoinRequestModalOpen(false);
+                setJoinRequestMessage("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => joinRequestMutation.mutate(joinRequestMessage)}
+              disabled={joinRequestMutation.isPending}
+            >
+              {joinRequestMutation.isPending ? "Sending..." : "Send Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      
+      <Dialog open={isResourceModalOpen} onOpenChange={setIsResourceModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Resource</DialogTitle>
+            <DialogDescription>
+              Share a file or document with the group members
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="resource-name">Resource Name *</Label>
+              <Input
+                id="resource-name"
+                value={resourceName}
+                onChange={(e) => setResourceName(e.target.value)}
+                placeholder="Enter resource name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="resource-description">Description</Label>
+              <Textarea
+                id="resource-description"
+                value={resourceDescription}
+                onChange={(e) => setResourceDescription(e.target.value)}
+                placeholder="Describe this resource (optional)"
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="resource-file">File *</Label>
+              <Input
+                id="resource-file"
+                type="file"
+                onChange={(e) => setResourceFile(e.target.files?.[0] || null)}
+                className="mt-1"
+              />
+              {resourceFile && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selected: {resourceFile.name} ({(resourceFile.size / 1024).toFixed(2)} KB)
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsResourceModalOpen(false);
+                setResourceName("");
+                setResourceDescription("");
+                setResourceFile(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadResource}
+              disabled={createResourceMutation.isPending}
+            >
+              {createResourceMutation.isPending ? "Uploading..." : "Upload"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      
+      <AlertDialog open={!!resourceToDelete} onOpenChange={(open) => !open && setResourceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this resource? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setResourceToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (resourceToDelete) {
+                  deleteResourceMutation.mutate(resourceToDelete);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
+  );
+};
+
+
+const GroupEventsTab = ({
+  groupId,
+  canManage,
+}: {
+  groupId: string;
+  canManage: boolean;
+}) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: upcomingEvents = [], isLoading: upcomingLoading } = useQuery({
+    queryKey: ['group-upcoming-events', groupId],
+    queryFn: () => getGroupUpcomingEvents(groupId, 10),
+    enabled: !!groupId,
+  });
+
+  const { data: allEvents = [], isLoading: allLoading } = useQuery({
+    queryKey: ['group-events', groupId],
+    queryFn: () => getGroupEvents(groupId, { page: 1, limit: 20 }),
+    enabled: !!groupId,
+  });
+
+  const createEventMutation = useMutation({
+    mutationFn: (data: Omit<CreateEventRequest, 'space_id'>) => createGroupEvent(groupId, data),
+    onSuccess: () => {
+      toast({ title: "Event created successfully" });
+      queryClient.invalidateQueries({ queryKey: ['group-events', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['group-upcoming-events', groupId] });
+      setShowCreateForm(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create event", variant: "destructive" });
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({ eventId, data }: { eventId: string; data: any }) => updateEvent(eventId, data),
+    onSuccess: () => {
+      toast({ title: "Event updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ['group-events', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['group-upcoming-events', groupId] });
+      setEditingEvent(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update event", variant: "destructive" });
+    },
+  });
+
+  if (upcomingLoading || allLoading) {
+    return (
+      <div className="p-8 text-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (showCreateForm || editingEvent) {
+    return (
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          {editingEvent ? "Edit Event" : "Create New Event"}
+        </h3>
+        <EventForm
+          event={editingEvent || undefined}
+          onSubmit={async (data) => {
+            if (editingEvent) {
+              await updateEventMutation.mutateAsync({ eventId: editingEvent.id, data });
+            } else {
+              await createEventMutation.mutateAsync(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingEvent(null);
+          }}
+          isSubmitting={createEventMutation.isPending || updateEventMutation.isPending}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Group Events</h3>
+        {canManage && (
+          <Button onClick={() => setShowCreateForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Event
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        
+        <div>
+          <h4 className="font-medium mb-3">Upcoming Events</h4>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No upcoming events</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {upcomingEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onClick={() => setSelectedEvent(event)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        
+        <div>
+          <h4 className="font-medium mb-3">All Events</h4>
+          {allEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No events yet. {canManage && "Create one to get started!"}
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {allEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{event.title}</p>
+                      {event.is_registered && (
+                        <Badge variant="secondary" className="text-xs">Registered</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {moment(event.start_date).format('MMM D, YYYY • h:mm A')}
+                    </p>
+                  </div>
+                  <Badge variant="outline">{event.category}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => !open && setSelectedEvent(null)}
+          canManage={canManage}
+          onEdit={() => {
+            setEditingEvent(selectedEvent);
+            setSelectedEvent(null);
+          }}
+          onDelete={() => {
+            setSelectedEvent(null);
+          }}
+        />
+      )}
+    </div>
   );
 };
 

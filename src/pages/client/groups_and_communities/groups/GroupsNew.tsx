@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search, Users, Lock, Plus, ArrowLeft, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GroupCategory } from "@/types/communities";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getUserGroups,
   getRecommendedGroups,
@@ -52,24 +52,51 @@ const GroupsNew = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Fetch user's groups
   const { data: userGroups = [], isLoading: loadingUserGroups } = useQuery({
     queryKey: ["user-groups"],
     queryFn: () => getUserGroups({ page: 1, limit: 100 }),
     staleTime: 60000,
   });
 
-  // Fetch recommended groups
-  const { data: recommendedGroups = [], isLoading: loadingRecommendedGroups } =
-    useQuery({
-      queryKey: ["recommended-groups"],
-      queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
-      staleTime: 60000,
-    });
+  const {
+    data: recommendedGroupsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: loadingRecommendedGroups,
+  } = useInfiniteQuery({
+    queryKey: ["recommended-groups", selectedCategory],
+    queryFn: ({ pageParam = 1 }) =>
+      getRecommendedGroups({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    staleTime: 60000,
+    initialPageParam: 1,
+    retry: 2,
+  });
+
+  const recommendedGroups = recommendedGroupsData?.pages.flatMap(page => page) ?? [];
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastGroupRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [isFetchingNextPage, hasNextPage, fetchNextPage]
+  );
 
   const isLoading = loadingUserGroups || loadingRecommendedGroups;
 
-  // Join group mutation
   const joinGroupMutation = useMutation({
     mutationFn: (groupId: string) => joinGroup(groupId),
     onSuccess: () => {
@@ -82,7 +109,6 @@ const GroupsNew = () => {
     },
   });
 
-  // Leave group mutation
   const leaveGroupMutation = useMutation({
     mutationFn: (groupId: string) => leaveGroup(groupId),
     onSuccess: () => {
@@ -95,7 +121,6 @@ const GroupsNew = () => {
     },
   });
 
-  // Join request mutation (for private groups)
   const joinRequestMutation = useMutation({
     mutationFn: (groupId: string) => createJoinRequest(groupId, {}),
     onSuccess: () => {
@@ -108,7 +133,6 @@ const GroupsNew = () => {
     },
   });
 
-  // Create group mutation
   const createGroupMutation = useMutation({
     mutationFn: (data: any) => createGroup(data),
     onSuccess: () => {
@@ -151,7 +175,6 @@ const GroupsNew = () => {
   };
 
   const handleCreateGroup = (groupData: any) => {
-    // Transform the data to match the API expected format
     const apiData = {
       name: groupData.name,
       description: groupData.description,
@@ -239,29 +262,43 @@ const GroupsNew = () => {
             </div>
           </div>
           {showJoinButton && (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (group.is_member) {
-                  handleLeaveGroup(group.id);
-                } else {
-                  handleJoinGroup(group.id, group.group_type);
-                }
-              }}
-              variant={group.is_member ? "outline" : "default"}
-              size="sm"
-              disabled={
-                joinGroupMutation.isPending ||
-                leaveGroupMutation.isPending ||
-                joinRequestMutation.isPending
-              }
-            >
-              {group.is_member
-                ? "Leave"
-                : group.group_type === "private"
-                ? "Request"
-                : "Join"}
-            </Button>
+            <>
+              {/* Only show Join/Leave button for public groups and already joined groups */}
+              {(group.group_type === "public" || group.is_member) && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (group.is_member) {
+                      handleLeaveGroup(group.id);
+                    } else {
+                      handleJoinGroup(group.id, group.group_type);
+                    }
+                  }}
+                  variant={group.is_member ? "outline" : "default"}
+                  size="sm"
+                  disabled={
+                    joinGroupMutation.isPending ||
+                    leaveGroupMutation.isPending ||
+                    joinRequestMutation.isPending
+                  }
+                >
+                  {group.is_member ? "Leave" : "Join"}
+                </Button>
+              )}
+              {/* For private and project groups, show View Details button */}
+              {!group.is_member && (group.group_type === "private" || group.group_type === "project") && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/groups/${group.id}`);
+                  }}
+                  variant="default"
+                  size="sm"
+                >
+                  View Details
+                </Button>
+              )}
+            </>
           )}
         </div>
       </CardHeader>
@@ -466,13 +503,27 @@ const GroupsNew = () => {
                     </p>
                   </div>
                 ) : (
-                  filteredGroups(exploreGroups).map((group) => (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      showJoinButton={true}
-                    />
-                  ))
+                  <>
+                    {filteredGroups(exploreGroups).map((group, index) => {
+                      const isLastItem = index === filteredGroups(exploreGroups).length - 1;
+                      return (
+                        <div
+                          key={group.id}
+                          ref={isLastItem ? lastGroupRef : null}
+                        >
+                          <GroupCard
+                            group={group}
+                            showJoinButton={true}
+                          />
+                        </div>
+                      );
+                    })}
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-4">
+                        <LoadingSpinner />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

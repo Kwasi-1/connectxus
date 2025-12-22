@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from "@/lib/apiClient";
+import apiClient from "@/lib/apiClient";
 
 interface ApiResponse<T> {
   data: T;
@@ -11,12 +11,17 @@ export interface PaginationParams {
 export interface UserProfile {
   id: string;
   space_id: string;
+  space_name?: string | null;
   username: string;
   email: string;
-  full_name: string;   avatar?: string | null;   bio?: string | null;
+  full_name: string;
+  avatar?: string | null;
+  bio?: string | null;
   verified?: boolean | null;
   roles?: string[];
   level?: string | null;
+  department_id?: string | null;
+  department_name?: string | null;
   department?: string | null;
   major?: string | null;
   year?: number | null;
@@ -28,11 +33,11 @@ export interface UserProfile {
 }
 
 export interface UpdateUserRequest {
-  full_name?: string;   avatar?: string | null;   bio?: string | null;
+  full_name?: string;
+  avatar?: string | null;
+  bio?: string | null;
   level?: string | null;
-  department?: string | null;
-  major?: string | null;
-  year?: number | null;
+  department_id?: string | null;
   interests?: string[];
 }
 
@@ -55,13 +60,8 @@ export const getUserById = async (userId: string): Promise<UserProfile> => {
 export const getUserByUsername = async (
   username: string
 ): Promise<UserProfile> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.get<ApiResponse<UserProfile>>(
-    `/users/username/${username}`,
-    {
-      params: { space_id: spaceId },
-    }
+    `/users/username/${username}`
   );
   return response.data.data;
 };
@@ -91,12 +91,10 @@ export const deleteUser = async (userId: string): Promise<void> => {
 export const searchUsers = async (
   params: Omit<SearchUsersParams, "space_id">
 ): Promise<UserProfile[]> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.get<ApiResponse<UserProfile[]>>(
     "/users/search",
     {
-      params: { ...params, space_id: spaceId },
+      params,
     }
   );
   return response.data.data;
@@ -105,27 +103,17 @@ export const searchUsers = async (
 export const getSuggestedUsers = async (
   params?: PaginationParams
 ): Promise<UserProfile[]> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.get<ApiResponse<UserProfile[]>>(
     "/users/suggested",
     {
-      params: { space_id: spaceId, ...params },
+      params,
     }
   );
   return response.data.data;
 };
 
 export const followUser = async (userId: string): Promise<void> => {
-  const spaceId = getDefaultSpaceId();
-
-  await apiClient.post(
-    `/users/${userId}/follow`,
-    {},
-    {
-      params: { space_id: spaceId },
-    }
-  );
+  await apiClient.post(`/users/${userId}/follow`);
 };
 
 export const unfollowUser = async (userId: string): Promise<void> => {
@@ -161,6 +149,36 @@ export const getUserFollowing = async (
   return response.data.data;
 };
 
+export const getAllPeopleInSpace = async (
+  params?: PaginationParams
+): Promise<UserProfile[]> => {
+  const response = await apiClient.get<ApiResponse<UserProfile[]>>(
+    "/users/people/all",
+    { params }
+  );
+  return response.data.data;
+};
+
+export const getPeopleInDepartment = async (
+  params?: PaginationParams
+): Promise<UserProfile[]> => {
+  const response = await apiClient.get<ApiResponse<UserProfile[]>>(
+    "/users/people/department",
+    { params }
+  );
+  return response.data.data;
+};
+
+export const getPeopleYouMayKnow = async (
+  params?: PaginationParams
+): Promise<UserProfile[]> => {
+  const response = await apiClient.get<ApiResponse<UserProfile[]>>(
+    "/users/people/may-know",
+    { params }
+  );
+  return response.data.data;
+};
+
 export const usersApi = {
   getUserById,
   getUserByUsername,
@@ -174,6 +192,9 @@ export const usersApi = {
   checkFollowingStatus,
   getUserFollowers,
   getUserFollowing,
+  getAllPeopleInSpace,
+  getPeopleInDepartment,
+  getPeopleYouMayKnow,
 };
 
 export default usersApi;

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TutorApplication as ApiTutorApplication } from "@/api/mentorship.api";
+import { TutorApplication as ApiTutorApplication } from "@/api/tutoring.api";
 import { Calendar, Clock, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -56,15 +56,13 @@ export function TutorApplicationCard({
           )}
         </div>
 
-        {application.subjects && application.subjects.length > 0 && (
+        {application.subject && (
           <div>
-            <h4 className="font-medium mb-2">Subjects:</h4>
+            <h4 className="font-medium mb-2">Subject:</h4>
             <div className="flex flex-wrap gap-1">
-              {application.subjects.map((subject, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {subject}
-                </Badge>
-              ))}
+              <Badge variant="secondary" className="text-xs">
+                {application.subject}
+              </Badge>
             </div>
           </div>
         )}
@@ -88,24 +86,10 @@ export function TutorApplicationCard({
         )}
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            // disabled={application.status === "approved"}
-          >
+          <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          {/* <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDelete(application.id)}
-            disabled={application.status === "approved"}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button> */}
         </div>
       </CardContent>
     </Card>

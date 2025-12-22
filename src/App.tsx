@@ -19,12 +19,16 @@ import CommunityDetail from "./pages/client/groups_and_communities/communities/C
 import GroupsNew from "./pages/client/groups_and_communities/groups/GroupsNew";
 import GroupDetail from "./pages/client/groups_and_communities/groups/GroupDetail";
 import Tutoring from "./pages/client/tutoring/TutoringNew";
-import Mentors from "./pages/client/mentors/Mentors";
+import MonetizationDetails from "./pages/client/tutoring/MonetizationDetails";
+import { TutorDetails } from "./pages/client/tutoring/TutorDetails";
+import Assignments from "./pages/client/assignments/Assignments";
+import AssignmentDetails from "./pages/client/assignments/AssignmentDetails";
+import ApplicationDetails from "./pages/client/assignments/ApplicationDetails";
+import PostAssignment from "./pages/client/assignments/PostAssignment";
 import Account from "./pages/client/account/Account";
 import UserProfile from "./pages/client/profile/UserProfile";
 import Compose from "./pages/client/feed/Compose";
 import BecomeTutor from "./pages/client/applications/BecomeTutor";
-import BecomeMentor from "./pages/client/applications/BecomeMentor";
 import Search from "./pages/client/explore/Search";
 import About from "./pages/public/About";
 import Terms from "./pages/public/Terms";
@@ -34,7 +38,12 @@ import Contact from "./pages/public/Contact";
 import Download from "./pages/public/Download";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/auth/AuthPage";
+import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
+import { GoogleOnboardingPage } from "./pages/auth/GoogleOnboardingPage";
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { AdminSpaceProvider } from "@/contexts/AdminSpaceContext";
 import { ProtectedAdminRoute } from "@/components/admin/ProtectedAdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminDashboard } from "@/pages/admin/AdminDashboard";
@@ -43,7 +52,7 @@ import { ContentManagement } from "@/pages/admin/ContentManagement";
 import { AdminManagement } from "./pages/admin/AdminManagement";
 import { Reports } from "./pages/admin/Reports";
 import { Analytics } from "./pages/admin/Analytics";
-import { TutoringMentorship } from "./pages/admin/TutoringMentorship";
+import { AdminTutoring } from "./pages/admin/AdminTutoring";
 import { CommunitiesGroups } from "./pages/admin/CommunitiesGroups";
 import { SystemSettings } from "./pages/admin/SystemSettings";
 import { Notifications as AdminNotifications } from "./pages/admin/Notifications";
@@ -99,6 +108,22 @@ const App = () => (
                 <Route
                   path="auth/signin"
                   element={<AuthPage initialMode="signIn" />}
+                />
+                <Route
+                  path="/verify-email"
+                  element={<VerifyEmailPage />}
+                />
+                <Route
+                  path="/auth/google-onboarding"
+                  element={<GoogleOnboardingPage />}
+                />
+                <Route
+                  path="/auth/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
+                <Route
+                  path="/auth/reset-password"
+                  element={<ResetPasswordPage />}
                 />
 
                 {/* Protected Routes */}
@@ -239,29 +264,54 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/mentors"
+                  path="/tutoring/monetization/:serviceId"
                   element={
                     <ProtectedRoute>
-                      <Mentors />
+                      <MonetizationDetails />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/mentors/become-mentor"
+                  path="/tutoring/:tutorId"
                   element={
                     <ProtectedRoute>
-                      <BecomeMentor />
+                      <TutorDetails />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/mentoring/become-mentor"
+                  path="/assignments"
                   element={
                     <ProtectedRoute>
-                      <BecomeMentor />
+                      <Assignments />
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/assignments/new"
+                  element={
+                    <ProtectedRoute>
+                      <PostAssignment />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/assignments/applications/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ApplicationDetails />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/assignments/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AssignmentDetails />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path="/account"
                   element={
@@ -275,8 +325,9 @@ const App = () => (
                 <Route
                   path="/admin/*"
                   element={
-                    <ProtectedAdminRoute>
-                      <AdminLayout>
+                    <AdminSpaceProvider>
+                      <ProtectedAdminRoute>
+                        <AdminLayout>
                         <Routes>
                           <Route index element={<AdminDashboard />} />
                           <Route
@@ -304,10 +355,10 @@ const App = () => (
                             }
                           />
                           <Route
-                            path="tutoring-mentorship"
+                            path="tutoring"
                             element={
                               <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                <TutoringMentorship />
+                                <AdminTutoring />
                               </ProtectedAdminRoute>
                             }
                           />
@@ -406,6 +457,7 @@ const App = () => (
                         </Routes>
                       </AdminLayout>
                     </ProtectedAdminRoute>
+                    </AdminSpaceProvider>
                   }
                 />
 

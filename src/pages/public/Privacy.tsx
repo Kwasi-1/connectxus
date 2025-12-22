@@ -183,7 +183,7 @@ const Privacy: React.FC = () => {
                   <li>• Creating and maintaining your account</li>
                   <li>• Facilitating connections with other students</li>
                   <li>• Enabling messaging and group communications</li>
-                  <li>• Matching you with relevant tutors and mentors</li>
+                  <li>• Matching you with relevant tutors </li>
                   <li>• Providing academic resources and opportunities</li>
                   <li>• Organizing and promoting campus events</li>
                 </ul>

@@ -26,7 +26,7 @@ import { UniversitySelector } from "./UniversitySelector";
 const signUpSchema = z
   .object({
     role: z.enum(["student", "not-student"]),
-    name: z.string().min(2, "Name must be at least 2 characters"),
+    username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username must be at most 30 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
@@ -37,6 +37,7 @@ const signUpSchema = z
     interests: z
       .array(z.string())
       .min(1, "Please select at least one interest"),
+    is_student: z.boolean(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -62,7 +63,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       role: "student",
-      name: "",
+      username: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -71,12 +72,16 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
       level: "",
       interests: [],
       phoneNumber: "",
+      is_student: true,
     },
   });
 
   const watchedRole = form.watch("role");
 
-  // Dynamically calculate total steps
+  React.useEffect(() => {
+    form.setValue("is_student", watchedRole === "student");
+  }, [watchedRole, form]);
+
 
   let totalSteps = 5;
 
@@ -95,8 +100,8 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   const onSubmit = async (data: SignUpFormData) => {
     try {
       await signUp(data);
-      toast.success("Account created successfully! Please log in.");
-      navigate("/auth/signin");
+      toast.success("Account created successfully! Please verify your email.");
+      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to create account"
@@ -133,12 +138,12 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
 
             <FormField
               control={form.control}
-              name="name"
+              name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your full name" {...field} />
+                    <Input placeholder="Enter your username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

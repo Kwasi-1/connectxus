@@ -23,7 +23,7 @@ export const LandingPage: React.FC = () => {
             {/* Logo */}
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 bg-primary rounded-sm flex items-center justify-center">
-                <img src={logo} alt="Logo"className="w-5 h-5" />
+                <img src={logo} alt="Logo" className="w-5 h-5" />
               </div>
               <span className="text-xl font-semibold">Campus Connect</span>
             </div>
@@ -34,8 +34,7 @@ export const LandingPage: React.FC = () => {
                 The ultimate platform for university students.
               </p>
               <h1 className="text-[2.65rem] font-[500] leading-[1] text-gray-900 mb-2">
-                Link with peers, find mentors, and collaborate on projects.
-                Stay Connected.
+                Link with peers, and collaborate on projects. Stay Connected.
               </h1>
             </div>
           </div>

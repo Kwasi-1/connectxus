@@ -139,7 +139,7 @@ export function AdminManagement() {
     {
       value: "tutoring_management",
       label: "Tutoring Management",
-      description: "Oversee tutoring and mentorship programs",
+      description: "Oversee tutoring  programs",
     },
     {
       value: "analytics",

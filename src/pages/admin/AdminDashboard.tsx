@@ -112,24 +112,6 @@ export function AdminDashboard() {
   return (
     <AdminPageLayout title="Admin Dashboard">
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="text-lg">Current Space</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Switch between spaces or create a new one
-                </p>
-              </div>
-              <SpaceSwitcher
-                currentSpaceId={currentSpaceId}
-                onSpaceChange={handleSpaceChange}
-                onCreateSpace={handleCreateSpace}
-              />
-            </div>
-          </CardHeader>
-        </Card>
-
         {currentSpaceId && (
           <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

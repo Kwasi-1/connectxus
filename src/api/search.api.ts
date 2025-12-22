@@ -1,4 +1,4 @@
-import apiClient, { ApiResponse, getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient, { ApiResponse } from "@/lib/apiClient";
 
 export interface SearchFilters {
   query: string;
@@ -76,19 +76,6 @@ export interface EventSearchResult {
   is_attending?: boolean;
 }
 
-export interface MentorSearchResult {
-  id: string;
-  user_id: string;
-  username: string;
-  full_name: string;
-  avatar?: string | null;
-  bio?: string | null;
-  expertise_areas: string[];
-  session_rate?: number | null;
-  rating: number;
-  total_sessions: number;
-}
-
 export interface TutorSearchResult {
   id: string;
   user_id: string;
@@ -108,98 +95,105 @@ export interface GlobalSearchResults {
   events: EventSearchResult[];
 }
 
-export const searchUsers = async (filters: SearchFilters): Promise<UserSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<UserSearchResult[]>>('/users/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchUsers = async (
+  filters: SearchFilters
+): Promise<UserSearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<UserSearchResult[]>>(
+    "/users/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchPosts = async (filters: SearchFilters): Promise<PostSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<PostSearchResult[]>>('/posts/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchPosts = async (
+  filters: SearchFilters
+): Promise<PostSearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<PostSearchResult[]>>(
+    "/posts/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchCommunities = async (filters: SearchFilters): Promise<CommunitySearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<CommunitySearchResult[]>>('/communities/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchCommunities = async (
+  filters: SearchFilters
+): Promise<CommunitySearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<CommunitySearchResult[]>>(
+    "/communities/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchGroups = async (filters: SearchFilters): Promise<GroupSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<GroupSearchResult[]>>('/groups/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchGroups = async (
+  filters: SearchFilters
+): Promise<GroupSearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<GroupSearchResult[]>>(
+    "/groups/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchEvents = async (filters: SearchFilters): Promise<EventSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<EventSearchResult[]>>('/events/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchEvents = async (
+  filters: SearchFilters
+): Promise<EventSearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<EventSearchResult[]>>(
+    "/events/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchMentors = async (filters: SearchFilters): Promise<MentorSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<MentorSearchResult[]>>('/mentors/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
+export const searchTutors = async (
+  filters: SearchFilters
+): Promise<TutorSearchResult[]> => {
+  const response = await apiClient.get<ApiResponse<TutorSearchResult[]>>(
+    "/tutors/search",
+    {
+      params: {
+        q: filters.query,
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+      },
+    }
+  );
   return response.data.data;
 };
 
-export const searchTutors = async (filters: SearchFilters): Promise<TutorSearchResult[]> => {
-  const spaceId = filters.space_id || getDefaultSpaceId();
-  const response = await apiClient.get<ApiResponse<TutorSearchResult[]>>('/tutors/search', {
-    params: {
-      q: filters.query,
-      space_id: spaceId,
-      page: filters.page || 1,
-      limit: filters.limit || 20,
-    },
-  });
-  return response.data.data;
-};
-
-export const globalSearch = async (filters: SearchFilters): Promise<GlobalSearchResults> => {
+export const globalSearch = async (
+  filters: SearchFilters
+): Promise<GlobalSearchResults> => {
   const [users, posts, events] = await Promise.allSettled([
     searchUsers({ ...filters, limit: 5 }),
     searchPosts({ ...filters, limit: 5 }),
@@ -207,9 +201,9 @@ export const globalSearch = async (filters: SearchFilters): Promise<GlobalSearch
   ]);
 
   return {
-    users: users.status === 'fulfilled' ? users.value : [],
-    posts: posts.status === 'fulfilled' ? posts.value : [],
-    events: events.status === 'fulfilled' ? events.value : [],
+    users: users.status === "fulfilled" ? users.value : [],
+    posts: posts.status === "fulfilled" ? posts.value : [],
+    events: events.status === "fulfilled" ? events.value : [],
   };
 };
 
@@ -219,7 +213,6 @@ export const searchApi = {
   searchCommunities,
   searchGroups,
   searchEvents,
-  searchMentors,
   searchTutors,
   globalSearch,
 };

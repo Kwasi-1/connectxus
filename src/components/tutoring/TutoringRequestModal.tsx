@@ -12,8 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TutorProfile } from "@/types/global";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { createTutoringSession } from "@/api/mentorship.api";
-import { getValidatedSpaceId } from "@/lib/apiClient";
+import { createTutoringSession } from "@/api/tutoring.api";
 
 interface TutoringRequestModalProps {
   isOpen: boolean;
@@ -43,10 +42,12 @@ export function TutoringRequestModal({
     onSuccess: () => {
       toast({
         title: "Request Sent!",
-        description: `Your tutoring request has been sent to ${tutor.username || tutor.user?.username}. They will respond soon.`,
+        description: `Your tutoring request has been sent to ${
+          tutor.username || tutor.user?.username
+        }. They will respond soon.`,
       });
       onClose();
-            setSubject("");
+      setSubject("");
       setMessage("");
       setPreferredTimes("");
       setScheduledDate("");
@@ -55,7 +56,9 @@ export function TutoringRequestModal({
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to send tutoring request. Please try again.",
+        description:
+          error.response?.data?.message ||
+          "Failed to send tutoring request. Please try again.",
         variant: "destructive",
       });
     },
@@ -64,10 +67,11 @@ export function TutoringRequestModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-        const scheduledAt = scheduledDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const scheduledAt =
+      scheduledDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     createSessionMutation.mutate({
-      tutor_id: tutor.user_id || tutor.user?.id || '',
+      tutor_id: tutor.user_id || tutor.user?.id || "",
       scheduled_at: scheduledAt,
       duration_minutes: duration,
       subject: subject || undefined,

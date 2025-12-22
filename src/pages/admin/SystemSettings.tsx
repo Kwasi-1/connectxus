@@ -32,8 +32,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminApi } from "@/api/admin.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
-
 interface SystemSetting {
   key: string;
   value: string | boolean;

@@ -1,17 +1,17 @@
-import { User } from '@/types/global';
+import { User } from "@/types/global";
 
-export type AdminRole = 'admin' | 'super_admin';
+export type AdminRole = "admin" | "super_admin";
 
-export type AdminPermission = 
-  | 'user_management'
-  | 'content_management'
-  | 'community_management'
-  | 'tutoring_management'
-  | 'analytics'
-  | 'admin_management'
-  | 'system_settings'
-  | 'reports'
-  | 'notifications';
+export type AdminPermission =
+  | "user_management"
+  | "content_management"
+  | "community_management"
+  | "tutoring_management"
+  | "analytics"
+  | "admin_management"
+  | "system_settings"
+  | "reports"
+  | "notifications";
 
 export interface AdminUser {
   id: string;
@@ -40,13 +40,13 @@ export interface UserActivity {
 
 export interface ContentModerationItem {
   id: string;
-  type: 'post' | 'comment' | 'group' | 'event' | 'announcement';
+  type: "post" | "comment" | "group" | "event" | "announcement";
   contentId: string;
   reporterId: string;
   reporterName: string;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'removed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: "pending" | "approved" | "rejected" | "removed";
+  priority: "low" | "medium" | "high" | "urgent";
   reviewedBy?: string;
   reviewedAt?: Date;
   moderationNotes?: string;
@@ -69,12 +69,12 @@ export interface CampusAnnouncement {
   id: string;
   title: string;
   content: string;
-  type: 'general' | 'academic' | 'social' | 'emergency' | 'maintenance';
+  type: "general" | "academic" | "social" | "emergency" | "maintenance";
   targetAudience: string[];
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: "low" | "medium" | "high" | "urgent";
   scheduledFor?: Date;
   expiresAt?: Date;
-  status: 'draft' | 'scheduled' | 'published' | 'expired';
+  status: "draft" | "scheduled" | "published" | "expired";
   authorId: string;
   attachments?: string[];
   createdAt: Date;
@@ -85,7 +85,13 @@ export interface CampusEvent {
   id: string;
   title: string;
   description: string;
-  category: 'academic' | 'social' | 'sports' | 'cultural' | 'professional' | 'other';
+  category:
+    | "academic"
+    | "social"
+    | "sports"
+    | "cultural"
+    | "professional"
+    | "other";
   location: string;
   startDate: Date;
   endDate: Date;
@@ -93,7 +99,7 @@ export interface CampusEvent {
   currentAttendees: number;
   registrationRequired: boolean;
   registrationDeadline?: Date;
-  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  status: "draft" | "published" | "cancelled" | "completed";
   organizer: string;
   tags: string[];
   imageUrl?: string;
@@ -107,8 +113,14 @@ export interface GroupManagement {
   description: string;
   category: string;
   memberCount: number;
-  status: 'active' | 'suspended' | 'archived' | 'pending' | 'approved' | 'rejected';
-  visibility: 'public' | 'private' | 'restricted';
+  status:
+    | "active"
+    | "suspended"
+    | "archived"
+    | "pending"
+    | "approved"
+    | "rejected";
+  visibility: "public" | "private" | "restricted";
   createdBy: string;
   moderators: string[];
   flags: number;
@@ -121,7 +133,7 @@ export interface TutorApplication {
   id: string;
   applicant_id: string;
   full: string;
-  subjects: string[];
+  subject: string;
   hourlyRate?: number;
   qualifications: string;
   experience: string;
@@ -130,25 +142,7 @@ export interface TutorApplication {
     startTime: string;
     endTime: string;
   }[];
-  status: 'pending' | 'approved' | 'rejected';
-  reviewedBy?: string;
-  reviewerNotes?: string;
-  submittedAt: Date;
-  reviewedAt?: Date;
-}
-
-export interface MentorApplication {
-  id: string;
-  applicantId: string;
-  applicantName: string;
-  industry: string;
-  company?: string;
-  position?: string;
-  experience: number;
-  specialties: string[];
-  linkedinProfile?: string;
-  portfolio?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   reviewedBy?: string;
   reviewerNotes?: string;
   submittedAt: Date;
@@ -163,16 +157,16 @@ export interface SystemMetrics {
   totalEvents: number;
   reportedContent: number;
   pendingApplications: number;
-  systemHealth: 'good' | 'warning' | 'critical';
+  systemHealth: "good" | "warning" | "critical";
   lastUpdated: Date;
 }
 
 export interface AdminNotification {
   id: string;
-  type: 'report' | 'application' | 'system' | 'user_activity';
+  type: "report" | "application" | "system" | "user_activity";
   title: string;
   message: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: "low" | "medium" | "high" | "urgent";
   isRead: boolean;
   actionRequired: boolean;
   relatedId?: string;

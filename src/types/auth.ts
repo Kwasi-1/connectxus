@@ -1,27 +1,39 @@
+export type ApprovalStatus = "pending" | "approved" | "rejected";
 
-export type UserRole = 'student' | 'not-student';
-
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-export type UserInterest = 'technology' | 'design' | 'business' | 'marketing' | 'finance' | 'healthcare' | 'education' | 'research' | 'engineering' | 'arts' | 'sports' | 'music' | 'photography' | 'writing' | 'gaming' | 'travel' | 'cooking' | 'fitness';
+export type UserInterest =
+  | "technology"
+  | "design"
+  | "business"
+  | "marketing"
+  | "finance"
+  | "healthcare"
+  | "education"
+  | "research"
+  | "engineering"
+  | "arts"
+  | "sports"
+  | "music"
+  | "photography"
+  | "writing"
+  | "gaming"
+  | "travel"
+  | "cooking"
+  | "fitness";
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  roles: UserRole[];
   university?: string;
   department?: string;
   level?: string;
   interests?: UserInterest[];
-  mentorStatus?: ApprovalStatus;
-  tutorStatus?: ApprovalStatus;
   createdAt: Date;
 }
 
 export interface SignUpFormData {
-  role: UserRole;
-  name: string;
+  role: "student" | "not-student";
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -30,6 +42,7 @@ export interface SignUpFormData {
   level?: string;
   interests?: UserInterest[];
   phoneNumber: string;
+  is_student: boolean;
 }
 
 export interface SignInFormData {
@@ -43,4 +56,5 @@ export interface AuthContextType {
   signIn: (data: SignInFormData) => Promise<void>;
   signUp: (data: SignUpFormData) => Promise<void>;
   signOut: () => void;
+  setAuthUser: (user: any, isNewUser?: boolean) => void;
 }

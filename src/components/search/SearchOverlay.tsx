@@ -3,7 +3,6 @@ import { X, Search, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { mockTrendingTopics } from "@/data/mockData";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -101,29 +100,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             <TrendingUp className="h-5 w-5 mr-2" />
             Trending
           </h3>
-          <div className="space-y-2">
-            {mockTrendingTopics.slice(0, 5).map((topic, index) => (
-              <div
-                key={topic.id}
-                onClick={() => handleSearch(topic.name)}
-                className="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">
-                      {index + 1} · Trending in {topic.category}
-                    </p>
-                    <p className="font-semibold text-foreground">
-                      {topic.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {topic.posts.toLocaleString()} posts
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="space-y-2"></div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -48,10 +48,8 @@ export interface ListAnnouncementsParams extends PaginationParams {
 }
 
 export const getAnnouncements = async (params?: Omit<ListAnnouncementsParams, 'space_id'>): Promise<Announcement[]> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.get<ApiResponse<Announcement[]>>('/announcements', {
-    params: { space_id: spaceId, ...params },
+    params,
   });
   return response.data.data;
 };
@@ -64,18 +62,7 @@ export const getAnnouncementById = async (announcementId: string): Promise<Annou
 export const createAnnouncement = async (
   data: Omit<CreateAnnouncementRequest, 'space_id'>
 ): Promise<Announcement> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID.');
-  }
-
-  const requestData: CreateAnnouncementRequest = {
-    ...data,
-    space_id: spaceId,
-  };
-
-  const response = await apiClient.post<ApiResponse<Announcement>>('/announcements', requestData);
+  const response = await apiClient.post<ApiResponse<Announcement>>('/announcements', data);
   return response.data.data;
 };
 

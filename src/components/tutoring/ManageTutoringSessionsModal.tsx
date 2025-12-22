@@ -1,78 +1,109 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, Video, User, CheckCircle, XCircle } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Calendar,
+  Clock,
+  Video,
+  User,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTutoringSessions,
   updateTutoringSessionStatus,
   updateTutoringSessionMeetingLink,
-  TutoringSession
-} from '@/api/mentorship.api';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
+  TutoringSession,
+} from "@/api/tutoring.api";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface ManageTutoringSessionsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringSessionsModalProps) {
+export function ManageTutoringSessionsModal({
+  isOpen,
+  onClose,
+}: ManageTutoringSessionsModalProps) {
   const queryClient = useQueryClient();
-  const [selectedSession, setSelectedSession] = useState<TutoringSession | null>(null);
-  const [meetingLink, setMeetingLink] = useState('');
+  const [selectedSession, setSelectedSession] =
+    useState<TutoringSession | null>(null);
+  const [meetingLink, setMeetingLink] = useState("");
 
-    const { data: sessions = [], isLoading } = useQuery({
-    queryKey: ['tutoring-sessions'],
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ["tutoring-sessions"],
     queryFn: () => getTutoringSessions(),
     enabled: isOpen,
   });
 
-    const updateStatusMutation = useMutation({
-    mutationFn: ({ sessionId, status }: { sessionId: string; status: 'scheduled' | 'completed' | 'cancelled' }) =>
-      updateTutoringSessionStatus(sessionId, status),
+  const updateStatusMutation = useMutation({
+    mutationFn: ({
+      sessionId,
+      status,
+    }: {
+      sessionId: string;
+      status: "scheduled" | "completed" | "cancelled";
+    }) => updateTutoringSessionStatus(sessionId, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tutoring-sessions'] });
-      toast.success('Session status updated');
+      queryClient.invalidateQueries({ queryKey: ["tutoring-sessions"] });
+      toast.success("Session status updated");
       setSelectedSession(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update session status');
+      toast.error(
+        error.response?.data?.message || "Failed to update session status"
+      );
     },
   });
 
-    const addMeetingLinkMutation = useMutation({
+  const addMeetingLinkMutation = useMutation({
     mutationFn: ({ sessionId, link }: { sessionId: string; link: string }) =>
       updateTutoringSessionMeetingLink(sessionId, link),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tutoring-sessions'] });
-      toast.success('Meeting link added');
-      setMeetingLink('');
+      queryClient.invalidateQueries({ queryKey: ["tutoring-sessions"] });
+      toast.success("Meeting link added");
+      setMeetingLink("");
       setSelectedSession(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to add meeting link');
+      toast.error(
+        error.response?.data?.message || "Failed to add meeting link"
+      );
     },
   });
 
   const handleAddMeetingLink = (session: TutoringSession) => {
     if (meetingLink.trim()) {
-      addMeetingLinkMutation.mutate({ sessionId: session.id, link: meetingLink });
+      addMeetingLinkMutation.mutate({
+        sessionId: session.id,
+        link: meetingLink,
+      });
     }
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; color: string }> = {
-      scheduled: { variant: 'default', color: 'bg-blue-500' },
-      completed: { variant: 'secondary', color: 'bg-green-500' },
-      cancelled: { variant: 'destructive', color: 'bg-red-500' },
+      scheduled: { variant: "default", color: "bg-blue-500" },
+      completed: { variant: "secondary", color: "bg-green-500" },
+      cancelled: { variant: "destructive", color: "bg-red-500" },
     };
-    const config = variants[status] || { variant: 'default', color: 'bg-gray-500' };
+    const config = variants[status] || {
+      variant: "default",
+      color: "bg-gray-500",
+    };
     return (
       <Badge variant={config.variant as any} className="capitalize">
         {status}
@@ -82,7 +113,7 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
 
   const formatDateTime = (dateString: string) => {
     try {
-      return format(new Date(dateString), 'PPp');
+      return format(new Date(dateString), "PPp");
     } catch {
       return dateString;
     }
@@ -103,7 +134,9 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
           <div className="text-center py-8">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Sessions Yet</h3>
-            <p className="text-muted-foreground">You don't have any tutoring sessions scheduled.</p>
+            <p className="text-muted-foreground">
+              You don't have any tutoring sessions scheduled.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -114,7 +147,9 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Student ID: {session.student_id}</span>
+                        <span className="font-medium">
+                          Student ID: {session.student_id}
+                        </span>
                       </div>
                       {session.subject && (
                         <p className="text-sm font-medium">{session.subject}</p>
@@ -161,7 +196,10 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
                             />
                             <Button
                               onClick={() => handleAddMeetingLink(session)}
-                              disabled={!meetingLink.trim() || addMeetingLinkMutation.isPending}
+                              disabled={
+                                !meetingLink.trim() ||
+                                addMeetingLinkMutation.isPending
+                              }
                             >
                               Add
                             </Button>
@@ -170,13 +208,16 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
                       )}
 
                       <div className="flex gap-2">
-                        {session.status === 'scheduled' && (
+                        {session.status === "scheduled" && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() =>
-                                updateStatusMutation.mutate({ sessionId: session.id, status: 'completed' })
+                                updateStatusMutation.mutate({
+                                  sessionId: session.id,
+                                  status: "completed",
+                                })
                               }
                               disabled={updateStatusMutation.isPending}
                             >
@@ -187,7 +228,10 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
                               size="sm"
                               variant="destructive"
                               onClick={() =>
-                                updateStatusMutation.mutate({ sessionId: session.id, status: 'cancelled' })
+                                updateStatusMutation.mutate({
+                                  sessionId: session.id,
+                                  status: "cancelled",
+                                })
                               }
                               disabled={updateStatusMutation.isPending}
                             >
@@ -196,14 +240,22 @@ export function ManageTutoringSessionsModal({ isOpen, onClose }: ManageTutoringS
                             </Button>
                           </>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedSession(null)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedSession(null)}
+                        >
                           Close
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="mt-4">
-                      <Button size="sm" variant="outline" onClick={() => setSelectedSession(session)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedSession(session)}
+                      >
                         Manage
                       </Button>
                     </div>

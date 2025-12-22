@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Search, Users, ArrowLeft, Filter } from "lucide-react";
+import { Search, Users, ArrowLeft, Filter, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getCommunities,
   getUserCommunities,
+  getRecommendedCommunities,
   joinCommunity,
   leaveCommunity,
+  createCommunity,
+  CreateCommunityRequest,
 } from "@/api/communities.api";
 import { toast } from "sonner";
 import {
@@ -23,6 +26,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 type CommunityCategory =
   | "Academic"
@@ -47,20 +68,16 @@ const Communities = () => {
   const [selectedCategory, setSelectedCategory] = useState<
     CommunityCategory | "All"
   >("All");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [newCommunity, setNewCommunity] = useState<CreateCommunityRequest>({
+    name: "",
+    description: "",
+    category: "",
+    is_public: true,
+    cover_image: null,
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  const {
-    data: allCommunities = [],
-    isLoading: loadingAll,
-    error: errorAll,
-    isError: isErrorAll,
-  } = useQuery({
-    queryKey: ["communities"],
-    queryFn: () => getCommunities({ page: 1, limit: 100 }),
-    staleTime: 60000,
-    retry: 2,
-  });
 
   const {
     data: myCommunities = [],
@@ -74,7 +91,46 @@ const Communities = () => {
     retry: 2,
   });
 
-  const isLoading = loadingAll || loadingMy;
+  const {
+    data: recommendedCommunitiesData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: loadingRecommended,
+    error: errorRecommended,
+    isError: isErrorRecommended,
+  } = useInfiniteQuery({
+    queryKey: ["recommended-communities", selectedCategory],
+    queryFn: ({ pageParam = 1 }) =>
+      getRecommendedCommunities({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    staleTime: 60000,
+    initialPageParam: 1,
+    retry: 2,
+  });
+
+  const recommendedCommunities = recommendedCommunitiesData?.pages.flatMap(page => page) ?? [];
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastCommunityRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [isFetchingNextPage, hasNextPage, fetchNextPage]
+  );
+
+  const isLoading = loadingRecommended || loadingMy;
 
   const joinMutation = useMutation({
     mutationFn: (communityId: string) => joinCommunity(communityId),
@@ -100,6 +156,26 @@ const Communities = () => {
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: (data: CreateCommunityRequest) => createCommunity(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["communities"] });
+      queryClient.invalidateQueries({ queryKey: ["my-communities"] });
+      toast.success("Community created successfully!");
+      setCreateModalOpen(false);
+      setNewCommunity({
+        name: "",
+        description: "",
+        category: "",
+        is_public: true,
+        cover_image: null,
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error?.message || "Failed to create community");
+    },
+  });
+
   const filteredCommunities = (communitiesList: any[]) => {
     return communitiesList.filter((community) => {
       const matchesSearch =
@@ -116,10 +192,9 @@ const Communities = () => {
 
   const myCommunitiesIds = new Set(myCommunities.map((c) => c.id));
 
-  const myCommunitiesList = allCommunities.filter((c) =>
-    myCommunitiesIds.has(c.id)
-  );
-  const exploreCommunitiesList = allCommunities.filter(
+  const myCommunitiesList = myCommunities;
+
+  const exploreCommunitiesList = recommendedCommunities.filter(
     (c) => !myCommunitiesIds.has(c.id)
   );
 
@@ -129,6 +204,18 @@ const Communities = () => {
     } else {
       joinMutation.mutate(communityId);
     }
+  };
+
+  const handleCreateCommunity = () => {
+    if (!newCommunity.name.trim()) {
+      toast.error("Community name is required");
+      return;
+    }
+    if (!newCommunity.category) {
+      toast.error("Category is required");
+      return;
+    }
+    createMutation.mutate(newCommunity);
   };
 
   if (isLoading) {
@@ -158,7 +245,7 @@ const Communities = () => {
     );
   }
 
-  if (isErrorAll || isErrorMy) {
+  if (isErrorRecommended || isErrorMy) {
     return (
       <AppLayout>
         <div className="border-r border-border h-full">
@@ -182,7 +269,7 @@ const Communities = () => {
           <div className="p-4 text-center">
             <p className="text-destructive mb-2">Error loading communities</p>
             <p className="text-sm text-muted-foreground">
-              {(errorAll as any)?.message ||
+              {(errorRecommended as any)?.message ||
                 (errorMy as any)?.message ||
                 "Failed to fetch communities"}
             </p>
@@ -270,6 +357,14 @@ const Communities = () => {
                   Communities
                 </h1>
               </div>
+              <Button
+                onClick={() => setCreateModalOpen(true)}
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create
+              </Button>
             </div>
           </div>
         </div>
@@ -435,20 +530,133 @@ const Communities = () => {
                     </p>
                   </div>
                 ) : (
-                  filteredCommunities(exploreCommunitiesList).map(
-                    (community) => (
-                      <CommunityCard
-                        key={community.id}
-                        community={community}
-                        showJoinButton={true}
-                      />
-                    )
-                  )
+                  <>
+                    {filteredCommunities(exploreCommunitiesList).map(
+                      (community, index) => {
+                        const isLastItem = index === filteredCommunities(exploreCommunitiesList).length - 1;
+                        return (
+                          <div
+                            key={community.id}
+                            ref={isLastItem ? lastCommunityRef : null}
+                          >
+                            <CommunityCard
+                              community={community}
+                              showJoinButton={true}
+                            />
+                          </div>
+                        );
+                      }
+                    )}
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-4">
+                        <LoadingSpinner />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Create Community Modal */}
+        <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Community</DialogTitle>
+              <DialogDescription>
+                Create a new community for campus activities and departments.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Community Name *</Label>
+                <Input
+                  id="name"
+                  value={newCommunity.name}
+                  onChange={(e) =>
+                    setNewCommunity((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter community name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newCommunity.description || ""}
+                  onChange={(e) =>
+                    setNewCommunity((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  placeholder="Describe the community's purpose"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={newCommunity.category}
+                  onValueChange={(value) =>
+                    setNewCommunity((prev) => ({
+                      ...prev,
+                      category: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Academic">Academic</SelectItem>
+                    <SelectItem value="Department">Department</SelectItem>
+                    <SelectItem value="Level">Level</SelectItem>
+                    <SelectItem value="Hostel">Hostel</SelectItem>
+                    <SelectItem value="Faculty">Faculty</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_public">Public Community</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Anyone can join a public community
+                  </p>
+                </div>
+                <Switch
+                  id="is_public"
+                  checked={newCommunity.is_public}
+                  onCheckedChange={(checked) =>
+                    setNewCommunity((prev) => ({
+                      ...prev,
+                      is_public: checked,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCreateModalOpen(false)}
+                disabled={createMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateCommunity}
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? "Creating..." : "Create Community"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

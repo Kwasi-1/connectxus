@@ -9,8 +9,11 @@ import {
   UserMinus,
   BadgeCheck,
   Star,
+  GraduationCap,
+  Award,
 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useNavigate } from "react-router-dom";
 
 interface TutorCardProps {
   tutor: {
@@ -19,7 +22,7 @@ interface TutorCardProps {
     username?: string;
     avatar?: string;
     bio?: string;
-    subjects?: string[];
+    subject?: string;
     rating?: number;
     hourly_rate?: number;
     session_rate?: number;
@@ -31,6 +34,8 @@ interface TutorCardProps {
       | { day: string; startTime: string; endTime: string }[];
     user_id?: string;
     verified?: boolean;
+    experience?: string;
+    qualifications?: string;
   };
   isFollowing?: boolean;
   onContact: () => void;
@@ -53,12 +58,28 @@ export function TutorCard({
 }: TutorCardProps) {
   const tutorName = tutor.full_name || tutor.username || "Unknown";
   const { formatCurrency } = useCurrency();
+  const navigate = useNavigate();
 
-  // Use session_rate if available, fallback to hourly_rate
-  const sessionRate = tutor.session_rate || tutor.hourly_rate;
+  const sessionRate = parseFloat(String(tutor.session_rate || tutor.hourly_rate || 0)) || undefined;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+
+    navigate(`/tutoring/${tutor.id}`);
+  };
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-200">
+    <Card
+      className="hover:shadow-lg transition-all duration-200 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-6">
         <div className="flex flex-col lg:flex-row gap-5">
           {/* Tutor Info */}
@@ -76,28 +97,47 @@ export function TutorCard({
                   <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
                 )}
               </div>
-              <p className="text-muted-foreground mb-4 lg:mb-2">
-                {tutor.department} • {tutor.year}
-              </p>
+              {(tutor.department || tutor.year) && (
+                <p className="text-muted-foreground mb-4 lg:mb-2">
+                  {tutor.department && tutor.year
+                    ? `${tutor.department} • ${tutor.year}`
+                    : tutor.department || tutor.year}
+                </p>
+              )}
               {tutor.bio && (
                 <p className="text-sm mb-3 -ml-[4.5rem] lg:ml-0">
                   {tutor.bio}
                 </p>
               )}
 
-              {/* Subjects */}
-              {tutor.subjects && tutor.subjects.length > 0 && (
+              {/* Experience */}
+              {tutor.experience && (
+                <div className="flex items-start gap-2 mb-3 -ml-[4.5rem] lg:ml-0">
+                  <Award className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground">Experience</p>
+                    <p className="text-sm line-clamp-4">{tutor.experience}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Qualifications */}
+              {tutor.qualifications && (
+                <div className="flex items-start gap-2 mb-3 -ml-[4.5rem] lg:ml-0">
+                  <GraduationCap className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground">Qualifications</p>
+                    <p className="text-sm line-clamp-4">{tutor.qualifications}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Subject */}
+              {tutor.subject && (
                 <div className="flex flex-wrap gap-1 mb-3 -ml-[4.5rem] lg:ml-0">
-                  {tutor.subjects.slice(0, 4).map((subject, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {subject}
-                    </Badge>
-                  ))}
-                  {tutor.subjects.length > 4 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{tutor.subjects.length - 4}
-                    </Badge>
-                  )}
+                  <Badge variant="secondary" className="text-xs">
+                    {tutor.subject}
+                  </Badge>
                 </div>
               )}
 
@@ -119,7 +159,7 @@ export function TutorCard({
                 )}
                 {tutor.semester_rate && (
                   <div className="text-muted-foreground">
-                    {formatCurrency(tutor.semester_rate)}
+                    {formatCurrency(parseFloat(String(tutor.semester_rate)))}
                     <span className="text-xs">/semester</span>
                   </div>
                 )}

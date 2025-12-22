@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   MessageSquare,
   Heart,
@@ -11,34 +12,77 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserProfile, Post } from "@/types/global";
-import { hasRole } from "@/lib/role";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/PostCard";
+import { useFeed } from "@/hooks/useFeed";
+import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileTabsProps {
   user: UserProfile;
   isOwnProfile?: boolean;
-  onLike?: (postId: string) => void;
-  onComment?: (postId: string) => void;
-  onRepost?: (postId: string) => void;
-  onQuote?: (postId: string) => void;
-  onShare?: (postId: string) => void;
-  onMediaClick?: (post: Post) => void;
 }
 
 export const ProfileTabs = ({
   user,
   isOwnProfile = true,
-  onLike = () => {},
-  onComment = () => {},
-  onRepost = () => {},
-  onQuote = () => {},
-  onShare = () => {},
-  onMediaClick = () => {},
 }: ProfileTabsProps) => {
   const { user: authUser } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("posts");
+
+  const {
+    posts,
+    isLoading: postsLoading,
+    hasNextPage: hasMorePosts,
+    isFetchingNextPage: isFetchingMorePosts,
+    fetchNextPage: fetchMorePosts,
+    likePost,
+    repostPost,
+    deletePost,
+    sharePost,
+  } = useFeed({
+    type: 'user',
+    userId: user.id,
+    enabled: activeTab === "posts",
+  });
+
+  const {
+    posts: likedPosts,
+    isLoading: likedLoading,
+    hasNextPage: hasMoreLiked,
+    isFetchingNextPage: isFetchingMoreLiked,
+    fetchNextPage: fetchMoreLiked,
+    likePost: likeLikedPost,
+    repostPost: repostLikedPost,
+    sharePost: shareLikedPost,
+  } = useFeed({
+    type: 'liked',
+    userId: user.id,
+    enabled: activeTab === "likes" && isOwnProfile,
+  });
+
+  const { loadMoreRef: postsLoadMoreRef } = useInfiniteScroll({
+    loading: isFetchingMorePosts,
+    hasMore: hasMorePosts || false,
+    onLoadMore: fetchMorePosts,
+  });
+
+  const { loadMoreRef: likedLoadMoreRef } = useInfiniteScroll({
+    loading: isFetchingMoreLiked,
+    hasMore: hasMoreLiked || false,
+    onLoadMore: fetchMoreLiked,
+  });
+
+  const handleComment = (postId: string) => {
+    navigate(`/post/${postId}`);
+  };
+
+  const handleQuote = (postId: string) => {
+  };
 
   const getTabs = () => {
     const baseTabs = [
@@ -46,39 +90,12 @@ export const ProfileTabs = ({
         id: "posts",
         label: "Posts",
         icon: MessageSquare,
-        count: user.posts.length,
+        count: posts?.length || 0,
       },
     ];
 
-        if (isOwnProfile) {
-      baseTabs.push({ id: "likes", label: "Likes", icon: Heart, count: 0 });
-
-            if (hasRole(authUser, "student")) {
-        baseTabs.push({
-          id: "groups",
-          label: "Groups",
-          icon: Users,
-          count: user.joinedGroups.length,
-        });
-      }
-
-      if (hasRole(authUser, "tutor")) {
-        baseTabs.push({
-          id: "tutoring",
-          label: "Tutoring",
-          icon: BookOpen,
-          count: user.tutoringRequests.length,
-        });
-      }
-
-      if (hasRole(authUser, "mentor")) {
-        baseTabs.push({
-          id: "mentorship",
-          label: "Mentorship",
-          icon: GraduationCap,
-          count: null,
-        });
-      }
+    if (isOwnProfile) {
+      baseTabs.push({ id: "likes", label: "Likes", icon: Heart, count: likedPosts?.length || 0 });
 
       baseTabs.push({
         id: "settings",
@@ -94,7 +111,7 @@ export const ProfileTabs = ({
   const tabs = getTabs();
 
   return (
-    <Tabs defaultValue="posts" className="w-full">
+    <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="w-full overflow-x-auto justify-start h-auto p-0 bg-transparent border-b rounded-none">
         {tabs.map((tab) => (
           <TabsTrigger
@@ -114,137 +131,130 @@ export const ProfileTabs = ({
       </TabsList>
 
       <TabsContent value="posts" className="space-y-0 mt-0">
-        {user.posts.length > 0 ? (
-          user.posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={onLike}
-              onComment={onComment}
-              onRepost={onRepost}
-              onQuote={onQuote}
-              onShare={onShare}
-              onMediaClick={onMediaClick}
-            />
-          ))
+        {postsLoading ? (
+          <FeedLoadingSkeleton count={5} />
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No posts yet</p>
-            <p className="text-sm">
-              When {isOwnProfile ? "you" : user.username} post something, it
-              will show up here.
-            </p>
-          </div>
+          <>
+            {posts && posts.length > 0 ? (
+              <>
+                <div className="divide-y divide-border">
+                  {posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      currentUserId={authUser?.id}
+                    />
+                  ))}
+                </div>
+
+                {/* Infinite scroll trigger */}
+                {hasMorePosts && (
+                  <div ref={postsLoadMoreRef} className="py-4 text-center">
+                    {isFetchingMorePosts && <FeedLoadingSkeleton count={2} />}
+                  </div>
+                )}
+
+                {!hasMorePosts && posts && posts.length > 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    You've reached the end
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">No posts yet</p>
+                <p className="text-sm">
+                  When {isOwnProfile ? "you" : user.username} post something, it
+                  will show up here.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </TabsContent>
 
       {isOwnProfile && (
         <>
-          <TabsContent value="likes" className="space-y-4 mt-0">
-            <div className="pt-4" />
-            <div className="text-center py-12 text-muted-foreground">
-              <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg mb-2">No likes yet</p>
-              <p className="text-sm">
-                Tap the heart on posts you like and they'll show up here.
-              </p>
-            </div>
+          <TabsContent value="likes" className="space-y-0 mt-0">
+            {likedLoading ? (
+              <FeedLoadingSkeleton count={5} />
+            ) : (
+              <>
+                {likedPosts && likedPosts.length > 0 ? (
+                  <>
+                    <div className="divide-y divide-border">
+                      {likedPosts.map((post) => (
+                        <PostCard
+                          key={post.id}
+                          post={post}
+                          currentUserId={authUser?.id}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Infinite scroll trigger */}
+                    {hasMoreLiked && (
+                      <div ref={likedLoadMoreRef} className="py-4 text-center">
+                        {isFetchingMoreLiked && <FeedLoadingSkeleton count={2} />}
+                      </div>
+                    )}
+
+                    {!hasMoreLiked && likedPosts && likedPosts.length > 0 && (
+                      <div className="text-center py-4 text-muted-foreground text-sm">
+                        You've reached the end
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg mb-2">No likes yet</p>
+                    <p className="text-sm">
+                      Tap the heart on posts you like and they'll show up here.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </TabsContent>
 
-          {hasRole(authUser, "student") && (
-            <TabsContent value="groups" className="space-y-4 mt-0">
-              <div className="pt-4" />
-              {user.joinedGroups.length > 0 ? (
-                user.joinedGroups.map((group) => (
-                  <Card
-                    key={group.id}
-                    className="border-0 border-b border-border rounded-none"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={group.avatar} />
-                          <AvatarFallback>
-                            {group.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium">{group.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {group.members} members • {group.category}
-                          </p>
-                        </div>
+          <TabsContent value="groups" className="space-y-4 mt-0">
+            <div className="pt-4" />
+            {user.joinedGroups && user.joinedGroups.length > 0 ? (
+              user.joinedGroups.map((group) => (
+                <Card
+                  key={group.id}
+                  className="border-0 border-b border-border rounded-none"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={group.avatar} />
+                        <AvatarFallback>
+                          {group.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{group.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {group.members} members • {group.category}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg mb-2">No groups joined</p>
-                  <p className="text-sm">
-                    Join groups to connect with others who share your interests.
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-          )}
-
-          {hasRole(authUser, "tutor") && (
-            <TabsContent value="tutoring" className="space-y-4 mt-0">
-              <div className="pt-4" />
-              {user.tutoringRequests.length > 0 ? (
-                user.tutoringRequests.map((request) => (
-                  <Card
-                    key={request.id}
-                    className="border-0 border-b border-border rounded-none"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">{request.subject}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {request.description}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            request.status === "accepted"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {request.status}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg mb-2">No tutoring requests</p>
-                  <p className="text-sm">
-                    Your tutoring sessions will appear here.
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-          )}
-
-          {hasRole(authUser, "mentor") && (
-            <TabsContent value="mentorship" className="space-y-4 mt-0">
-              <div className="border-b border-border pt-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
               <div className="text-center py-12 text-muted-foreground">
-                <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">No mentorship sessions</p>
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">No groups joined</p>
                 <p className="text-sm">
-                  Your mentoring activities will show up here.
+                  Join groups to connect with others who share your interests.
                 </p>
               </div>
-            </TabsContent>
-          )}
+            )}
+          </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
             <Card className="rounded-none border-0">

@@ -1,5 +1,3 @@
-
-
 export interface User {
   id: string;
   username: string;
@@ -67,21 +65,6 @@ export interface TutorProfile {
   verified: boolean;
 }
 
-export interface MentorProfile {
-  id: string;
-  user: User;
-  industry: string;
-  company?: string;
-  position?: string;
-  experience: number;
-  specialties: string[];
-  rating: number;
-  reviewCount: number;
-  availability: TimeSlot[];
-  description: string;
-  verified: boolean;
-}
-
 export interface Message {
   id: string;
   sender: User;
@@ -133,37 +116,41 @@ export interface Notification {
 }
 
 export interface ExplorePost extends Post {
-  category: 'trending' | 'news' | 'sports' | 'entertainment';
+  category: "trending" | "news" | "sports" | "entertainment";
 }
 
 export interface SearchResult {
   id: string;
-  type: 'user' | 'post' | 'topic';
+  type: "user" | "post" | "topic";
   content: string;
   relevance: number;
 }
 
-export type GroupCategory = 
-  | 'Academic'
-  | 'Sports'
-  | 'Arts'
-  | 'Technology'
-  | 'Social'
-  | 'Professional'
-  | 'Study Group'
-  | 'Other';
+export type GroupCategory =
+  | "Academic"
+  | "Sports"
+  | "Arts"
+  | "Technology"
+  | "Social"
+  | "Professional"
+  | "Study Group"
+  | "Other";
 
-export type NotificationType = 
-  | 'like'
-  | 'comment'
-  | 'repost'
-  | 'follow'
-  | 'mention'
-  | 'message'
-  | 'group_invite'
-  | 'tutoring_request'
-  | 'mentor_request';
+export type NotificationType =
+  | "like"
+  | "comment"
+  | "repost"
+  | "follow"
+  | "mention"
+  | "message"
+  | "group_invite"
+  | "tutoring_request"
 
-export type FeedFilter = 'all' | 'following';
-export type ExploreTab = 'for-you' | 'trending' | 'news' | 'sports' | 'entertainment';
-export type NotificationTab = 'all' | 'verified' | 'mentions';
+export type FeedFilter = "all" | "following";
+export type ExploreTab =
+  | "for-you"
+  | "trending"
+  | "news"
+  | "sports"
+  | "entertainment";
+export type NotificationTab = "all" | "verified" | "mentions";

@@ -1,74 +1,123 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, Users, TrendingUp, Sparkles } from "lucide-react";
-import { mockPeople, Person } from "@/data/mockPeople";
+import { Search, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PeopleFilters } from "@/components/people/PeopleFilters";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getAllPeopleInSpace,
+  getPeopleInDepartment,
+  getPeopleYouMayKnow,
+  searchUsers,
+  followUser,
+  unfollowUser,
+  checkFollowingStatus,
+  UserProfile,
+} from "@/api/users.api";
+import { toast } from "sonner";
 
-type FilterType = "all" | "department" | "may-know" | "trending" | "new";
+type FilterType = "all" | "department" | "may-know";
 
 export function People() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("may-know");
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
-  const handleFollow = (personId: string) => {
-    setFollowingIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(personId)) {
-        newSet.delete(personId);
-      } else {
-        newSet.add(personId);
-      }
-      return newSet;
+  const { data: allPeople = [], isLoading: loadingAll } = useQuery({
+    queryKey: ["people", "all"],
+    queryFn: () => getAllPeopleInSpace({ limit: 100 }),
+    enabled: activeFilter === "all" && !searchQuery,
+  });
+
+  const { data: departmentPeople = [], isLoading: loadingDepartment } =
+    useQuery({
+      queryKey: ["people", "department"],
+      queryFn: () => getPeopleInDepartment({ limit: 100 }),
+      enabled: activeFilter === "department" && !searchQuery,
     });
+
+  const { data: mayKnowPeople = [], isLoading: loadingMayKnow } = useQuery({
+    queryKey: ["people", "may-know"],
+    queryFn: () => getPeopleYouMayKnow({ limit: 100 }),
+    enabled: activeFilter === "may-know" && !searchQuery,
+  });
+
+  const { data: searchResults = [], isLoading: loadingSearch } = useQuery({
+    queryKey: ["people", "search", searchQuery],
+    queryFn: () => searchUsers({ q: searchQuery, limit: 100 }),
+    enabled: !!searchQuery && searchQuery.length > 0,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: (userId: string) => followUser(userId),
+    onSuccess: (_, userId) => {
+      setFollowingIds((prev) => new Set(prev).add(userId));
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      toast.success("Followed successfully");
+    },
+    onError: () => {
+      toast.error("Failed to follow user");
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: (userId: string) => unfollowUser(userId),
+    onSuccess: (_, userId) => {
+      setFollowingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      toast.success("Unfollowed successfully");
+    },
+    onError: () => {
+      toast.error("Failed to unfollow user");
+    },
+  });
+
+  const handleFollow = (personId: string) => {
+    if (followingIds.has(personId)) {
+      unfollowMutation.mutate(personId);
+    } else {
+      followMutation.mutate(personId);
+    }
   };
 
-  const filterPeople = (people: Person[]): Person[] => {
-    let filtered = people;
+  const handleCardClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
+  };
 
-    // Apply filter
+  let people: UserProfile[] = [];
+  let isLoading = false;
+
+  if (searchQuery) {
+    people = searchResults;
+    isLoading = loadingSearch;
+  } else {
     switch (activeFilter) {
+      case "all":
+        people = allPeople;
+        isLoading = loadingAll;
+        break;
       case "department":
-        filtered = people.filter(
-          (p) =>
-            p.department === user?.department ||
-            p.department === "Computer Science"
-        );
+        people = departmentPeople;
+        isLoading = loadingDepartment;
         break;
       case "may-know":
-        filtered = people.filter((p) => p.mutualFollowers > 5);
+        people = mayKnowPeople;
+        isLoading = loadingMayKnow;
         break;
-      case "trending":
-        filtered = people.filter((p) => p.isTrending);
-        break;
-      case "new":
-        filtered = people.filter((p) => p.isNew);
-        break;
-      default:
-        filtered = people;
     }
-
-    // Apply search
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.bio.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return filtered;
-  };
-
-  const filteredPeople = filterPeople(mockPeople);
+  }
 
   return (
     <AppLayout
@@ -86,14 +135,14 @@ export function People() {
               Discover People
             </h1>
             <p className="text-muted-foreground mb-4">
-              Connect with students, tutors, and creators in your community
+              Connect with students and tutors in your community
             </p>
 
             {/* Search Input */}
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search Anything..."
+                placeholder="Search people..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 py-3 border rounded-full text-base"
@@ -106,89 +155,110 @@ export function People() {
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
-              {filteredPeople.length}{" "}
-              {filteredPeople.length === 1 ? "person" : "people"} found
+              {people.length} {people.length === 1 ? "person" : "people"} found
             </p>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+
           {/* People Grid */}
-          <div className="grid grid-cols-1 gap-4">
-            {filteredPeople.map((person) => (
-              <Card
-                key={person.id}
-                className="hover:shadow-md transition-all duration-200"
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <Avatar className="h-14 w-14 ring-2 ring-background transition-all">
-                      <AvatarImage src={person.avatar} alt={person.name} />
-                      <AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="min-w-0">
-                          <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                            {person.name}
-                          </h3>
-                          <p className="text-xs text-muted-foreground truncate">
-                            @{person.username}
-                          </p>
-                        </div>
-                        {(person.isTrending || person.isNew) && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs shrink-0"
-                          >
-                            {person.isTrending ? "Trending" : "New"}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {person.bio}
-                      </p>
-
-                      {/* Stats */}
-                      <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-                        <span>
-                          {person.followers.toLocaleString()} followers
-                        </span>
-                        {person.mutualFollowers > 0 && (
-                          <span className="text-primary">
-                            {person.mutualFollowers} mutual
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Follow Button */}
-                      <Button
-                        size="sm"
-                        variant={
-                          followingIds.has(person.id) ? "outline" : "default"
+          {!isLoading && (
+            <div className="grid grid-cols-1 gap-4">
+              {people.map((person) => (
+                <Card
+                  key={person.id}
+                  className="hover:shadow-md transition-all duration-200 cursor-pointer"
+                >
+                  <CardContent className="p-5">
+                    <div
+                      className="flex items-start gap-4"
+                      onClick={(e) => {
+                        if (!(e.target as HTMLElement).closest("button")) {
+                          handleCardClick(person.id);
                         }
-                        className="w-full bg-foreground hover:bg-foreground/80"
-                        onClick={() => handleFollow(person.id)}
-                      >
-                        {followingIds.has(person.id) ? "Following" : "Follow"}
-                      </Button>
+                      }}
+                    >
+                      {/* Avatar */}
+                      <Avatar className="h-14 w-14 ring-2 ring-background transition-all">
+                        <AvatarImage
+                          src={person.avatar || undefined}
+                          alt={person.full_name}
+                        />
+                        <AvatarFallback>
+                          {person.full_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="min-w-0">
+                            <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                              {person.full_name}
+                            </h3>
+                            <p className="text-xs text-muted-foreground truncate">
+                              @{person.username}
+                            </p>
+                          </div>
+                        </div>
+
+                        {person.bio && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                            {person.bio}
+                          </p>
+                        )}
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+                          <span>{person.followers_count || 0} followers</span>
+                          {person.level && (
+                            <span className="text-primary">
+                              Level {person.level}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Follow Button */}
+                        <Button
+                          size="sm"
+                          variant={
+                            followingIds.has(person.id) ? "outline" : "default"
+                          }
+                          className="w-full bg-foreground hover:bg-foreground/80"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFollow(person.id);
+                          }}
+                          disabled={
+                            followMutation.isPending ||
+                            unfollowMutation.isPending
+                          }
+                        >
+                          {followingIds.has(person.id) ? "Following" : "Follow"}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredPeople.length === 0 && (
+          {!isLoading && people.length === 0 && (
             <Card className="p-12">
               <div className="text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No people found</h3>
                 <p className="text-sm text-muted-foreground">
-                  Try adjusting your filters or search query
+                  {searchQuery
+                    ? "Try adjusting your search query"
+                    : "Try adjusting your filters"}
                 </p>
               </div>
             </Card>

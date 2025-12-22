@@ -7,8 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { QuotedPostCard } from './QuotedPostCard';
 import { Post } from '@/types/global';
-import { mockUsers } from '@/data/mockData';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface QuotePostModalProps {
   isOpen: boolean;
@@ -19,37 +18,26 @@ interface QuotePostModalProps {
 
 export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModalProps) {
   const [content, setContent] = useState('');
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const maxChars = 280;
 
   const handleQuote = () => {
-    if (content.trim()) {
-      const newPost: Post = {
-        id: Date.now().toString(),
-        author: mockUsers[0],
-        content,
-        quotedPost: post,
-        likes: 0,
-        comments: 0,
-        reposts: 0,
-        quotes: 0,
-        isLiked: false,
-        isReposted: false,
-        createdAt: new Date(),
-      };
-
-            sessionStorage.setItem('newQuote', JSON.stringify({
-        newPost,
-        quotedPostId: post.id
-      }));
-
-      onQuote(content, post);
+    if (content.length <= maxChars) {
+      onQuote(content.trim(), post);
       setContent('');
       onClose();
     }
   };
 
-  const isDisabled = content.length > maxChars;
+  const isDisabled = content.length > maxChars || content.trim().length === 0;
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const userDisplayName = user?.full_name || user?.username || 'Unknown';
+  const userAvatar = user?.avatar || undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,13 +53,13 @@ export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModa
             <X className="h-4 w-4" />
           </Button>
         </DialogHeader>
-        
+
         <div className="p-4 space-y-4">
           <div className="flex space-x-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src={mockUsers[0].avatar} />
+              <AvatarImage src={userAvatar} />
               <AvatarFallback>
-                {mockUsers[0].displayName.split(' ').map(n => n[0]).join('')}
+                {getInitials(userDisplayName)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -80,15 +68,16 @@ export function QuotePostModal({ isOpen, onClose, post, onQuote }: QuotePostModa
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[80px] border-none resize-none text-lg placeholder:text-muted-foreground focus-visible:ring-0 p-0"
+                autoFocus
               />
             </div>
           </div>
-          
-          <QuotedPostCard 
-            post={post} 
-            onClick={() => {}} 
+
+          <QuotedPostCard
+            post={post}
+            onClick={() => {}}
           />
-          
+
           <div className="flex items-center justify-between pt-3 border-t">
             <span className={`text-sm ${content.length > maxChars ? 'text-destructive' : 'text-muted-foreground'}`}>
               {content.length}/{maxChars}

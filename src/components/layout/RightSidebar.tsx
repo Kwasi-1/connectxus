@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,13 +45,39 @@ export function RightSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [isVisible, setIsVisible] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sidebarRef.current) {
+      observer.observe(sidebarRef.current);
+    }
+
+    return () => {
+      if (sidebarRef.current) {
+        observer.unobserve(sidebarRef.current);
+      }
+    };
+  }, []);
 
   const { data: trendingTopics = [], isLoading: loadingTrending } = useQuery({
     queryKey: ["trending-topics"],
     queryFn: () => getTrendingTopics({ page: 1, limit: 5 }),
-    staleTime: 300000,
+    staleTime: 600000,
+    gcTime: 900000,
+    enabled: isVisible,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const { data: announcements = [], isLoading: loadingAnnouncements } =
@@ -59,14 +85,24 @@ export function RightSidebar() {
       queryKey: ["announcements"],
       queryFn: () =>
         getAnnouncements({ status: "published", page: 1, limit: 5 }),
-      staleTime: 300000,
+      staleTime: 600000,
+      gcTime: 900000,
+      enabled: isVisible,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     });
 
   const { data: suggestedUsers = [], isLoading: loadingSuggestedUsers } =
     useQuery({
       queryKey: ["suggested-users"],
       queryFn: () => getSuggestedUsers({ page: 1, limit: 3 }),
-      staleTime: 600000,
+      staleTime: 900000,
+      gcTime: 1200000,
+      enabled: isVisible,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     });
 
   const followMutation = useMutation({
@@ -135,7 +171,7 @@ export function RightSidebar() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" ref={sidebarRef}>
       <div className="p-4 pl-6 sticky top-0 bg-background py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createTutoringSession, getMyTutorProfile } from "@/api/mentorship.api";
+import { createTutoringSession, getMyTutorProfile } from "@/api/tutoring.api";
 import {
   Dialog,
   DialogContent,

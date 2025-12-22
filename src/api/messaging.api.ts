@@ -1,5 +1,5 @@
 
-import apiClient, { getDefaultSpaceId } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -42,6 +42,7 @@ export interface Conversation {
   description?: string | null;
   conversation_type: 'direct' | 'group' | 'channel';
   participant_ids?: string[];
+  group_id?: string | null;
   settings?: any | null;
   created_at: string;
   updated_at?: string | null;
@@ -57,10 +58,13 @@ export interface Conversation {
 }
 
 export interface CreateConversationRequest {
-  space_id: string;
-  name?: string | null;              avatar?: string | null;
+  space_id?: string;
+  name?: string | null;
+  avatar?: string | null;
   description?: string | null;
-  conversation_type: 'direct' | 'group' | 'channel';    participant_ids: string[];
+  conversation_type: 'direct' | 'group' | 'channel';
+  participant_ids?: string[];
+  group_id?: string | null;
   settings?: any | null;
 }
 
@@ -82,27 +86,13 @@ export const getConversationById = async (conversationId: string): Promise<Conve
 export const createConversation = async (
   data: Omit<CreateConversationRequest, 'space_id'>
 ): Promise<Conversation> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID.');
-  }
-
-  const requestData: CreateConversationRequest = {
-    ...data,
-    space_id: spaceId,
-  };
-
-  const response = await apiClient.post<ApiResponse<Conversation>>('/conversations', requestData);
+  const response = await apiClient.post<ApiResponse<Conversation>>('/conversations', data);
   return response.data.data;
 };
 
 export const getOrCreateDirectConversation = async (userId: string): Promise<{ conversation_id: string }> => {
-  const spaceId = getDefaultSpaceId();
-
   const response = await apiClient.post<ApiResponse<{ conversation_id: string }>>('/conversations/direct', {
     recipient_id: userId,
-    space_id: spaceId,
   });
   return response.data.data;
 };
@@ -112,23 +102,22 @@ export const getOrCreateGroupConversation = async (
   groupName: string,
   groupAvatar?: string
 ): Promise<{ conversation_id: string }> => {
-  const spaceId = getDefaultSpaceId();
-
   try {
-            const conversations = await getConversations({ page: 1, limit: 100 });
+    const conversations = await getConversations({ page: 1, limit: 100 });
     const existingConversation = conversations.find(
-      (c) => c.conversation_type === 'group' && c.name === groupName
+      (c) => c.conversation_type === 'group' && c.group_id === groupId
     );
 
     if (existingConversation) {
       return { conversation_id: existingConversation.id };
     }
 
-        const newConversation = await createConversation({
+    const newConversation = await createConversation({
       name: groupName,
       avatar: groupAvatar,
       conversation_type: 'group',
-      participant_ids: [],     });
+      group_id: groupId,
+    });
 
     return { conversation_id: newConversation.id };
   } catch (error) {
@@ -254,19 +243,10 @@ export const getMessagesBetweenUsers = async (
   userId: string,
   params?: PaginationParams
 ): Promise<Message[]> => {
-  const spaceId = getDefaultSpaceId();
-
-  if (!spaceId) {
-    throw new Error('Space ID is required. Please configure VITE_DEFAULT_SPACE_ID.');
-  }
-
   const response = await apiClient.get<ApiResponse<Message[]>>(
     `/messages/between/${userId}`,
     {
-      params: {
-        ...params,
-        space_id: spaceId
-      }
+      params
     }
   );
   return response.data.data;

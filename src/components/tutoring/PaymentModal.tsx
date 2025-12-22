@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,18 +8,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TutoringRequest } from "@/api/mentorship.api";
+import { Separator } from "@/components/ui/separator";
+import { TutoringRequest, initializeTutoringPayment, verifyTutoringPayment } from "@/api/tutoring.api";
 import {
+  DollarSign,
   CreditCard,
   Shield,
+  AlertCircle,
   CheckCircle2,
-  Info,
-  X,
-  Lightbulb,
 } from "lucide-react";
-import { PaystackButton } from "react-paystack";
-import { variables } from "@/utils/env";
 import { useCurrency } from "@/hooks/useCurrency";
+import { toast } from "sonner";
 
 interface PaymentModalProps {
   open: boolean;
@@ -27,102 +26,12 @@ interface PaymentModalProps {
   request: TutoringRequest;
   tutorName: string;
   hourlyRate: number;
-  semesterRate?: number; // Optional semester rate set by tutor
   userEmail: string;
   onPayment: (sessionType: "single" | "semester", reference: string) => void;
   isLoading?: boolean;
 }
 
-// Onboarding popup for first-time payment
-function EscrowOnboarding({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md mx-4 bg-background rounded shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-300">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-full hover:bg-accent transition-colors"
-          aria-label="Close onboarding"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="p-4 rounded-full bg-primary/10">
-            <Shield className="h-12 w-12 text-primary" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Secure Payment Protection</h2>
-            <p className="text-muted-foreground">
-              Your payment is safe with our escrow system
-            </p>
-          </div>
-
-          <div className="w-full space-y-3 text-left">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">1</span>
-              </div>
-              <div>
-                <p className="font-medium">Payment Held Securely</p>
-                <p className="text-sm text-muted-foreground">
-                  Your money is held in escrow until the session is completed
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">2</span>
-              </div>
-              <div>
-                <p className="font-medium">Complete Your Session</p>
-                <p className="text-sm text-muted-foreground">
-                  Attend your tutoring session and mark it as complete
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">3</span>
-              </div>
-              <div>
-                <p className="font-medium">Tutor Gets Paid</p>
-                <p className="text-sm text-muted-foreground">
-                  Payment is released to the tutor on the next payout date
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Advice for first-time users */}
-          <div className="w-full rounded-lg bg-amber-50 dark:bg-amber-950/20 p-4 text-left">
-            <div className="flex gap-2">
-              <Lightbulb className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                  Pro Tip
-                </p>
-                <p className="text-amber-700 dark:text-amber-300">
-                  Start with a single session to build trust and ensure the
-                  tutor is a good fit before committing to bulk or semester
-                  packages.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full pt-2">
-            <Button onClick={onClose} className="w-full" size="lg">
-              Got it!
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const PLATFORM_FEE_PERCENTAGE = 0.15;
 
 export function PaymentModal({
   open,
@@ -130,321 +39,242 @@ export function PaymentModal({
   request,
   tutorName,
   hourlyRate,
-  semesterRate,
   userEmail,
   onPayment,
   isLoading = false,
 }: PaymentModalProps) {
-  const [selectedType, setSelectedType] = useState<"single" | "semester">(
-    request.session_type || "single"
-  );
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [bulkEnabled, setBulkEnabled] = useState(false);
-  const [bulkSessionCount, setBulkSessionCount] = useState(12);
+  const sessionType = request.session_type || "single";
   const { formatCurrency } = useCurrency();
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
 
-  // Check if user has seen onboarding before
-  useEffect(() => {
-    if (open) {
-      const hasSeenOnboarding = localStorage.getItem(
-        "tutoring_payment_onboarding_seen"
+  const calculatePricing = (type: "single" | "semester") => {
+    const baseAmount = type === "single" ? hourlyRate : hourlyRate * 12;
+    const discount = type === "semester" ? 0.15 : 0;
+    const discountedAmount = baseAmount * (1 - discount);
+    const platformFee = discountedAmount * PLATFORM_FEE_PERCENTAGE;
+    const total = discountedAmount + platformFee;
+    const tutorAmount = discountedAmount;
+
+    return {
+      baseAmount,
+      discount: baseAmount * discount,
+      discountedAmount,
+      platformFee,
+      total,
+      tutorAmount,
+    };
+  };
+
+  const pricing = calculatePricing(sessionType);
+
+  const refundWindow = "24 hours";
+
+  const handlePayment = async () => {
+    if (isInitializing || isLoading) return;
+
+    setIsInitializing(true);
+    try {
+      const paymentData = await initializeTutoringPayment({
+        request_id: request.id,
+      });
+
+      setPaymentReference(paymentData.reference);
+
+      const width = 600;
+      const height = 700;
+      const left = window.innerWidth / 2 - width / 2;
+      const top = window.innerHeight / 2 - height / 2;
+
+      const paymentWindow = window.open(
+        paymentData.authorization_url,
+        "PaystackPayment",
+        `width=${width},height=${height},left=${left},top=${top}`
       );
-      if (!hasSeenOnboarding) {
-        setShowOnboarding(true);
-      }
+
+      const pollTimer = setInterval(async () => {
+        if (paymentWindow && paymentWindow.closed) {
+          clearInterval(pollTimer);
+          setIsInitializing(false);
+
+          try {
+            const verifiedPayment = await verifyTutoringPayment({
+              reference: paymentData.reference,
+            });
+
+            toast.success("Payment successful!");
+            onPayment(sessionType, paymentData.reference);
+            onOpenChange(false);
+          } catch (error: any) {
+            console.error("Payment verification failed:", error);
+            toast.error(
+              error?.response?.data?.error?.message || "Payment verification failed"
+            );
+          }
+        }
+      }, 500);
+    } catch (error: any) {
+      setIsInitializing(false);
+      console.error("Payment initialization failed:", error);
+      toast.error(
+        error?.response?.data?.error?.message || "Failed to initialize payment"
+      );
     }
-  }, [open]);
-
-  const handleCloseOnboarding = () => {
-    localStorage.setItem("tutoring_payment_onboarding_seen", "true");
-    setShowOnboarding(false);
-  };
-
-  // Calculate pricing based on tutor's rates
-  const singlePrice = hourlyRate;
-  const semesterPrice = semesterRate || hourlyRate * bulkSessionCount; // Use bulk count if no semester rate
-  const hasSemesterRate = !!semesterRate;
-
-  const selectedPrice = selectedType === "single" ? singlePrice : semesterPrice;
-
-  // Generate unique reference for this transaction
-  const reference = `TUT-${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(7)}`;
-
-  // Paystack configuration
-  const paystackConfig = {
-    reference,
-    email: userEmail,
-    amount: Math.round(selectedPrice * 100), // Convert to pesewas
-    currency: "GHS",
-    publicKey:
-      variables().PAYSTACK_PUBLIC_API_KEY ||
-      "pk_test_c8e9fcf6be7da2f938b8d277203a0b781fff6c39",
-    metadata: {
-      custom_fields: [
-        {
-          display_name: "Tutor Name",
-          variable_name: "tutor_name",
-          value: tutorName,
-        },
-        {
-          display_name: "Subject",
-          variable_name: "subject",
-          value: request.subject,
-        },
-        {
-          display_name: "Session Type",
-          variable_name: "session_type",
-          value: selectedType,
-        },
-        {
-          display_name: "Request ID",
-          variable_name: "request_id",
-          value: request.id,
-        },
-      ],
-    },
-  };
-
-  const handlePaystackSuccessAction = (reference: any) => {
-    onPayment(selectedType, reference.reference);
-    onOpenChange(false); // Close modal after successful payment
-  };
-
-  const handlePaystackCloseAction = () => {
-    console.log("Payment popup closed");
-  };
-
-  // Close modal when Paystack button is clicked
-  const handlePaystackClick = () => {
-    onOpenChange(false);
-  };
-
-  const refundWindow = selectedType === "single" ? "1 week" : "2 weeks";
-
-  const componentProps = {
-    ...paystackConfig,
-    text: (
-      <span className="flex items-center">
-        <CreditCard className="h-4 w-4 mr-2" />
-        Pay {formatCurrency(selectedPrice)}
-      </span>
-    ),
-    onSuccess: handlePaystackSuccessAction,
-    onClose: handlePaystackCloseAction,
   };
 
   return (
-    <>
-      {showOnboarding && <EscrowOnboarding onClose={handleCloseOnboarding} />}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Complete Payment
+          </DialogTitle>
+          <DialogDescription>
+            Secure your tutoring session with {tutorName}
+          </DialogDescription>
+        </DialogHeader>
 
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              Complete Payment
-            </DialogTitle>
-            <DialogDescription>
-              Secure your session with {tutorName}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Session Summary */}
-            <div className="rounded-sm bg-muted/50 p-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Subject</span>
-                <span className="font-medium">{request.subject}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Topic</span>
-                <span className="font-medium line-clamp-1">
-                  {request.topic}
-                </span>
+        <div className="space-y-6">
+          {/* Session Details */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <h3 className="font-semibold">Session Details</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="text-muted-foreground">Tutor:</div>
+              <div className="font-medium">{tutorName}</div>
+              <div className="text-muted-foreground">Subject:</div>
+              <div className="font-medium line-clamp-2">
+                {request.subject || "Tutoring Session"}
               </div>
             </div>
+          </div>
 
-            {/* Pricing Options */}
-            <div className="space-y-3">
-              {/* Single Session */}
-              {!bulkEnabled && (
-                <button
-                  onClick={() => setSelectedType("single")}
-                  className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
-                    selectedType === "single"
-                      ? "border-foreground shadow-sm"
-                      : "border-border hover:border-foreground/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">Single Session</h4>
-                      {selectedType === "single" && (
-                        <CheckCircle2 className="h-5 w-5 text-foreground" />
-                      )}
-                    </div>
-                    <div className="flex items-center text-xl font-bold">
-                      {formatCurrency(singlePrice)}
-                    </div>
+          {/* Session Type & Pricing */}
+          <div className="space-y-3">
+            <h3 className="font-semibold">Payment Details</h3>
+
+            {/* Display session type (read-only) */}
+            <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="font-semibold">
+                      {sessionType === "single"
+                        ? "Single Session"
+                        : "Semester Package"}
+                    </h4>
+                    {sessionType === "semester" && (
+                      <Badge variant="default" className="text-xs">
+                        Save{" "}
+                        {formatCurrency(pricing.discount, {
+                          decimals: 0,
+                        })}
+                      </Badge>
+                    )}
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    One tutoring session
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {sessionType === "single"
+                      ? "One tutoring session"
+                      : "12 sessions with 15% discount"}
                   </p>
-                </button>
-              )}
-
-              {/* Semester Package - Only show if tutor has set a semester rate */}
-              {hasSemesterRate ? (
-                <button
-                  onClick={() => setSelectedType("semester")}
-                  className={`w-full text-left rounded-sm border-2 p-4 transition-all ${
-                    selectedType === "semester"
-                      ? "border-foreground shadow-sm"
-                      : "border-border hover:border-foreground/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">Semester Package</h4>
-                      {selectedType === "semester" && (
-                        <CheckCircle2 className="h-5 w-5 text-foreground" />
-                      )}
-                    </div>
-                    <div className="flex items-center text-xl font-bold">
-                      {formatCurrency(semesterPrice)}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    12 sessions package
-                  </p>
-                </button>
-              ) : (
-                /* Bulk Sessions Toggle - Show if no semester rate */
-                <div className="rounded-sm border-2 border-border p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold">Bulk Sessions</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Pay for multiple sessions upfront
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setBulkEnabled(!bulkEnabled);
-                        if (!bulkEnabled) {
-                          setSelectedType("semester");
-                        } else {
-                          setSelectedType("single");
-                        }
-                      }}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        bulkEnabled
-                          ? "bg-primary"
-                          : "bg-gray-200 dark:bg-gray-700"
-                      }`}
-                      aria-label="Toggle bulk sessions"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          bulkEnabled ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {bulkEnabled && (
-                    <div className="space-y-4 pt-3 border-t border-border">
-                      <div className="space-y-3">
-                        <label className="text-sm font-medium">
-                          Number of Sessions
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() =>
-                              setBulkSessionCount(
-                                Math.max(2, bulkSessionCount - 1)
-                              )
-                            }
-                            className="h-10 w-10 rounded-sm border border-border hover:bg-accent flex items-center justify-center font-medium"
-                            aria-label="Decrease session count"
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            min="2"
-                            max="20"
-                            value={bulkSessionCount}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 2;
-                              setBulkSessionCount(
-                                Math.min(20, Math.max(2, value))
-                              );
-                            }}
-                            className="w-24 h-10 text-center text-lg font-semibold rounded-sm border border-border bg-background [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            aria-label="Number of bulk sessions"
-                          />
-                          <button
-                            onClick={() =>
-                              setBulkSessionCount(
-                                Math.min(20, bulkSessionCount + 1)
-                              )
-                            }
-                            className="h-10 w-10 rounded-sm border border-border hover:bg-accent flex items-center justify-center font-medium"
-                            aria-label="Increase session count"
-                          >
-                            +
-                          </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Min: 2 sessions • Max: 20 sessions
-                        </p>
-                      </div>
-
-                      <div className="rounded-sm bg-muted/50 p-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            {bulkSessionCount} sessions ×{" "}
-                            {formatCurrency(hourlyRate)}
+                  <div className="space-y-1 text-sm">
+                    {sessionType === "semester" && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Regular price:
                           </span>
-                          <span className="text-lg font-bold">
-                            {formatCurrency(semesterPrice)}
+                          <span className="line-through">
+                            {formatCurrency(pricing.baseAmount)}
                           </span>
                         </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Discounted (15% off):</span>
+                          <span>
+                            {formatCurrency(pricing.discountedAmount)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {sessionType === "single" && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Session rate:
+                        </span>
+                        <span>{formatCurrency(pricing.baseAmount)}</span>
                       </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Platform fee (15%):
+                      </span>
+                      <span>{formatCurrency(pricing.platformFee)}</span>
                     </div>
-                  )}
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-semibold text-base">
+                      <span>Total:</span>
+                      <span className="flex items-center">
+                        {formatCurrency(pricing.total)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
+
+          {/* Important Notices */}
+          <div className="space-y-3">
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 flex gap-3">
+              <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Secure Escrow Payment
+                </p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Your payment is held securely until you mark the session as
+                  completed. The tutor receives payment on a biweekly payout
+                  schedule.
+                </p>
+              </div>
             </div>
 
-            {/* Refund Info */}
-            <div className="rounded-sm bg-amber-50 dark:bg-amber-950/20 p-4 flex gap-3">
-              <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-4 flex gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
                   Refund Policy
                 </p>
                 <p className="text-amber-700 dark:text-amber-300">
-                  70% refund available within {refundWindow} of payment
+                  Full refund available within {refundWindow} of payment. After
+                  this period, refunds are no longer available.
                 </p>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <div onClick={handlePaystackClick} className="flex-1">
-                <PaystackButton
-                  {...componentProps}
-                  className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading || isInitializing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePayment}
+              disabled={isInitializing || isLoading}
+              className="inline-flex items-center gap-2"
+            >
+              <CreditCard className="h-4 w-4" />
+              {isInitializing ? "Initializing..." : `Pay ${formatCurrency(pricing.total)}`}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

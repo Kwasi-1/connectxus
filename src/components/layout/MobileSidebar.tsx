@@ -32,7 +32,7 @@ const navigationItems = [
   { icon: Mail, label: "Messages", path: "/messages", id: "messages" },
   { icon: Users, label: "Groups", path: "/hub", id: "groups" },
   { icon: BookOpen, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: GraduationCap, label: "Mentors", path: "/mentors", id: "mentors" },
+  { icon: GraduationCap, label: "Assignments", path: "/assignments", id: "assignments" },
   { icon: User, label: "Account", path: "/account", id: "account" },
 ];
 

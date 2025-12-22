@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { searchApi } from "@/api/search.api";
 import { toggleLikePost, repostPost } from "@/api/posts.api";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SearchTab = "top" | "latest" | "people" | "media";
 
@@ -19,6 +20,7 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: searchResults, isLoading } = useQuery({
     queryKey: ["explore", searchQuery, activeTab],
@@ -89,6 +91,10 @@ const Explore = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["explore"] });
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["community-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["liked-posts"] });
     },
   });
 
@@ -96,6 +102,9 @@ const Explore = () => {
     mutationFn: (postId: string) => repostPost(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["explore"] });
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["community-posts"] });
       toast.success("Post reposted!");
     },
     onError: () => {
@@ -143,8 +152,8 @@ const Explore = () => {
     toast.success("Link copied to clipboard!");
   };
 
-  const handleQuote = (postId: string) => {
-    navigate(`/compose?quote=${postId}`);
+  const handleQuote = (post: any) => {
+    navigate(`/compose?quote=${post.id}`);
   };
 
   const handleUserClick = (username: string) => {
@@ -176,25 +185,6 @@ const Explore = () => {
         return posts;
       })()
     : [];
-
-  const transformedPosts = processedPosts.map((post: any) => ({
-    id: post.id,
-    content: post.content,
-    author: {
-      id: post.author_id,
-      username: post.author?.username || post.username || "unknown",
-      displayName: post.author?.full_name || post.full_name || "Unknown User",
-      avatar: post.author?.avatar || post.author_avatar,
-      verified: post.author?.verified || false,
-    },
-    createdAt: post.created_at,
-    likes: post.likes_count || 0,
-    comments: post.comments_count || 0,
-    reposts: post.reposts_count || 0,
-    isLiked: post.is_liked || false,
-    isReposted: false,
-    images: post.media || [],
-  }));
 
   return (
     <AppLayout>
@@ -273,16 +263,12 @@ const Explore = () => {
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {transformedPosts.length > 0 ? (
-                      transformedPosts.map((post) => (
+                    {processedPosts.length > 0 ? (
+                      processedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
-                          onLike={handleLike}
-                          onComment={handleComment}
-                          onRepost={handleRepost}
-                          onQuote={handleQuote}
-                          onShare={handleShare}
+                          currentUserId={user?.id}
                         />
                       ))
                     ) : (
@@ -301,16 +287,12 @@ const Explore = () => {
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {transformedPosts.length > 0 ? (
-                      transformedPosts.map((post) => (
+                    {processedPosts.length > 0 ? (
+                      processedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
-                          onLike={handleLike}
-                          onComment={handleComment}
-                          onRepost={handleRepost}
-                          onQuote={handleQuote}
-                          onShare={handleShare}
+                          currentUserId={user?.id}
                         />
                       ))
                     ) : (
@@ -333,7 +315,7 @@ const Explore = () => {
                       searchResults.users.map((user: any) => (
                         <div
                           key={user.id}
-                          onClick={() => handleUserClick(user.username)}
+                          onClick={() => handleUserClick(user.id)}
                           className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-start gap-3">
@@ -387,16 +369,12 @@ const Explore = () => {
                   <LoadingSpinner size="lg" />
                 ) : (
                   <div className="divide-y divide-border">
-                    {transformedPosts.length > 0 ? (
-                      transformedPosts.map((post) => (
+                    {processedPosts.length > 0 ? (
+                      processedPosts.map((post) => (
                         <PostCard
                           key={post.id}
                           post={post}
-                          onLike={handleLike}
-                          onComment={handleComment}
-                          onRepost={handleRepost}
-                          onQuote={handleQuote}
-                          onShare={handleShare}
+                          currentUserId={user?.id}
                         />
                       ))
                     ) : (

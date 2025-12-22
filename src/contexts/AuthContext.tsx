@@ -1,38 +1,44 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AuthUser, AuthContextType, SignInFormData, SignUpFormData } from '@/types/auth';
-import { login, register } from '@/api/auth.api';
-import { logout as apiLogout } from '@/api/auth.api';
-import { isAuthenticated } from '@/lib/apiClient';
-import { toast } from 'sonner';
-import { initWebSocket } from '@/lib/websocket';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  AuthUser,
+  AuthContextType,
+  SignInFormData,
+  SignUpFormData,
+} from "@/types/auth";
+import { login, register } from "@/api/auth.api";
+import { logout as apiLogout } from "@/api/auth.api";
+import { isAuthenticated } from "@/lib/apiClient";
+import { toast } from "sonner";
+import { initWebSocket } from "@/lib/websocket";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-        const storedUser = localStorage.getItem('auth-user');
+    const storedUser = localStorage.getItem("auth-user");
     const hasToken = isAuthenticated();
 
     if (storedUser && hasToken) {
       try {
         setUser(JSON.parse(storedUser));
-                initWebSocket().catch((error) => {
-          console.error('Failed to initialize WebSocket:', error);
+        initWebSocket().catch((error) => {
+          console.error("Failed to initialize WebSocket:", error);
         });
       } catch (error) {
-        localStorage.removeItem('auth-user');
+        localStorage.removeItem("auth-user");
       }
     }
     setIsLoading(false);
@@ -46,26 +52,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: data.password,
       });
 
-            const authUser: AuthUser = {
+      const authUser: AuthUser = {
         id: response.user.id,
         email: response.user.email,
         name: response.user.full_name,
-        roles: response.user.roles || ['student'],         university: '',         department: '',
-        level: '',
+        university: "",
+        department: "",
+        level: "",
         interests: [],
-        createdAt: response.user.created_at ? new Date(response.user.created_at) : new Date(),
+        createdAt: response.user.created_at
+          ? new Date(response.user.created_at)
+          : new Date(),
       };
 
       setUser(authUser);
-      localStorage.setItem('auth-user', JSON.stringify(authUser));
+      localStorage.setItem("auth-user", JSON.stringify(authUser));
 
-            initWebSocket().catch((error) => {
-        console.error('Failed to initialize WebSocket:', error);
+      initWebSocket().catch((error) => {
+        console.error("Failed to initialize WebSocket:", error);
       });
 
-      toast.success('Welcome back!');
+      toast.success("Welcome back!");
     } catch (error: any) {
-            throw error;
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -76,10 +85,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await register({
         space_id: data.space_id,
-        username: data.email.split('@')[0],
+        username: data.username,
         email: data.email,
         password: data.password,
-        full_name: data.name,
+        is_student: data.is_student,
         level: data.level || null,
         department_id: data.department_id || null,
         major: null,
@@ -88,8 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone_number: data.phoneNumber,
       });
 
-      toast.success('Account created successfully! Please log in.');
-
+      toast.success("Account created successfully! Please log in.");
     } catch (error: any) {
       throw error;
     } finally {
@@ -101,12 +109,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiLogout();
       setUser(null);
-      localStorage.removeItem('auth-user');
-      toast.success('Logged out successfully');
+      localStorage.removeItem("auth-user");
+      toast.success("Logged out successfully");
     } catch (error) {
-      console.error('Logout error:', error);
-            setUser(null);
-      localStorage.removeItem('auth-user');
+      console.error("Logout error:", error);
+      setUser(null);
+      localStorage.removeItem("auth-user");
+    }
+  };
+
+  const setAuthUser = (userData: any, isNewUser: boolean = false) => {
+    const authUser: AuthUser = {
+      id: userData.id,
+      email: userData.email,
+      name: userData.full_name,
+      university: "",
+      department: "",
+      level: "",
+      interests: [],
+      createdAt: userData.created_at
+        ? new Date(userData.created_at)
+        : new Date(),
+    };
+
+    setUser(authUser);
+    localStorage.setItem("auth-user", JSON.stringify(authUser));
+
+    initWebSocket().catch((error) => {
+      console.error("Failed to initialize WebSocket:", error);
+    });
+
+    if (isNewUser) {
+      toast.success("Welcome! Your account has been created.");
+    } else {
+      toast.success("Welcome back!");
     }
   };
 
@@ -116,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    setAuthUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

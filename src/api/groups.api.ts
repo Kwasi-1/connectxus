@@ -1,5 +1,5 @@
 
-import apiClient, { getValidatedSpaceId } from '@/lib/apiClient';
+import apiClient from '@/lib/apiClient';
 
 interface ApiResponse<T> {
   data: T;
@@ -23,7 +23,13 @@ export interface Group {
   created_at: string;
   updated_at?: string | null;
     is_member?: boolean;
-  role?: string | null;            }
+  role?: string | null;
+  join_request_status?: 'pending' | 'approved' | 'rejected';
+  user_role_applications?: Array<{
+    role_id: string;
+    status: 'pending' | 'approved' | 'rejected';
+  }>;
+}
 
 export interface ProjectRole {
   id: string;
@@ -94,6 +100,7 @@ export interface GroupMember {
   role: string;
   joined_at?: string | null;
   permissions: string[];
+  project_roles?: string[];
 }
 
 export interface ListGroupsParams extends PaginationParams {
@@ -104,15 +111,8 @@ export interface ListGroupsParams extends PaginationParams {
 }
 
 export const getGroups = async (params?: Omit<ListGroupsParams, 'space_id'>): Promise<Group[]> => {
-    let spaceId: string | undefined;
-  try {
-    spaceId = getValidatedSpaceId();
-  } catch (error) {
-        spaceId = undefined;
-  }
-
   const response = await apiClient.get<ApiResponse<Group[]>>('/groups', {
-    params: spaceId ? { space_id: spaceId, ...params } : params,
+    params,
   });
   return response.data.data;
 };
@@ -143,10 +143,9 @@ export const searchGroups = async (
   query: string,
   params?: PaginationParams
 ): Promise<Group[]> => {
-  const spaceId = getValidatedSpaceId();
 
   const response = await apiClient.get<ApiResponse<Group[]>>('/groups/search', {
-    params: { q: query, space_id: spaceId, ...params },
+    params: { q: query, ...params },
   });
   return response.data.data;
 };
@@ -258,29 +257,15 @@ export const updateMemberRole = async (
 };
 
 export const getUserGroups = async (params?: PaginationParams): Promise<Group[]> => {
-    let spaceId: string | undefined;
-  try {
-    spaceId = getValidatedSpaceId();
-  } catch (error) {
-        spaceId = undefined;
-  }
-
   const response = await apiClient.get<ApiResponse<Group[]>>('/users/groups', {
-    params: spaceId ? { space_id: spaceId, ...params } : params,
+    params,
   });
   return response.data.data;
 };
 
 export const getRecommendedGroups = async (params?: PaginationParams): Promise<Group[]> => {
-    let spaceId: string | undefined;
-  try {
-    spaceId = getValidatedSpaceId();
-  } catch (error) {
-        spaceId = undefined;
-  }
-
   const response = await apiClient.get<ApiResponse<Group[]>>('/users/groups/recommended', {
-    params: spaceId ? { space_id: spaceId, ...params } : params,
+    params,
   });
   return response.data.data;
 };
@@ -443,8 +428,6 @@ export interface GroupResource {
   file_url: string;
   file_type?: string | null;
   file_size?: number | null;
-  category?: string | null;
-  tags: string[];
   download_count: number;
   status: string;
   created_at: string;
@@ -460,15 +443,11 @@ export interface CreateResourceRequest {
   file_url: string;
   file_type?: string | null;
   file_size?: number | null;
-  category?: string | null;
-  tags?: string[];
 }
 
 export interface UpdateResourceRequest {
   name: string;
   description?: string | null;
-  category?: string | null;
-  tags?: string[];
 }
 
 export async function createGroupResource(
@@ -488,7 +467,7 @@ export async function getGroupResources(
 ): Promise<GroupResource[]> {
   const response = await apiClient.get<ApiResponse<GroupResource[]>>(
     `/groups/${groupId}/resources`,
-    { params: { ...params, space_id: getValidatedSpaceId() } }
+    { params: { ...params,  } }
   );
   return response.data.data;
 }

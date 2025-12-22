@@ -1,7 +1,7 @@
-import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProfileHeader } from "@/components/account/ProfileHeader";
 import { ProfileTabs } from "@/components/account/ProfileTabs";
+import { ErrorBoundary } from "@/components/account/ErrorBoundary";
 import { UserProfile } from "@/types/global";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "@/components/ui/button";
@@ -9,31 +9,26 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserById, updateUser, UpdateUserRequest } from "@/api/users.api";
-import { getPostsByUser, toggleLikePost, repostPost } from "@/api/posts.api";
 import { toast } from "sonner";
 
 const Account = () => {
-  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
 
     const { data: userProfile, isLoading: loadingProfile } = useQuery({
     queryKey: ["user-profile", authUser?.id],
-    queryFn: () =>
-      authUser ? getUserById(authUser.id) : Promise.reject("No user"),
-    enabled: !!authUser,
+    queryFn: async () => {
+      if (!authUser?.id) {
+        throw new Error("No authenticated user");
+      }
+      return getUserById(authUser.id);
+    },
+    enabled: !!authUser?.id,
     staleTime: 60000,
+    retry: 1,
+    throwOnError: false,
   });
 
-    const { data: userPosts = [], isLoading: loadingPosts } = useQuery({
-    queryKey: ["user-posts", authUser?.id],
-    queryFn: () =>
-      authUser
-        ? getPostsByUser(authUser.id, { page: 1, limit: 50 })
-        : Promise.resolve([]),
-    enabled: !!authUser,
-    staleTime: 30000,
-  });
 
     const updateUserMutation = useMutation({
     mutationFn: (data: UpdateUserRequest) =>
@@ -52,79 +47,34 @@ const Account = () => {
     const transformedUser: UserProfile | undefined = userProfile
     ? {
         id: userProfile.id,
-        displayName: userProfile.full_name,
-        username: userProfile.username,
+        space_id: userProfile.space_id,
+        space_name: userProfile.space_name || "",
+        displayName: userProfile.full_name || userProfile.username || "",
+        username: userProfile.username || "",
         avatar: userProfile.avatar || "",
         bio: userProfile.bio || "",
         level: userProfile.level || "",
-        department: userProfile.department || "",
-        major: userProfile.major || "",
-        year: userProfile.year || 0,
+        department: userProfile.department || userProfile.department_name || "",
+        department_id: userProfile.department_id || "",
+        department_name: userProfile.department_name || "",
         followers: userProfile.followers_count || 0,
         following: userProfile.following_count || 0,
         verified: userProfile.verified || false,
-        posts: userPosts.map((post) => ({
-          id: post.id,
-          content: post.content,
-          author: {
-            id: userProfile.id,
-            displayName: userProfile.full_name,
-            username: userProfile.username,
-            avatar: userProfile.avatar || "",
-          },
-          timestamp: post.created_at,
-          likes: post.likes_count,
-          comments: post.comments_count,
-          reposts: post.reposts_count,
-          isLiked: post.is_liked || false,
-          isReposted: false,
-        })),
+        posts: [], 
       }
     : undefined;
 
   const handleUserUpdate = (updatedUser: UserProfile) => {
     updateUserMutation.mutate({
-      full_name: updateduser.username,
+      full_name: updatedUser.displayName,
       bio: updatedUser.bio,
       avatar: updatedUser.avatar,
       level: updatedUser.level,
-      department: updatedUser.department,
-      major: updatedUser.major,
-      year: updatedUser.year,
+      department_id: updatedUser.department_id || undefined,
     });
   };
 
-  const handleLike = (postId: string) => {
-    toggleLikePost(postId).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["user-posts", authUser?.id] });
-    });
-  };
-
-  const handleComment = (postId: string) => {
-    navigate(`/post/${postId}`);
-  };
-
-  const handleRepost = (postId: string) => {
-    repostPost(postId).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["user-posts", authUser?.id] });
-      toast.success("Post reposted!");
-    });
-  };
-
-  const handleQuote = (postId: string) => {
-    console.log("Quote post:", postId);
-  };
-
-  const handleShare = (postId: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
-    toast.success("Link copied to clipboard");
-  };
-
-  const handleMediaClick = (post: any) => {
-    console.log("Media clicked:", post);
-  };
-
-  if (loadingProfile || loadingPosts || !transformedUser) {
+  if (loadingProfile || !transformedUser) {
     return (
       <AppLayout>
         <div className="border-x min-h-screen lg:border-x-0 pb-6 h-full flex items-center justify-center">
@@ -144,16 +94,12 @@ const Account = () => {
           <h1 className="text-xl font-semibold">{transformedUser.username}</h1>
         </div>
         <ProfileHeader user={transformedUser} onUserUpdate={handleUserUpdate} />
-        <ProfileTabs
-          user={transformedUser}
-          isOwnProfile={true}
-          onLike={handleLike}
-          onComment={handleComment}
-          onRepost={handleRepost}
-          onQuote={handleQuote}
-          onShare={handleShare}
-          onMediaClick={handleMediaClick}
-        />
+        <ErrorBoundary>
+          <ProfileTabs
+            user={transformedUser}
+            isOwnProfile={true}
+          />
+        </ErrorBoundary>
       </div>
     </AppLayout>
   );

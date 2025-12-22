@@ -10,9 +10,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Comment } from "./Comment";
-import { Post, Comment as CommentType } from "@/types/global";
-import { mockComments, mockUsers } from "@/data/mockData";
+import { CommentsSection } from "./CommentsSection";
+import { Post } from "@/types/global";
 import { cn } from "@/lib/utils";
 
 interface FullScreenPostModalProps {
@@ -34,14 +33,10 @@ export function FullScreenPostModal({
   onRepost,
   onShare,
 }: FullScreenPostModalProps) {
-  const [comments, setComments] = useState<CommentType[]>([]);
-  const [newComment, setNewComment] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
-      const postComments = mockComments.filter((c) => c.postId === post.id);
-      setComments(postComments);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -53,37 +48,6 @@ export function FullScreenPostModal({
   }, [isOpen, post.id]);
 
   if (!isOpen) return null;
-
-  const handleCommentLike = (commentId: string) => {
-    setComments(
-      comments.map((comment) =>
-        comment.id === commentId
-          ? {
-              ...comment,
-              isLiked: !comment.isLiked,
-              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
-            }
-          : comment
-      )
-    );
-  };
-
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-
-    const comment: CommentType = {
-      id: Date.now().toString(),
-      author: mockUsers[0],
-      content: newComment,
-      postId: post.id,
-      likes: 0,
-      isLiked: false,
-      createdAt: new Date(),
-    };
-
-    setComments([...comments, comment]);
-    setNewComment("");
-  };
 
   const nextImage = () => {
     if (post.images && currentImageIndex < post.images.length - 1) {
@@ -188,17 +152,18 @@ export function FullScreenPostModal({
               <Avatar className="w-10 h-10">
                 <AvatarImage src={post.author.avatar} />
                 <AvatarFallback>
-                  {post.author.displayName
+                  {(post.author.displayName || post.author.username || 'U')
                     .split(" ")
                     .map((n) => n[0])
-                    .join("")}
+                    .join("")
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
                   <span className="font-bold text-foreground">
-                    {post.author.displayName}
+                    {post.author.displayName || post.author.username}
                   </span>
                   {post.author.verified && (
                     <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
@@ -268,56 +233,13 @@ export function FullScreenPostModal({
             </div>
           </div>
 
-          <div className="p-4 border-b border-border">
-            <div className="flex space-x-3">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={mockUsers[0].avatar} />
-                <AvatarFallback>
-                  {mockUsers[0].displayName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <textarea
-                  placeholder="Post your reply"
-                  className="w-full px-3 py-2 text-sm bg-transparent text-foreground placeholder-muted-foreground resize-none border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary"
-                  rows={2}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <div className="flex justify-end mt-2">
-                  <Button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Reply
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="flex-1 overflow-y-auto">
-            {comments.length > 0 ? (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  onLike={handleCommentLike}
-                  onReply={(commentId) =>
-                    console.log("Reply to comment:", commentId)
-                  }
-                />
-              ))
-            ) : (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No replies yet</p>
-              </div>
-            )}
+            <CommentsSection
+              postId={post.id}
+              onReply={(commentId, content) =>
+                console.log("Reply to comment:", commentId, content)
+              }
+            />
           </div>
         </div>
       </div>

@@ -10,7 +10,6 @@ import { TutorApplicationCard } from "@/components/tutoring/TutorApplicationCard
 import { TutoringRequestCard } from "@/components/tutoring/TutoringRequestCard";
 import { RequestTutoringModal } from "@/components/tutoring/RequestTutoringModal";
 import { PaymentModal } from "@/components/tutoring/PaymentModal";
-import { StudentRequestCard } from "@/components/tutoring/StudentRequestCard";
 import { SessionCompletionModal } from "@/components/tutoring/SessionCompletionModal";
 import { RefundRequestModal } from "@/components/tutoring/RefundRequestModal";
 
@@ -31,7 +30,7 @@ import {
   completeTutoringSession,
   requestTutoringRefund,
   TutoringRequest,
-} from "@/api/mentorship.api";
+} from "@/api/tutoring.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
   followUser,
@@ -39,7 +38,10 @@ import {
   checkFollowingStatus,
 } from "@/api/users.api";
 import { toast as sonnerToast } from "sonner";
-import { useMockTutoring, MockTutoringProvider } from "@/contexts/MockTutoringContext";
+import {
+  useMockTutoring,
+  MockTutoringProvider,
+} from "@/contexts/MockTutoringContext";
 
 const subjectFilters = [
   "All",
@@ -51,7 +53,6 @@ const subjectFilters = [
   "Statistics",
 ];
 
-// Extended type for tutors with additional user fields from API
 interface ExtendedTutorProfile extends ApiTutorProfile {
   full_name?: string;
   username?: string;
@@ -68,7 +69,6 @@ const Tutoring = () => {
     Record<string, boolean>
   >({});
 
-  // Modal states
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<ApiTutorProfile | null>(
     null
@@ -79,7 +79,6 @@ const Tutoring = () => {
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
 
-  // Mock tutoring context and loading states
   const mockTutoring = useMockTutoring();
   const [isCreatingRequest, setIsCreatingRequest] = useState(false);
   const [isAcceptingRequest, setIsAcceptingRequest] = useState(false);
@@ -110,7 +109,6 @@ const Tutoring = () => {
     retry: false,
   });
 
-  // Use mock data for requests instead of API
   const sentRequests = mockTutoring.getUserRequests();
   const receivedRequests = myTutorProfile
     ? mockTutoring.getTutorRequests(myTutorProfile.user_id || "")
@@ -332,7 +330,6 @@ const Tutoring = () => {
     }
   };
 
-  // Payment flow
   const handleProceedToPayment = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setPaymentModalOpen(true);
@@ -367,7 +364,6 @@ const Tutoring = () => {
     }
   };
 
-  // Messaging
   const handleMessageTutor = (request: TutoringRequest) => {
     if (!request.tutor_id) {
       sonnerToast.error("Unable to message this tutor");
@@ -376,7 +372,6 @@ const Tutoring = () => {
     messageTutorMutation.mutate(request.tutor_id);
   };
 
-  // Session completion
   const handleMarkComplete = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setCompletionModalOpen(true);
@@ -408,7 +403,6 @@ const Tutoring = () => {
     setSelectedRequest(null);
   };
 
-  // Refund request
   const handleRequestRefund = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setRefundModalOpen(true);
@@ -435,154 +429,237 @@ const Tutoring = () => {
   return (
     <MockTutoringProvider>
       <AppLayout showRightSidebar={false}>
-      <div className="p-6 space-y-6 custom-fonts">
-        {/* Header */}
-        <div className="flex justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Tutoring</h1>
-            <p className="text-muted-foreground mt-1">
-              Find tutors to help with your studies
-            </p>
+        <div className="p-6 space-y-6 custom-fonts">
+          {/* Header */}
+          <div className="flex justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Tutoring</h1>
+              <p className="text-muted-foreground mt-1">
+                Find tutors to help with your studies
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleBecomeTutor}>
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden md:block ml-2">Become a Tutor</span>
+            </Button>
           </div>
-          <Button variant="outline" onClick={handleBecomeTutor}>
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden md:block ml-2">Become a Tutor</span>
-          </Button>
-        </div>
 
-        {isApprovedTutor ? (
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="available">Available Tutors</TabsTrigger>
-              <TabsTrigger value="services">My Services</TabsTrigger>
-              <TabsTrigger value="requests">
-                Requests ({userRequests.length})
-              </TabsTrigger>
-            </TabsList>
+          {isApprovedTutor ? (
+            <Tabs defaultValue="available" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="available">Available Tutors</TabsTrigger>
+                <TabsTrigger value="services">My Services</TabsTrigger>
+                <TabsTrigger value="requests">
+                  Requests ({userRequests.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="available" className="space-y-4">
-              {/* Search and Filters */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search tutors or subjects..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
-                  />
-                </div>
-
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {subjectFilters.map((subject) => (
-                    <Button
-                      key={subject}
-                      variant={
-                        selectedSubject === subject ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => setSelectedSubject(subject)}
-                      className="rounded-full px-5"
-                    >
-                      {subject}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Loading State */}
-              {loading ? (
-                <LoadingSpinner size="md" />
-              ) : (
-                <>
-                  {/* Tutors List */}
-                  <div className="space-y-4">
-                    {filteredTutors.map((tutor) => {
-                      const isFollowing = followingStatus[tutor.user_id || ""];
-                      return (
-                        <TutorCard
-                          key={tutor.id}
-                          tutor={tutor}
-                          isFollowing={isFollowing}
-                          onContact={() => handleContactTutor(tutor)}
-                          onFollow={() => handleFollowTutor(tutor)}
-                          isContactLoading={messageTutorMutation.isPending}
-                          isFollowLoading={
-                            followMutation.isPending ||
-                            unfollowMutation.isPending
-                          }
-                        />
-                      );
-                    })}
+              <TabsContent value="available" className="space-y-4">
+                {/* Search and Filters */}
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search tutors or subjects..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 rounded-full"
+                    />
                   </div>
 
-                  {/* No Results */}
-                  {filteredTutors.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No tutors found
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your search or filters
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
+                  <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
+                    {subjectFilters.map((subject) => (
+                      <Button
+                        key={subject}
+                        variant={
+                          selectedSubject === subject ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setSelectedSubject(subject)}
+                        className="rounded-full px-5"
+                      >
+                        {subject}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-            <TabsContent value="services" className="space-y-4">
-              {myTutorApplication && (
-                <TutorApplicationCard
-                  application={myTutorApplication}
-                  onEdit={handleEditApplication}
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="requests" className="space-y-4">
-              {requestsLoading ? (
-                <LoadingSpinner size="md" />
-              ) : (
-                <>
-                  {userRequests.length > 0 ? (
+                {/* Loading State */}
+                {loading ? (
+                  <LoadingSpinner size="md" />
+                ) : (
+                  <>
+                    {/* Tutors List */}
                     <div className="space-y-4">
-                      {userRequests.map((request) => (
-                        <TutoringRequestCard
-                          key={request.id}
-                          request={request}
-                          onAccept={handleAcceptRequest}
-                          onDecline={handleDeclineRequest}
-                          showActions={true}
-                        />
-                      ))}
+                      {filteredTutors.map((tutor) => {
+                        const isFollowing =
+                          followingStatus[tutor.user_id || ""];
+                        return (
+                          <TutorCard
+                            key={tutor.id}
+                            tutor={tutor}
+                            isFollowing={isFollowing}
+                            onContact={() => handleContactTutor(tutor)}
+                            onFollow={() => handleFollowTutor(tutor)}
+                            isContactLoading={messageTutorMutation.isPending}
+                            isFollowLoading={
+                              followMutation.isPending ||
+                              unfollowMutation.isPending
+                            }
+                          />
+                        );
+                      })}
                     </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No tutoring requests
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Requests from students will appear here
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-            </TabsContent>
-          </Tabs>
-        ) : hasApplication ? (
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="available">Available Tutors</TabsTrigger>
-              <TabsTrigger value="application">My Application</TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="available">
-              {/* Same content as the regular tutoring page */}
-              {/* Search and Filters */}
+                    {/* No Results */}
+                    {filteredTutors.length === 0 && (
+                      <div className="text-center py-12">
+                        <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No tutors found
+                        </h3>
+                        <p className="text-muted-foreground">
+                          Try adjusting your search or filters
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="services" className="space-y-4">
+                {myTutorApplication && (
+                  <TutorApplicationCard
+                    application={myTutorApplication}
+                    onEdit={handleEditApplication}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="requests" className="space-y-4">
+                {requestsLoading ? (
+                  <LoadingSpinner size="md" />
+                ) : (
+                  <>
+                    {userRequests.length > 0 ? (
+                      <div className="space-y-4">
+                        {userRequests.map((request) => (
+                          <TutoringRequestCard
+                            key={request.id}
+                            request={request}
+                            onAccept={handleAcceptRequest}
+                            onDecline={handleDeclineRequest}
+                            showActions={true}
+                            viewMode="tutor"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No tutoring requests
+                        </h3>
+                        <p className="text-muted-foreground">
+                          Requests from students will appear here
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
+          ) : hasApplication ? (
+            <Tabs defaultValue="available" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="available">Available Tutors</TabsTrigger>
+                <TabsTrigger value="application">My Application</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="available">
+                {/* Same content as the regular tutoring page */}
+                {/* Search and Filters */}
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search tutors or subjects..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 rounded-full"
+                    />
+                  </div>
+
+                  <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
+                    {subjectFilters.map((subject) => (
+                      <Button
+                        key={subject}
+                        variant={
+                          selectedSubject === subject ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setSelectedSubject(subject)}
+                        className="rounded-full px-5"
+                      >
+                        {subject}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Loading State */}
+                {loading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <>
+                    {/* Tutors List */}
+                    <div className="space-y-4">
+                      {filteredTutors.map((tutor) => {
+                        const isFollowing =
+                          followingStatus[tutor.user_id || ""];
+                        return (
+                          <TutorCard
+                            key={tutor.id}
+                            tutor={tutor}
+                            isFollowing={isFollowing}
+                            onContact={() => handleContactTutor(tutor)}
+                            onFollow={() => handleFollowTutor(tutor)}
+                            isContactLoading={messageTutorMutation.isPending}
+                            isFollowLoading={
+                              followMutation.isPending ||
+                              unfollowMutation.isPending
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {filteredTutors.length === 0 && (
+                      <div className="text-center py-12">
+                        <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No tutors found
+                        </h3>
+                        <p className="text-muted-foreground">
+                          Try adjusting your search or filters
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="application" className="space-y-4">
+                {myTutorApplication && (
+                  <TutorApplicationCard
+                    application={myTutorApplication}
+                    onEdit={handleEditApplication}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <>
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -611,30 +688,21 @@ const Tutoring = () => {
                 </div>
               </div>
 
-              {/* Loading State */}
               {loading ? (
                 <LoadingSpinner />
               ) : (
                 <>
-                  {/* Tutors List */}
                   <div className="space-y-4">
-                    {filteredTutors.map((tutor) => {
-                      const isFollowing = followingStatus[tutor.user_id || ""];
-                      return (
-                        <TutorCard
-                          key={tutor.id}
-                          tutor={tutor}
-                          isFollowing={isFollowing}
-                          onContact={() => handleContactTutor(tutor)}
-                          onFollow={() => handleFollowTutor(tutor)}
-                          isContactLoading={messageTutorMutation.isPending}
-                          isFollowLoading={
-                            followMutation.isPending ||
-                            unfollowMutation.isPending
-                          }
-                        />
-                      );
-                    })}
+                    {filteredTutors.map((tutor) => (
+                      <TutorCard
+                        key={tutor.id}
+                        tutor={tutor}
+                        onContact={() => handleContactTutor(tutor)}
+                        onFollow={() => handleFollowTutor(tutor)}
+                        onRequestTutoring={() => handleRequestTutoring(tutor)}
+                        showRequestButton={true}
+                      />
+                    ))}
                   </div>
 
                   {filteredTutors.length === 0 && (
@@ -650,139 +718,68 @@ const Tutoring = () => {
                   )}
                 </>
               )}
-            </TabsContent>
+            </>
+          )}
+        </div>
 
-            <TabsContent value="application" className="space-y-4">
-              {myTutorApplication && (
-                <TutorApplicationCard
-                  application={myTutorApplication}
-                  onEdit={handleEditApplication}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        ) : (
+        {/* Modals */}
+        {selectedTutor && (
+          <RequestTutoringModal
+            open={requestModalOpen}
+            onOpenChange={setRequestModalOpen}
+            tutor={selectedTutor}
+            onSubmit={handleSubmitRequest}
+            isLoading={isCreatingRequest}
+          />
+        )}
+
+        {selectedRequest && (
           <>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search tutors or subjects..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
-                />
-              </div>
+            <PaymentModal
+              open={paymentModalOpen}
+              onOpenChange={setPaymentModalOpen}
+              request={selectedRequest}
+              tutorName={
+                selectedRequest.tutor_full_name ||
+                selectedRequest.tutor_username ||
+                "Tutor"
+              }
+              hourlyRate={
+                tutors.find((t) => t.user_id === selectedRequest.tutor_id)
+                  ?.hourly_rate || 25
+              }
+              onPayment={handlePayment}
+              isLoading={isProcessingPayment}
+            />
 
-              <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                {subjectFilters.map((subject) => (
-                  <Button
-                    key={subject}
-                    variant={
-                      selectedSubject === subject ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedSubject(subject)}
-                    className="rounded-full px-5"
-                  >
-                    {subject}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <SessionCompletionModal
+              open={completionModalOpen}
+              onOpenChange={setCompletionModalOpen}
+              tutorName={
+                selectedRequest.tutor_full_name ||
+                selectedRequest.tutor_username ||
+                "Tutor"
+              }
+              onComplete={handleCompleteSession}
+              onReportIssue={handleReportIssue}
+              isLoading={isCompletingSession}
+            />
 
-            {loading ? (
-              <LoadingSpinner />
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {filteredTutors.map((tutor) => (
-                    <TutorCard
-                      key={tutor.id}
-                      tutor={tutor}
-                      onContact={() => handleContactTutor(tutor)}
-                      onFollow={() => handleFollowTutor(tutor)}
-                      onRequestTutoring={() => handleRequestTutoring(tutor)}
-                      showRequestButton={true}
-                    />
-                  ))}
-                </div>
-
-                {filteredTutors.length === 0 && (
-                  <div className="text-center py-12">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No tutors found
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Try adjusting your search or filters
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+            <RefundRequestModal
+              open={refundModalOpen}
+              onOpenChange={setRefundModalOpen}
+              tutorName={
+                selectedRequest.tutor_full_name ||
+                selectedRequest.tutor_username ||
+                "Tutor"
+              }
+              refundAmount={selectedRequest.payment_details?.amount || 0}
+              onSubmit={handleSubmitRefund}
+              isLoading={isRequestingRefund}
+            />
           </>
         )}
-      </div>
-
-      {/* Modals */}
-      {selectedTutor && (
-        <RequestTutoringModal
-          open={requestModalOpen}
-          onOpenChange={setRequestModalOpen}
-          tutor={selectedTutor}
-          onSubmit={handleSubmitRequest}
-          isLoading={isCreatingRequest}
-        />
-      )}
-
-      {selectedRequest && (
-        <>
-          <PaymentModal
-            open={paymentModalOpen}
-            onOpenChange={setPaymentModalOpen}
-            request={selectedRequest}
-            tutorName={
-              selectedRequest.tutor_full_name ||
-              selectedRequest.tutor_username ||
-              "Tutor"
-            }
-            hourlyRate={
-              tutors.find((t) => t.user_id === selectedRequest.tutor_id)
-                ?.hourly_rate || 25
-            }
-            onPayment={handlePayment}
-            isLoading={isProcessingPayment}
-          />
-
-          <SessionCompletionModal
-            open={completionModalOpen}
-            onOpenChange={setCompletionModalOpen}
-            tutorName={
-              selectedRequest.tutor_full_name ||
-              selectedRequest.tutor_username ||
-              "Tutor"
-            }
-            onComplete={handleCompleteSession}
-            onReportIssue={handleReportIssue}
-            isLoading={isCompletingSession}
-          />
-
-          <RefundRequestModal
-            open={refundModalOpen}
-            onOpenChange={setRefundModalOpen}
-            tutorName={
-              selectedRequest.tutor_full_name ||
-              selectedRequest.tutor_username ||
-              "Tutor"
-            }
-            refundAmount={selectedRequest.payment_details?.amount || 0}
-            onSubmit={handleSubmitRefund}
-            isLoading={isRequestingRefund}
-          />
-        </>
-      )}
-    </AppLayout>
+      </AppLayout>
     </MockTutoringProvider>
   );
 };

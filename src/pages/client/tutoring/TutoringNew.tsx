@@ -1,27 +1,62 @@
-import { useState, useEffect } from "react";
-import { Search, BookOpen } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Search, BookOpen, Filter, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { TutorCard } from "@/components/tutoring/TutorCard";
 import { TutorApplicationCard } from "@/components/tutoring/TutorApplicationCard";
 import { TutoringRequestCard } from "@/components/tutoring/TutoringRequestCard";
 import { RequestTutoringModal } from "@/components/tutoring/RequestTutoringModal";
 import { PaymentModal } from "@/components/tutoring/PaymentModal";
-import { StudentRequestCard } from "@/components/tutoring/StudentRequestCard";
 import { SessionCompletionModal } from "@/components/tutoring/SessionCompletionModal";
 import { RefundRequestModal } from "@/components/tutoring/RefundRequestModal";
+import { ReviewSessionModal } from "@/components/tutoring/ReviewSessionModal";
+import { MonetizationTab } from "@/components/tutoring/MonetizationTab";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   TutorProfile as ApiTutorProfile,
   TutoringRequest,
-} from "@/api/mentorship.api";
+  getRecommendedTutors,
+  getMyTutorApplication,
+  getUserTutoringRequests,
+  getTutorSessionRequests,
+  createTutoringRequest,
+  acceptTutoringRequest,
+  declineTutoringRequest,
+  verifyTutoringPayment,
+  completeTutoringSession,
+  requestTutoringRefund,
+  cancelSessionByTutor,
+  cancelTutoringRequest,
+  markTutoringSessionComplete,
+  createSessionReview,
+} from "@/api/tutoring.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
   followUser,
@@ -29,114 +64,561 @@ import {
   checkFollowingStatus,
 } from "@/api/users.api";
 import { toast as sonnerToast } from "sonner";
-import {
-  useMockTutoring,
-  MockTutoringProvider,
-} from "@/contexts/MockTutoringContext";
-import {
-  mockTutors,
-  getTutorApplicationForUser,
-  getTutorProfileForUser,
-} from "@/data/mockTutors";
 
-// Extended tutor profile with additional fields for display
+
 interface ExtendedTutorProfile extends ApiTutorProfile {
   full_name?: string;
   username?: string;
   avatar?: string;
 }
 
-const subjectFilters = [
-  "All",
-  "DCIT 101",
-  "DCIT 201",
-  "Mathematics",
-  "Programming",
-  "Calculus I",
-  "Statistics",
-];
+
+interface TutorFilters {
+  subjectType: string;
+  minSessionRate: number;
+  maxSessionRate: number;
+  minSemesterRate: number;
+  maxSemesterRate: number;
+  level: string;
+  hasDiscount: boolean;
+}
+
+const ITEMS_PER_PAGE = 20;
+const MAX_SESSION_RATE = 10000; 
+const MAX_SEMESTER_RATE = 100000; 
 
 const TutoringContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
+
+  
+  const [pendingFilters, setPendingFilters] = useState<TutorFilters>({
+    subjectType: "all",
+    minSessionRate: 0,
+    maxSessionRate: MAX_SESSION_RATE,
+    minSemesterRate: 0,
+    maxSemesterRate: MAX_SEMESTER_RATE,
+    level: "all",
+    hasDiscount: false,
+  });
+
+  
+  const [appliedFilters, setAppliedFilters] = useState<TutorFilters>({
+    subjectType: "all",
+    minSessionRate: 0,
+    maxSessionRate: MAX_SESSION_RATE,
+    minSemesterRate: 0,
+    maxSemesterRate: MAX_SEMESTER_RATE,
+    level: "all",
+    hasDiscount: false,
+  });
+
+  
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  
+  const [tutors, setTutors] = useState<ExtendedTutorProfile[]>([]);
   const [followingStatus, setFollowingStatus] = useState<
     Record<string, boolean>
   >({});
 
-  // Modal states
+  
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<ApiTutorProfile | null>(
     null
   );
-  const [initialRequestData, setInitialRequestData] = useState<{
-    subject: string;
-    topic: string;
-    preferredSchedule: string[];
-    sessionType: "single" | "semester";
-  } | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
     useState<TutoringRequest | null>(null);
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
-  // Mock tutoring context and loading states
-  const mockTutoring = useMockTutoring();
-  const [isCreatingRequest, setIsCreatingRequest] = useState(false);
-  const [isAcceptingRequest, setIsAcceptingRequest] = useState(false);
-  const [isDecliningRequest, setIsDecliningRequest] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [isCompletingSession, setIsCompletingSession] = useState(false);
-  const [isRequestingRefund, setIsRequestingRefund] = useState(false);
+  
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
-  // Use mock data instead of API calls
-  const tutors = mockTutors;
+  
+  const { data: myTutorApplication, isLoading: loadingMyApplication } =
+    useQuery({
+      queryKey: ["my-tutor-application"],
+      queryFn: getMyTutorApplication,
+    });
 
-  // User-based tutor detection
-  const myTutorApplication = getTutorApplicationForUser(user?.email);
-  const myTutorProfile = getTutorProfileForUser(user?.email, user?.id);
+  const { data: sentRequests = [], isLoading: loadingSentRequests } = useQuery({
+    queryKey: ["user-tutoring-requests"],
+    queryFn: () => getUserTutoringRequests(1, 20),
+    enabled: !!user,
+  });
 
-  const loadingTutors = false;
-  const loadingMyApplication = false;
-  const loadingMyProfile = false;
+  const { data: receivedRequests = [], isLoading: loadingReceivedRequests } =
+    useQuery({
+      queryKey: ["tutor-session-requests"],
+      queryFn: () => getTutorSessionRequests(1, 20),
+      enabled: !!myTutorApplication && myTutorApplication.status === "approved",
+    });
 
-  // Use mock data for requests
-  const sentRequests = mockTutoring.getUserRequests();
-  const receivedRequests = myTutorProfile
-    ? mockTutoring.getTutorRequests(myTutorProfile.user_id || "")
-    : [];
-  const loadingSentRequests = false;
-  const loadingReceivedRequests = false;
-
-  const loading = loadingTutors || loadingMyApplication;
   const requestsLoading = loadingSentRequests || loadingReceivedRequests;
 
   const hasApplication = !!myTutorApplication;
-  const isApprovedTutor =
-    myTutorApplication && myTutorApplication.status === "approved";
+  const isApprovedTutor = myTutorApplication?.status === "approved";
+  const isPendingTutor = myTutorApplication?.status === "pending";
+  const isRejectedTutor = myTutorApplication?.status === "rejected";
 
-  const filteredTutors = (tutors as ExtendedTutorProfile[]).filter((tutor) => {
-    if (myTutorProfile && tutor.id === myTutorProfile.id) {
-      return false;
+  
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const userName =
-      tutor.full_name || tutor.username || tutor.user?.name || "";
-    const matchesSearch =
-      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tutor.subjects?.some((subject) =>
-        subject.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    const matchesSubject =
-      selectedSubject === "All" || tutor.subjects?.includes(selectedSubject);
-    return matchesSearch && matchesSubject;
+    return shuffled;
+  };
+
+  
+  const filterTutors = useCallback(
+    (tutorsList: ExtendedTutorProfile[]): ExtendedTutorProfile[] => {
+      return tutorsList.filter((tutor) => {
+        
+        if (isApprovedTutor && tutor.applicant_id === user?.id) {
+          return false;
+        }
+
+        
+        const searchLower = debouncedSearchQuery.toLowerCase();
+        const userName = tutor.full_name || tutor.username || tutor.user?.name || "";
+        const tutorSubject = tutor.subject || "";
+        const tutorBio = tutor.bio || "";
+        const tutorExperience = tutor.experience || "";
+        const tutorQualifications = tutor.qualifications || "";
+
+        const matchesSearch =
+          !debouncedSearchQuery ||
+          userName.toLowerCase().includes(searchLower) ||
+          tutorSubject.toLowerCase().includes(searchLower) ||
+          tutorBio.toLowerCase().includes(searchLower) ||
+          tutorExperience.toLowerCase().includes(searchLower) ||
+          tutorQualifications.toLowerCase().includes(searchLower);
+
+        
+        const matchesSubject =
+          appliedFilters.subjectType === "all" ||
+          tutorSubject === appliedFilters.subjectType;
+
+        
+        const sessionRate = parseFloat(String(tutor.session_rate || tutor.hourly_rate || 0));
+        const matchesSessionRate =
+          sessionRate >= appliedFilters.minSessionRate &&
+          sessionRate <= appliedFilters.maxSessionRate;
+
+        
+        const semesterRate = parseFloat(String(tutor.semester_rate || 0));
+        const matchesSemesterRate =
+          semesterRate >= appliedFilters.minSemesterRate &&
+          semesterRate <= appliedFilters.maxSemesterRate;
+
+        
+        const hasDiscountAvailable =
+          tutor.semester_rate &&
+          tutor.session_rate &&
+          tutor.semester_rate < tutor.session_rate * 12;
+        const matchesDiscount =
+          !appliedFilters.hasDiscount || hasDiscountAvailable;
+
+        
+        const matchesLevel =
+          appliedFilters.level === "all" ||
+          !tutor.level ||
+          tutor.level === appliedFilters.level;
+
+        return (
+          matchesSearch &&
+          matchesSubject &&
+          matchesSessionRate &&
+          matchesSemesterRate &&
+          matchesDiscount &&
+          matchesLevel
+        );
+      });
+    },
+    [debouncedSearchQuery, appliedFilters, user, isApprovedTutor]
+  );
+
+  
+  const loadTutors = async (page: number = 1, append: boolean = false) => {
+    if (!user) return;
+
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    
+    abortControllerRef.current = new AbortController();
+
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setSeenIds(new Set());
+        setCurrentPage(1);
+      }
+
+      
+      
+      const params: any = {
+        limit: ITEMS_PER_PAGE * 2,
+      };
+
+      
+      if (appliedFilters.subjectType !== "all") {
+        params.subject_type = appliedFilters.subjectType;
+      }
+      if (appliedFilters.minSessionRate !== 0 || appliedFilters.maxSessionRate !== MAX_SESSION_RATE) {
+        params.min_session_rate = appliedFilters.minSessionRate;
+        params.max_session_rate = appliedFilters.maxSessionRate;
+      }
+      if (appliedFilters.minSemesterRate !== 0 || appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE) {
+        params.min_semester_rate = appliedFilters.minSemesterRate;
+        params.max_semester_rate = appliedFilters.maxSemesterRate;
+      }
+      if (appliedFilters.level !== "all") {
+        params.filter_level = appliedFilters.level;
+      }
+      if (appliedFilters.hasDiscount) {
+        params.has_discount = true;
+      }
+
+      
+      let newTutors = await getRecommendedTutors(params);
+
+      console.log("Raw tutors from backend:", newTutors);
+      console.log("Number of tutors fetched:", newTutors.length);
+
+      
+      newTutors = shuffleArray(newTutors);
+
+      
+      if (append) {
+        const uniqueNewTutors = newTutors.filter(t => !seenIds.has(t.id));
+        console.log("Unique new tutors after deduplication:", uniqueNewTutors.length);
+        setTutors((prev) => [...prev, ...uniqueNewTutors]);
+
+        
+        const newIds = uniqueNewTutors.map((t) => t.id);
+        setSeenIds((prev) => new Set([...prev, ...newIds]));
+      } else {
+        
+        setTutors(newTutors);
+        const newIds = newTutors.map((t) => t.id);
+        setSeenIds(new Set(newIds));
+      }
+
+      console.log("Total tutors in state:", append ? "appended" : newTutors.length);
+
+      
+      setHasMore(newTutors.length >= ITEMS_PER_PAGE);
+    } catch (error: any) {
+      if (error.name !== "AbortError" && error.name !== "CanceledError") {
+        sonnerToast.error("Failed to load tutors");
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreTutors = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      loadTutors(nextPage, true);
+    }
+  }, [currentPage, loadingMore, hasMore]);
+
+  
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: loadingMore,
+    hasMore,
+    onLoadMore: loadMoreTutors,
   });
 
   const userApplications = myTutorApplication ? [myTutorApplication] : [];
   const userRequests = receivedRequests || [];
+
+  
+  const filteredTutors = useMemo(() => {
+    console.log("Filtering tutors. Total before filter:", tutors.length);
+    console.log("Applied filters:", appliedFilters);
+    console.log("Search query:", debouncedSearchQuery);
+    const filtered = filterTutors(tutors);
+    console.log("Filtered tutors count:", filtered.length);
+    console.log("Filtered tutors:", filtered);
+    return filtered;
+  }, [tutors, filterTutors]);
+
+  
+  const applyFilters = () => {
+    setAppliedFilters(pendingFilters);
+    setShowFilters(false);
+  };
+
+  
+  const resetFilters = () => {
+    const defaultFilters = {
+      subjectType: "all",
+      minSessionRate: 0,
+      maxSessionRate: MAX_SESSION_RATE,
+      minSemesterRate: 0,
+      maxSemesterRate: MAX_SEMESTER_RATE,
+      level: "all",
+      hasDiscount: false,
+    };
+    setPendingFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+    setSearchQuery("");
+  };
+
+  
+  const hasActiveFilters =
+    appliedFilters.subjectType !== "all" ||
+    appliedFilters.level !== "all" ||
+    appliedFilters.minSessionRate !== 0 ||
+    appliedFilters.maxSessionRate !== MAX_SESSION_RATE ||
+    appliedFilters.minSemesterRate !== 0 ||
+    appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE ||
+    appliedFilters.hasDiscount ||
+    searchQuery !== "";
+
+  
+  useEffect(() => {
+    loadTutors();
+  }, [debouncedSearchQuery, appliedFilters]);
+
+  
+  useEffect(() => {
+    if (user) {
+      loadTutors();
+    }
+  }, [user]);
+
+  const createRequestMutation = useMutation({
+    mutationFn: (data: {
+      tutor_id: string;
+      message?: string;
+      session_type: "single" | "semester";
+    }) => createTutoringRequest(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      sonnerToast.success("Tutoring request sent successfully!");
+      setRequestModalOpen(false);
+      setSelectedTutor(null);
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to send request"
+      );
+    },
+  });
+
+  const acceptRequestMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      message,
+    }: {
+      requestId: string;
+      message?: string;
+    }) => acceptTutoringRequest(requestId, message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor-session-requests"] });
+      sonnerToast.success("Request accepted!");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to accept request"
+      );
+    },
+  });
+
+  const declineRequestMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      message,
+    }: {
+      requestId: string;
+      message?: string;
+    }) => declineTutoringRequest(requestId, message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor-session-requests"] });
+      sonnerToast.success("Request declined");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to decline request"
+      );
+    },
+  });
+
+  const verifyPaymentMutation = useMutation({
+    mutationFn: (data: {
+      request_id: string;
+      reference: string;
+      amount: string;
+    }) => verifyTutoringPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["tutor-session-requests"] });
+      sonnerToast.success("Payment verified! Session is now active.");
+      setPaymentModalOpen(false);
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Payment verification failed"
+      );
+    },
+  });
+
+  const completeSessionMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      rating,
+      review,
+    }: {
+      requestId: string;
+      rating?: number;
+      review?: string;
+    }) => completeTutoringSession(requestId, rating, review),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      sonnerToast.success("Session marked as complete!");
+      setCompletionModalOpen(false);
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to complete session"
+      );
+    },
+  });
+
+  const refundRequestMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      reason,
+      explanation,
+    }: {
+      requestId: string;
+      reason: string;
+      explanation?: string;
+    }) => requestTutoringRefund(requestId, reason, explanation),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      sonnerToast.success("Refund request submitted");
+      setRefundModalOpen(false);
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to request refund"
+      );
+    },
+  });
+
+  const cancelSessionMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      reason,
+    }: {
+      requestId: string;
+      reason: string;
+    }) => cancelSessionByTutor(requestId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor-session-requests"] });
+      sonnerToast.success("Session cancelled. Refund will be processed.");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to cancel session"
+      );
+    },
+  });
+
+  const cancelRequestMutation = useMutation({
+    mutationFn: ({
+      requestId,
+      reason,
+    }: {
+      requestId: string;
+      reason: string;
+    }) => cancelTutoringRequest(requestId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      sonnerToast.success("Request cancelled successfully");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to cancel request"
+      );
+    },
+  });
+
+  const markCompleteMutation = useMutation({
+    mutationFn: (requestId: string) => markTutoringSessionComplete(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor-session-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      sonnerToast.success("Session marked as complete");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to mark session complete"
+      );
+    },
+  });
+
+  const createReviewMutation = useMutation({
+    mutationFn: ({
+      sessionId,
+      revieweeId,
+      rating,
+      reviewText,
+    }: {
+      sessionId: string;
+      revieweeId: string;
+      rating: number;
+      reviewText: string;
+    }) =>
+      createSessionReview({
+        session_type: "tutoring",
+        tutor_id: sessionId,
+        reviewee_id: revieweeId,
+        rating,
+        review_text: reviewText || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-tutoring-requests"] });
+      setReviewModalOpen(false);
+      setSelectedRequest(null);
+      sonnerToast.success("Review submitted successfully");
+    },
+    onError: (error: any) => {
+      sonnerToast.error(
+        error?.response?.data?.message || "Failed to submit review"
+      );
+    },
+  });
 
   const messageTutorMutation = useMutation({
     mutationFn: (userId: string) => getOrCreateDirectConversation(userId),
@@ -231,37 +713,32 @@ const TutoringContent = () => {
     });
   }, [filteredTutors, followingStatus]);
 
-  const handleRequestTutoring = (tutor: ApiTutorProfile, initialData?: any) => {
+  const handleRequestTutoring = (tutor: ApiTutorProfile) => {
     setSelectedTutor(tutor);
-    setInitialRequestData(initialData || null);
     setRequestModalOpen(true);
   };
 
-  const handleSubmitRequest = async (data: {
-    subject: string;
-    topic: string;
-    preferredSchedule: string[];
+  const handleSubmitRequest = (data: {
+    message: string;
+    schedules: string[];
     sessionType: "single" | "semester";
   }) => {
-    if (!selectedTutor?.user_id) return;
+    if (!selectedTutor?.id) return;
 
-    setIsCreatingRequest(true);
-    try {
-      await mockTutoring.createRequest({
-        tutor_id: selectedTutor.user_id,
-        subject: data.subject,
-        topic: data.topic,
-        preferred_schedule: data.preferredSchedule,
-        session_type: data.sessionType,
-      });
-      setRequestModalOpen(false);
-      setSelectedTutor(null);
-      sonnerToast.success("Request sent! The tutor has 24 hours to respond.");
-    } catch (error) {
-      sonnerToast.error("Failed to send request");
-    } finally {
-      setIsCreatingRequest(false);
-    }
+    
+    
+    const schedulesISO = data.schedules.map((schedule) => {
+      
+      
+      return schedule;
+    });
+
+    createRequestMutation.mutate({
+      tutor_id: selectedTutor.id,
+      message: data.message,
+      session_type: data.sessionType,
+      schedules: schedulesISO,
+    });
   };
 
   const handleContactTutor = (tutor: ApiTutorProfile) => {
@@ -305,37 +782,40 @@ const TutoringContent = () => {
     sonnerToast.info("Delete functionality coming soon");
   };
 
-  const handleAcceptRequest = async (requestId: string) => {
-    setIsAcceptingRequest(true);
-    try {
-      await mockTutoring.acceptRequest(requestId);
-      sonnerToast.success("Request accepted! Student will be notified.");
-    } catch (error) {
-      sonnerToast.error("Failed to accept request");
-    } finally {
-      setIsAcceptingRequest(false);
-    }
+  const handleAcceptRequest = (requestId: string, message?: string) => {
+    acceptRequestMutation.mutate({ requestId, message });
   };
 
-  const handleDeclineRequest = async (requestId: string) => {
-    setIsDecliningRequest(true);
-    try {
-      await mockTutoring.declineRequest(requestId);
-      sonnerToast.success("Request declined.");
-    } catch (error) {
-      sonnerToast.error("Failed to decline request");
-    } finally {
-      setIsDecliningRequest(false);
-    }
+  const handleDeclineRequest = (requestId: string, message?: string) => {
+    declineRequestMutation.mutate({ requestId, message });
   };
 
-  // Payment flow
+  
+  const handleMessageStudent = (request: TutoringRequest) => {
+    if (!request.requester_id) {
+      sonnerToast.error("Unable to message this student");
+      return;
+    }
+    messageTutorMutation.mutate(request.requester_id);
+  };
+
+  
+  const handleCallStudent = (request: TutoringRequest) => {
+    sonnerToast.info("Call functionality coming soon");
+  };
+
+  
+  const handleCancelSession = (requestId: string, reason: string) => {
+    cancelSessionMutation.mutate({ requestId, reason });
+  };
+
+  
   const handleProceedToPayment = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setPaymentModalOpen(true);
   };
 
-  const handlePayment = async (
+  const handlePayment = (
     sessionType: "single" | "semester",
     reference: string
   ) => {
@@ -347,28 +827,14 @@ const TutoringContent = () => {
     const platformFee = baseAmount * 0.15;
     const total = baseAmount + platformFee;
 
-    setIsProcessingPayment(true);
-    try {
-      await mockTutoring.payForSession(selectedRequest.id, {
-        amount: total,
-        session_type: sessionType,
-        platform_fee: platformFee,
-        tutor_amount: baseAmount,
-        payment_reference: reference,
-      });
-      setPaymentModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Payment successful! You can now message your tutor to schedule your session."
-      );
-    } catch (error) {
-      sonnerToast.error("Payment failed");
-    } finally {
-      setIsProcessingPayment(false);
-    }
+    verifyPaymentMutation.mutate({
+      request_id: selectedRequest.id,
+      reference,
+      amount: total.toString(),
+    });
   };
 
-  // Messaging
+  
   const handleMessageTutor = (request: TutoringRequest) => {
     if (!request.tutor_id) {
       sonnerToast.error("Unable to message this tutor");
@@ -377,28 +843,19 @@ const TutoringContent = () => {
     messageTutorMutation.mutate(request.tutor_id);
   };
 
-  // Session completion
+  
   const handleMarkComplete = (request: TutoringRequest) => {
-    setSelectedRequest(request);
-    setCompletionModalOpen(true);
+    markCompleteMutation.mutate(request.id);
   };
 
-  const handleSubmitCompletion = async (rating: number, review?: string) => {
+  const handleSubmitCompletion = (rating: number, review?: string) => {
     if (!selectedRequest) return;
 
-    setIsCompletingSession(true);
-    try {
-      await mockTutoring.completeSession(selectedRequest.id, rating, review);
-      setCompletionModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Thank you! Payment will be released to the tutor on the next payout date."
-      );
-    } catch (error) {
-      sonnerToast.error("Failed to complete session");
-    } finally {
-      setIsCompletingSession(false);
-    }
+    completeSessionMutation.mutate({
+      requestId: selectedRequest.id,
+      rating,
+      review,
+    });
   };
 
   const handleReportIssue = (reason: string) => {
@@ -409,55 +866,83 @@ const TutoringContent = () => {
     setSelectedRequest(null);
   };
 
-  // Refund request
+  
   const handleRequestRefund = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setRefundModalOpen(true);
   };
 
-  const handleSubmitRefund = async (reason: string, explanation?: string) => {
+  const handleSubmitRefund = (reason: string, explanation?: string) => {
     if (!selectedRequest) return;
 
-    setIsRequestingRefund(true);
-    try {
-      await mockTutoring.requestRefund(selectedRequest.id, reason, explanation);
-      setRefundModalOpen(false);
-      setSelectedRequest(null);
-      sonnerToast.success(
-        "Refund request submitted. You'll hear back within 48 hours."
-      );
-    } catch (error) {
-      sonnerToast.error("Failed to request refund");
-    } finally {
-      setIsRequestingRefund(false);
-    }
+    refundRequestMutation.mutate({
+      requestId: selectedRequest.id,
+      reason,
+      explanation,
+    });
   };
 
-  // Request again (for completed sessions)
-  const handleRequestAgain = (request: TutoringRequest) => {
-    const tutor = tutors.find((t) => t.user_id === request.tutor_id);
-    if (tutor) {
-      // Populate modal with previous request data
-      const initialData = {
-        subject: request.subject,
-        topic: request.topic,
-        preferredSchedule: request.preferred_schedule || [],
-        sessionType: request.session_type,
-      };
-      handleRequestTutoring(tutor, initialData);
-    }
+  
+  const handleCancelRequest = (requestId: string, reason: string) => {
+    cancelRequestMutation.mutate({ requestId, reason });
   };
 
-  // Review session
-  const handleReviewSession = (request: TutoringRequest) => {
+  
+  const handlePay = (request: TutoringRequest) => {
     setSelectedRequest(request);
-    setCompletionModalOpen(true);
+    setPaymentModalOpen(true);
+  };
+
+  
+  const handleRequestAgain = (request: TutoringRequest) => {
+    
+    if (!request.tutor_id || !request.tutor_id) {
+      sonnerToast.error("Unable to create request. Missing tutor information.");
+      return;
+    }
+
+    const tutorFromRequest: ApiTutorProfile = {
+      id: request.tutor_id, 
+      user_id: request.tutor_id,
+      subject: request.subject || "",
+      session_rate: request.session_rate
+        ? parseFloat(request.session_rate)
+        : undefined,
+      semester_rate: request.semester_rate
+        ? parseFloat(request.semester_rate)
+        : undefined,
+      availability: request.availability || [],
+      applicant_id: request.tutor_id,
+      space_id: request.space_id,
+      status: "approved",
+    };
+
+    setSelectedTutor(tutorFromRequest);
+    setRequestModalOpen(true);
+  };
+
+  
+  const handleRate = (request: TutoringRequest) => {
+    setSelectedRequest(request);
+    setReviewModalOpen(true);
+  };
+
+  
+  const handleSubmitReview = (rating: number, reviewText: string) => {
+    if (!selectedRequest || !selectedRequest.tutor_id) return;
+
+    createReviewMutation.mutate({
+      sessionId: selectedRequest.id,
+      revieweeId: selectedRequest.tutor_id,
+      rating,
+      reviewText,
+    });
   };
 
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
-        {/* Header */}
+        
         <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Tutoring</h1>
@@ -465,58 +950,180 @@ const TutoringContent = () => {
               Find tutors to help with your studies
             </p>
           </div>
-          <Button variant="outline" onClick={handleBecomeTutor}>
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden md:block ml-2">Become a Tutor</span>
-          </Button>
+          {isPendingTutor ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm">
+                Application Pending
+              </Badge>
+            </div>
+          ) : isRejectedTutor ? (
+            <Button variant="outline" onClick={handleBecomeTutor}>
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden md:block ml-2">Reapply as Tutor</span>
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={handleBecomeTutor}>
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden md:block ml-2">
+                {isApprovedTutor ? "Add Another Service" : "Become a Tutor"}
+              </span>
+            </Button>
+          )}
         </div>
 
         {isApprovedTutor ? (
           <Tabs defaultValue="available" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="available">Available Tutors</TabsTrigger>
               <TabsTrigger value="services">My Services</TabsTrigger>
               <TabsTrigger value="requests">
                 Requests ({userRequests.length})
               </TabsTrigger>
+              <TabsTrigger value="monetization">Monetization</TabsTrigger>
             </TabsList>
 
             <TabsContent value="available" className="space-y-4">
-              {/* Search and Filters */}
-              <div className="space-y-4">
-                <div className="relative">
+              
+              <div className="flex gap-2">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search tutors or subjects..."
+                    placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
+                    className="pl-10 pr-10"
                   />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {subjectFilters.map((subject) => (
-                    <Button
-                      key={subject}
-                      variant={
-                        selectedSubject === subject ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => setSelectedSubject(subject)}
-                      className="rounded-full px-5"
-                    >
-                      {subject}
-                    </Button>
-                  ))}
-                </div>
+                
+                <Button
+                  variant="outline"
+                  className="relative"
+                  onClick={() => setShowFilters(true)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {hasActiveFilters && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
+                      !
+                    </span>
+                  )}
+                </Button>
               </div>
 
-              {/* Loading State */}
+              
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchQuery}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => setSearchQuery("")}
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.subjectType !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      Subject: {appliedFilters.subjectType}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({ ...prev, subjectType: "all" }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.level !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      Level: {appliedFilters.level}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({ ...prev, level: "all" }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {(appliedFilters.minSessionRate !== 0 ||
+                    appliedFilters.maxSessionRate !== MAX_SESSION_RATE) && (
+                    <Badge variant="secondary" className="gap-1">
+                      Session: GHS {appliedFilters.minSessionRate} - GHS {appliedFilters.maxSessionRate}/hr
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({
+                            ...prev,
+                            minSessionRate: 0,
+                            maxSessionRate: MAX_SESSION_RATE,
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {(appliedFilters.minSemesterRate !== 0 ||
+                    appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE) && (
+                    <Badge variant="secondary" className="gap-1">
+                      Semester: GHS {appliedFilters.minSemesterRate} - GHS {appliedFilters.maxSemesterRate}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({
+                            ...prev,
+                            minSemesterRate: 0,
+                            maxSemesterRate: MAX_SEMESTER_RATE,
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.hasDiscount && (
+                    <Badge variant="secondary" className="gap-1">
+                      With Discount
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({ ...prev, hasDiscount: false }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              
               {loading ? (
                 <LoadingSpinner size="md" />
+              ) : filteredTutors.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">
+                    No tutors found
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {hasActiveFilters
+                      ? "Try adjusting your search or filters"
+                      : "Check back later for new tutors"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" onClick={resetFilters}>
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <>
-                  {/* Tutors List */}
+                  
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => {
                       const isFollowing = followingStatus[tutor.user_id || ""];
@@ -539,16 +1146,16 @@ const TutoringContent = () => {
                     })}
                   </div>
 
-                  {/* No Results */}
-                  {filteredTutors.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No tutors found
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your search or filters
-                      </p>
+                  
+                  {hasMore && (
+                    <div ref={loadMoreRef} className="py-4 text-center">
+                      {loadingMore && <LoadingSpinner size="sm" />}
+                    </div>
+                  )}
+
+                  {!hasMore && filteredTutors.length > 0 && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      You've reached the end
                     </div>
                   )}
                 </>
@@ -577,7 +1184,12 @@ const TutoringContent = () => {
                           request={request}
                           onAccept={handleAcceptRequest}
                           onDecline={handleDeclineRequest}
+                          onMessage={handleMessageStudent}
+                          onCall={handleCallStudent}
+                          onCancel={handleCancelSession}
+                          onComplete={handleMarkComplete}
                           showActions={true}
+                          viewMode="tutor"
                         />
                       ))}
                     </div>
@@ -595,6 +1207,10 @@ const TutoringContent = () => {
                 </>
               )}
             </TabsContent>
+
+            <TabsContent value="monetization">
+              <MonetizationTab />
+            </TabsContent>
           </Tabs>
         ) : hasApplication ? (
           <Tabs defaultValue="available" className="w-full">
@@ -603,43 +1219,71 @@ const TutoringContent = () => {
               <TabsTrigger value="application">My Application</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="available">
-              {/* Same content as the regular tutoring page */}
-              {/* Search and Filters */}
-              <div className="space-y-4">
-                <div className="relative">
+            <TabsContent value="available" className="space-y-4">
+              
+              <div className="flex gap-2">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search tutors or subjects..."
+                    placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
+                    className="pl-10 pr-10"
                   />
-                </div>
-
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {subjectFilters.map((subject) => (
+                  {searchQuery && (
                     <Button
-                      key={subject}
-                      variant={
-                        selectedSubject === subject ? "default" : "outline"
-                      }
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedSubject(subject)}
-                      className="rounded-full px-5"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setSearchQuery("")}
                     >
-                      {subject}
+                      <X className="h-4 w-4" />
                     </Button>
-                  ))}
+                  )}
                 </div>
+                <Button
+                  variant="outline"
+                  className="relative"
+                  onClick={() => setShowFilters(true)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {hasActiveFilters && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
+                      !
+                    </span>
+                  )}
+                </Button>
               </div>
 
-              {/* Loading State */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchQuery}
+                      <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               {loading ? (
-                <LoadingSpinner />
+                <LoadingSpinner size="md" />
+              ) : filteredTutors.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No tutors found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {hasActiveFilters
+                      ? "Try adjusting your search or filters"
+                      : "Check back later for new tutors"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
+                  )}
+                </div>
               ) : (
                 <>
-                  {/* Tutors List */}
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => {
                       const isFollowing = followingStatus[tutor.user_id || ""];
@@ -654,23 +1298,22 @@ const TutoringContent = () => {
                           showRequestButton={true}
                           isContactLoading={messageTutorMutation.isPending}
                           isFollowLoading={
-                            followMutation.isPending ||
-                            unfollowMutation.isPending
+                            followMutation.isPending || unfollowMutation.isPending
                           }
                         />
                       );
                     })}
                   </div>
 
-                  {filteredTutors.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No tutors found
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your search or filters
-                      </p>
+                  {hasMore && (
+                    <div ref={loadMoreRef} className="py-4 text-center">
+                      {loadingMore && <LoadingSpinner size="sm" />}
+                    </div>
+                  )}
+
+                  {!hasMore && filteredTutors.length > 0 && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      You've reached the end
                     </div>
                   )}
                 </>
@@ -696,36 +1339,67 @@ const TutoringContent = () => {
             </TabsList>
 
             <TabsContent value="tutors" className="space-y-4">
-              <div className="space-y-4">
-                <div className="relative">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search tutors or subjects..."
+                    placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 rounded-full"
+                    className="pl-10 pr-10"
                   />
-                </div>
-
-                <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                  {subjectFilters.map((subject) => (
+                  {searchQuery && (
                     <Button
-                      key={subject}
-                      variant={
-                        selectedSubject === subject ? "default" : "outline"
-                      }
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedSubject(subject)}
-                      className="rounded-full px-5"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setSearchQuery("")}
                     >
-                      {subject}
+                      <X className="h-4 w-4" />
                     </Button>
-                  ))}
+                  )}
                 </div>
+                <Button
+                  variant="outline"
+                  className="relative"
+                  onClick={() => setShowFilters(true)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {hasActiveFilters && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
+                      !
+                    </span>
+                  )}
+                </Button>
               </div>
 
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchQuery}
+                      <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               {loading ? (
-                <LoadingSpinner />
+                <LoadingSpinner size="md" />
+              ) : filteredTutors.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No tutors found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {hasActiveFilters
+                      ? "Try adjusting your search or filters"
+                      : "Check back later for new tutors"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
+                  )}
+                </div>
               ) : (
                 <>
                   <div className="space-y-4">
@@ -741,15 +1415,15 @@ const TutoringContent = () => {
                     ))}
                   </div>
 
-                  {filteredTutors.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No tutors found
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your search or filters
-                      </p>
+                  {hasMore && (
+                    <div ref={loadMoreRef} className="py-4 text-center">
+                      {loadingMore && <LoadingSpinner size="sm" />}
+                    </div>
+                  )}
+
+                  {!hasMore && filteredTutors.length > 0 && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      You've reached the end
                     </div>
                   )}
                 </>
@@ -764,16 +1438,18 @@ const TutoringContent = () => {
                   {sentRequests.length > 0 ? (
                     <div className="space-y-4">
                       {sentRequests.map((request) => (
-                        <StudentRequestCard
+                        <TutoringRequestCard
                           key={request.id}
                           request={request}
-                          onProceedToPayment={() =>
-                            handleProceedToPayment(request)
-                          }
-                          onRequestAgain={() => handleRequestAgain(request)}
-                          onRequestRefund={() => handleRequestRefund(request)}
-                          onMessageTutor={() => handleMessageTutor(request)}
-                          onReviewSession={() => handleReviewSession(request)}
+                          onPay={handlePay}
+                          onComplete={handleMarkComplete}
+                          onRequestRefund={handleRequestRefund}
+                          onMessage={handleMessageTutor}
+                          onCancelRequest={handleCancelRequest}
+                          onRate={handleRate}
+                          onRequestAgain={handleRequestAgain}
+                          showActions={true}
+                          viewMode="student"
                         />
                       ))}
                     </div>
@@ -794,36 +1470,67 @@ const TutoringContent = () => {
           </Tabs>
         ) : (
           <>
-            <div className="space-y-4">
-              <div className="relative">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search tutors or subjects..."
+                  placeholder="Search by name, subject, bio, experience..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full"
+                  className="pl-10 pr-10"
                 />
-              </div>
-
-              <div className="flex w-full overflow-x-auto scrollbar-hide gap-2">
-                {subjectFilters.map((subject) => (
+                {searchQuery && (
                   <Button
-                    key={subject}
-                    variant={
-                      selectedSubject === subject ? "default" : "outline"
-                    }
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedSubject(subject)}
-                    className="rounded-full px-5"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setSearchQuery("")}
                   >
-                    {subject}
+                    <X className="h-4 w-4" />
                   </Button>
-                ))}
+                )}
               </div>
+              <Button
+                variant="outline"
+                className="relative"
+                onClick={() => setShowFilters(true)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
+                    !
+                  </span>
+                )}
+              </Button>
             </div>
 
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2">
+                {searchQuery && (
+                  <Badge variant="secondary" className="gap-1">
+                    Search: {searchQuery}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
+                  </Badge>
+                )}
+              </div>
+            )}
+
             {loading ? (
-              <LoadingSpinner />
+              <LoadingSpinner size="md" />
+            ) : filteredTutors.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No tutors found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {hasActiveFilters
+                    ? "Try adjusting your search or filters"
+                    : "Check back later for new tutors"}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
+                )}
+              </div>
             ) : (
               <>
                 <div className="space-y-4">
@@ -839,15 +1546,15 @@ const TutoringContent = () => {
                   ))}
                 </div>
 
-                {filteredTutors.length === 0 && (
-                  <div className="text-center py-12">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No tutors found
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Try adjusting your search or filters
-                    </p>
+                {hasMore && (
+                  <div ref={loadMoreRef} className="py-4 text-center">
+                    {loadingMore && <LoadingSpinner size="sm" />}
+                  </div>
+                )}
+
+                {!hasMore && filteredTutors.length > 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    You've reached the end
                   </div>
                 )}
               </>
@@ -856,15 +1563,148 @@ const TutoringContent = () => {
         )}
       </div>
 
-      {/* Modals */}
+      
+      <Sheet open={showFilters} onOpenChange={setShowFilters}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Filter Tutors</SheetTitle>
+            <SheetDescription>
+              Refine your search with these filters
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            
+            <div className="space-y-2">
+              <Label>Subject / Course</Label>
+              <Select
+                value={pendingFilters.subjectType}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({ ...prev, subjectType: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="subject">Subject</SelectItem>
+                  <SelectItem value="course">Course</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            
+            <div className="space-y-2">
+              <Label>Level</Label>
+              <Select
+                value={pendingFilters.level}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({ ...prev, level: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  <SelectItem value="100">Level 100</SelectItem>
+                  <SelectItem value="200">Level 200</SelectItem>
+                  <SelectItem value="300">Level 300</SelectItem>
+                  <SelectItem value="400">Level 400</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            
+            <div className="space-y-3">
+              <Label>
+                Session Rate (GHS {pendingFilters.minSessionRate} - GHS {pendingFilters.maxSessionRate}/hr)
+              </Label>
+              <Slider
+                min={0}
+                max={MAX_SESSION_RATE}
+                step={5}
+                value={[pendingFilters.minSessionRate, pendingFilters.maxSessionRate]}
+                onValueChange={([min, max]) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    minSessionRate: min,
+                    maxSessionRate: max,
+                  }))
+                }
+                className="w-full"
+              />
+            </div>
+
+            
+            <div className="space-y-3">
+              <Label>
+                Semester Rate (GHS {pendingFilters.minSemesterRate} - GHS {pendingFilters.maxSemesterRate})
+              </Label>
+              <Slider
+                min={0}
+                max={MAX_SEMESTER_RATE}
+                step={50}
+                value={[pendingFilters.minSemesterRate, pendingFilters.maxSemesterRate]}
+                onValueChange={([min, max]) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    minSemesterRate: min,
+                    maxSemesterRate: max,
+                  }))
+                }
+                className="w-full"
+              />
+            </div>
+
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="hasDiscount"
+                checked={pendingFilters.hasDiscount}
+                onChange={(e) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    hasDiscount: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="hasDiscount" className="cursor-pointer">
+                Only show tutors with semester discounts
+              </Label>
+            </div>
+
+            
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetFilters}
+                className="flex-1"
+              >
+                Reset
+              </Button>
+              <Button
+                onClick={applyFilters}
+                className="flex-1"
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      
       {selectedTutor && (
         <RequestTutoringModal
           open={requestModalOpen}
           onOpenChange={setRequestModalOpen}
           tutor={selectedTutor}
           onSubmit={handleSubmitRequest}
-          isLoading={isCreatingRequest}
-          initialData={initialRequestData || undefined}
+          isLoading={createRequestMutation.isPending}
         />
       )}
 
@@ -883,13 +1723,9 @@ const TutoringContent = () => {
               tutors.find((t) => t.user_id === selectedRequest.tutor_id)
                 ?.hourly_rate || 25
             }
-            semesterRate={
-              tutors.find((t) => t.user_id === selectedRequest.tutor_id)
-                ?.semester_rate
-            }
             userEmail={user?.email || ""}
             onPayment={handlePayment}
-            isLoading={isProcessingPayment}
+            isLoading={verifyPaymentMutation.isPending}
           />
 
           <SessionCompletionModal
@@ -902,7 +1738,7 @@ const TutoringContent = () => {
             }
             onComplete={handleSubmitCompletion}
             onReportIssue={handleReportIssue}
-            isLoading={isCompletingSession}
+            isLoading={completeSessionMutation.isPending}
           />
 
           <RefundRequestModal
@@ -915,7 +1751,20 @@ const TutoringContent = () => {
             }
             refundAmount={selectedRequest.payment_details?.amount || 0}
             onSubmit={handleSubmitRefund}
-            isLoading={isRequestingRefund}
+            isLoading={refundRequestMutation.isPending}
+          />
+
+          <ReviewSessionModal
+            open={reviewModalOpen}
+            onOpenChange={setReviewModalOpen}
+            tutorName={
+              selectedRequest.tutor_full_name ||
+              selectedRequest.tutor_username ||
+              "Tutor"
+            }
+            onSubmit={handleSubmitReview}
+            isLoading={createReviewMutation.isPending}
+            sessionType="tutoring"
           />
         </>
       )}
@@ -923,13 +1772,4 @@ const TutoringContent = () => {
   );
 };
 
-// Wrapper component that provides the context
-const Tutoring = () => {
-  return (
-    <MockTutoringProvider>
-      <TutoringContent />
-    </MockTutoringProvider>
-  );
-};
-
-export default Tutoring;
+export default TutoringContent;

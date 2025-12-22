@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +26,16 @@ import {
   Shield,
   Crown,
   UserCheck,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { Community, CommunityPost } from "@/types/communities";
 import { Post, User } from "@/types/global";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { useAuth } from "@/contexts/AuthContext";
+import { uploadFile } from "@/api/files.api";
+import { toast as sonnerToast } from "sonner";
 import {
   useCommunity,
   useCommunityMembers,
@@ -38,7 +43,10 @@ import {
   useLeaveCommunity,
 } from "@/hooks/useCommunities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPostsByCommunity } from "@/api/posts.api";
+import { getPostsByCommunity, createPost } from "@/api/posts.api";
+import { useFeed } from "@/hooks/useFeed";
+import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import {
   getCommunityAnnouncements,
   createCommunityAnnouncement,
@@ -49,9 +57,22 @@ import {
   CommunityMember,
   addCommunityAdmin,
   removeCommunityAdmin,
+  updateCommunity,
 } from "@/api/communities.api";
+import moment from "moment";
+import {
+  getCommunityEvents,
+  getCommunityUpcomingEvents,
+  createCommunityEvent,
+  updateEvent,
+  Event,
+  CreateEventRequest,
+} from "@/api/events.api";
+import { EventCard } from "@/components/events/EventCard";
+import { EventForm } from "@/components/events/EventForm";
+import { EventDetailModal } from "@/components/events/EventDetailModal";
 
-type CommunityTab = "posts" | "announcements" | "members" | "settings";
+type CommunityTab = "posts" | "announcements" | "members" | "settings" | "events";
 
 const CommunityDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,41 +80,68 @@ const CommunityDetail = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const currentUserId = user?.id || "";
 
-  const [activeTab, setActiveTab] = useState<CommunityTab>("posts");
+  
+  const initialTab = (searchParams.get("tab") as CommunityTab) || "posts";
+  const [activeTab, setActiveTab] = useState<CommunityTab>(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [newPostContent, setNewPostContent] = useState("");
+  const [selectedPostImages, setSelectedPostImages] = useState<File[]>([]);
+  const [postImagePreviews, setPostImagePreviews] = useState<string[]>([]);
+  const [isUploadingPostImages, setIsUploadingPostImages] = useState(false);
 
   const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
   const [newAnnouncementContent, setNewAnnouncementContent] = useState("");
   const [isPinned, setIsPinned] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<CommunityAnnouncement | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<CommunityAnnouncement | null>(null);
 
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [communityDescription, setCommunityDescription] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
 
   const { data: community, isLoading } = useCommunity(id || "");
 
-    const isAdmin = community?.role === "admin" || community?.role === "owner";
+  const isAdmin = community?.role === "admin" || community?.role === "owner";
   const isModerator = community?.role === "moderator";
   const canManage = isAdmin || isModerator;
 
-  const { data: posts = [], isLoading: postsLoading } = useQuery({
-    queryKey: ["community-posts", id],
-    queryFn: () => getPostsByCommunity(id || ""),
+  
+  const {
+    posts,
+    isLoading: postsLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch: refetchPosts,
+    likePost,
+    repostPost,
+    deletePost,
+    sharePost,
+  } = useFeed({
+    type: 'community',
+    communityId: id,
     enabled: !!id && activeTab === "posts",
+  });
+
+  
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetchingNextPage,
+    hasMore: hasNextPage || false,
+    onLoadMore: fetchNextPage,
   });
   const { data: members = [], isLoading: membersLoading } = useCommunityMembers(
     id || "",
     { page: 1, limit: 100 }
   );
 
-    const { data: announcements = [] } = useQuery({
+  const { data: announcements = [] } = useQuery({
     queryKey: ["community-announcements", id],
     queryFn: () => getCommunityAnnouncements(id || ""),
     enabled: !!id && activeTab === "announcements",
@@ -102,19 +150,63 @@ const CommunityDetail = () => {
   const joinMutation = useJoinCommunity();
   const leaveMutation = useLeaveCommunity();
 
-    const createAnnouncementMutation = useMutation({
-    mutationFn: (data: { title: string; content: string; is_pinned?: boolean }) =>
-      createCommunityAnnouncement(id || "", data),
+  const createPostMutation = useMutation({
+    mutationFn: (data: { content: string; media?: any }) =>
+      createPost({
+        content: data.content,
+        community_id: id || "",
+        visibility: "community",
+        media: data.media,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community-announcements", id] });
-      toast({ title: "Announcement created", description: "Announcement has been posted" });
+      
+      queryClient.invalidateQueries({
+        queryKey: ["community-posts", id],
+        refetchType: 'active'
+      });
+      toast({
+        title: "Post created",
+        description: "Your post has been shared with the community",
+      });
+      setIsComposerOpen(false);
+      setNewPostContent("");
+      setSelectedPostImages([]);
+      setPostImagePreviews([]);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createAnnouncementMutation = useMutation({
+    mutationFn: (data: {
+      title: string;
+      content: string;
+      is_pinned?: boolean;
+    }) => createCommunityAnnouncement(id || "", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["community-announcements", id],
+      });
+      toast({
+        title: "Announcement created",
+        description: "Announcement has been posted",
+      });
       setIsCreatingAnnouncement(false);
       setNewAnnouncementTitle("");
       setNewAnnouncementContent("");
       setIsPinned(false);
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to create announcement", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create announcement",
+        variant: "destructive",
+      });
     },
   });
 
@@ -127,48 +219,88 @@ const CommunityDetail = () => {
       data: { title: string; content: string; is_pinned?: boolean };
     }) => updateCommunityAnnouncement(announcementId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community-announcements", id] });
-      toast({ title: "Announcement updated", description: "Announcement has been updated" });
+      queryClient.invalidateQueries({
+        queryKey: ["community-announcements", id],
+      });
+      toast({
+        title: "Announcement updated",
+        description: "Announcement has been updated",
+      });
       setEditingAnnouncement(null);
       setIsCreatingAnnouncement(false);
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update announcement", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update announcement",
+        variant: "destructive",
+      });
     },
   });
 
   const deleteAnnouncementMutation = useMutation({
-    mutationFn: (announcementId: string) => deleteCommunityAnnouncement(announcementId),
+    mutationFn: (announcementId: string) =>
+      deleteCommunityAnnouncement(announcementId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community-announcements", id] });
-      toast({ title: "Announcement deleted", description: "Announcement has been removed" });
+      queryClient.invalidateQueries({
+        queryKey: ["community-announcements", id],
+      });
+      toast({
+        title: "Announcement deleted",
+        description: "Announcement has been removed",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to delete announcement", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to delete announcement",
+        variant: "destructive",
+      });
     },
   });
 
   const pinAnnouncementMutation = useMutation({
-    mutationFn: ({ announcementId, pinned }: { announcementId: string; pinned: boolean }) =>
-      pinCommunityAnnouncement(announcementId, pinned),
+    mutationFn: ({
+      announcementId,
+      pinned,
+    }: {
+      announcementId: string;
+      pinned: boolean;
+    }) => pinCommunityAnnouncement(announcementId, pinned),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community-announcements", id] });
-      toast({ title: "Announcement updated", description: "Announcement pin status updated" });
+      queryClient.invalidateQueries({
+        queryKey: ["community-announcements", id],
+      });
+      toast({
+        title: "Announcement updated",
+        description: "Announcement pin status updated",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update announcement", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update announcement",
+        variant: "destructive",
+      });
     },
   });
 
-    const addAdminMutation = useMutation({
+  const addAdminMutation = useMutation({
     mutationFn: (userId: string) => addCommunityAdmin(id || "", userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community", id] });
       queryClient.invalidateQueries({ queryKey: ["community-members", id] });
-      toast({ title: "Admin added", description: "User has been promoted to admin" });
+      toast({
+        title: "Admin added",
+        description: "User has been promoted to admin",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to add admin", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to add admin",
+        variant: "destructive",
+      });
     },
   });
 
@@ -177,16 +309,26 @@ const CommunityDetail = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community", id] });
       queryClient.invalidateQueries({ queryKey: ["community-members", id] });
-      toast({ title: "Admin removed", description: "User has been demoted from admin" });
+      toast({
+        title: "Admin removed",
+        description: "User has been demoted from admin",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to remove admin", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to remove admin",
+        variant: "destructive",
+      });
     },
   });
 
   useEffect(() => {
     if (community?.description) {
       setCommunityDescription(community.description);
+    }
+    if (community?.cover_image) {
+      setCoverImageUrl(community.cover_image);
     }
   }, [community]);
 
@@ -200,13 +342,82 @@ const CommunityDetail = () => {
     }
   };
 
-  const handleCreatePost = (content: string, images?: string[]) => {
-        setIsComposerOpen(false);
-    toast({
-      title: "Post created",
-      description: "Your post has been shared with the community",
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    
+    if (selectedPostImages.length + files.length > 4) {
+      sonnerToast.error("You can only upload up to 4 images per post");
+      return;
+    }
+
+    
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        sonnerToast.error(`${file.name} is not an image file`);
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        sonnerToast.error(`${file.name} exceeds 10MB limit`);
+        return false;
+      }
+      return true;
     });
-    queryClient.invalidateQueries({ queryKey: ["community-posts", id] });
+
+    if (validFiles.length === 0) return;
+
+    
+    const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
+    setSelectedPostImages([...selectedPostImages, ...validFiles]);
+    setPostImagePreviews([...postImagePreviews, ...newPreviews]);
+  };
+
+  const handleRemovePostImage = (index: number) => {
+    const newImages = selectedPostImages.filter((_, i) => i !== index);
+    const newPreviews = postImagePreviews.filter((_, i) => i !== index);
+    setSelectedPostImages(newImages);
+    setPostImagePreviews(newPreviews);
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim() && selectedPostImages.length === 0) {
+      toast({
+        title: "Empty post",
+        description: "Please write something or add an image before posting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      let imageUrls: string[] = [];
+
+      
+      if (selectedPostImages.length > 0) {
+        setIsUploadingPostImages(true);
+        const uploadPromises = selectedPostImages.map((file) =>
+          uploadFile({
+            file,
+            moduleType: "posts",
+            moduleId: id,
+            accessLevel: "public",
+          })
+        );
+        const uploadedFiles = await Promise.all(uploadPromises);
+        imageUrls = uploadedFiles.map((file) => file.url);
+      }
+
+      createPostMutation.mutate({
+        content: newPostContent.trim() || "",
+        media: imageUrls.length > 0 ? imageUrls : undefined,
+      });
+    } catch (error) {
+      console.error("Failed to upload images:", error);
+      sonnerToast.error("Failed to upload images");
+    } finally {
+      setIsUploadingPostImages(false);
+    }
   };
 
   const handleCreateAnnouncement = () => {
@@ -253,20 +464,48 @@ const CommunityDetail = () => {
     pinAnnouncementMutation.mutate({ announcementId, pinned: !pinned });
   };
 
+  const updateCommunityMutation = useMutation({
+    mutationFn: (data: {
+      name: string;
+      category: string;
+      description?: string;
+      cover_image?: string;
+    }) => updateCommunity(id || "", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["community", id] });
+      toast({
+        title: "Settings updated",
+        description: "Community settings have been saved",
+      });
+      setIsEditingSettings(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update community settings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpdateCommunitySettings = () => {
-        setIsEditingSettings(false);
-    toast({
-      title: "Settings updated",
-      description: "Community settings have been saved",
+    if (!community) return;
+
+    updateCommunityMutation.mutate({
+      name: community.name,
+      category: community.category,
+      description: communityDescription,
+      cover_image: coverImageUrl,
     });
-    queryClient.invalidateQueries({ queryKey: ["community", id] });
   };
 
   const handlePostAction = (
     postId: string,
     action: "like" | "repost" | "comment"
   ) => {
-        console.log("Post action:", action, postId);
+    if (action === "comment") {
+      navigate(`/post/${postId}`);
+    }
   };
 
   const handleQuote = (postId: string) => {
@@ -357,7 +596,7 @@ const CommunityDetail = () => {
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16">
               <AvatarImage
-                src={community.cover_image || undefined}
+                src={coverImageUrl || community.cover_image || undefined}
                 alt={community.name}
               />
               <AvatarFallback className="text-lg">
@@ -470,21 +709,27 @@ const CommunityDetail = () => {
             >
               Announcements
             </TabsTrigger>
+            <TabsTrigger
+              value="members"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+            >
+              Members
+            </TabsTrigger>
+            {(community.is_member || community.community_type === "public") && (
+              <TabsTrigger
+                value="events"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Events
+              </TabsTrigger>
+            )}
             {canManage && (
-              <>
-                <TabsTrigger
-                  value="members"
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-                >
-                  Members
-                </TabsTrigger>
-                <TabsTrigger
-                  value="settings"
-                  className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
-                >
-                  Settings
-                </TabsTrigger>
-              </>
+              <TabsTrigger
+                value="settings"
+                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              >
+                Settings
+              </TabsTrigger>
             )}
           </TabsList>
 
@@ -501,31 +746,81 @@ const CommunityDetail = () => {
                           onChange={(e) => setNewPostContent(e.target.value)}
                           rows={3}
                         />
+
+                        
+                        {postImagePreviews.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {postImagePreviews.map((preview, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={preview}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-border"
+                                />
+                                <button
+                                  onClick={() => handleRemovePostImage(index)}
+                                  className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            {newPostContent.length}/280
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handlePostImageSelect}
+                              className="hidden"
+                              id="post-image-upload"
+                              disabled={selectedPostImages.length >= 4 || isUploadingPostImages}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => document.getElementById('post-image-upload')?.click()}
+                              disabled={selectedPostImages.length >= 4 || isUploadingPostImages}
+                            >
+                              <ImageIcon className="h-4 w-4 mr-1" />
+                              {selectedPostImages.length > 0
+                                ? `${selectedPostImages.length}/4 images`
+                                : 'Add images'}
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                              {newPostContent.length}/280
+                            </span>
+                          </div>
                           <div className="flex gap-2">
                             <Button
                               variant="outline"
                               onClick={() => {
                                 setIsComposerOpen(false);
                                 setNewPostContent("");
+                                setSelectedPostImages([]);
+                                setPostImagePreviews([]);
                               }}
+                              disabled={isUploadingPostImages || createPostMutation.isPending}
                             >
                               Cancel
                             </Button>
                             <Button
-                              onClick={() => {
-                                handleCreatePost(newPostContent);
-                                setNewPostContent("");
-                              }}
+                              onClick={handleCreatePost}
                               disabled={
-                                !newPostContent.trim() ||
-                                newPostContent.length > 280
+                                (!newPostContent.trim() && selectedPostImages.length === 0) ||
+                                newPostContent.length > 280 ||
+                                isUploadingPostImages ||
+                                createPostMutation.isPending
                               }
                             >
-                              Post
+                              {isUploadingPostImages
+                                ? "Uploading..."
+                                : createPostMutation.isPending
+                                ? "Posting..."
+                                : "Post"}
                             </Button>
                           </div>
                         </div>
@@ -546,31 +841,42 @@ const CommunityDetail = () => {
             )}
 
             {postsLoading ? (
-              <LoadingSpinner />
+              <FeedLoadingSkeleton count={5} />
             ) : (
-              <div className="divide-y divide-border">
-                {posts.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-muted-foreground">
-                      {community.is_member
-                        ? "No posts yet. Be the first to share something!"
-                        : "No posts yet in this community"}
-                    </p>
+              <>
+                <div className="divide-y divide-border">
+                  {posts.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        {community.is_member
+                          ? "No posts yet. Be the first to share something!"
+                          : "No posts yet in this community"}
+                      </p>
+                    </div>
+                  ) : (
+                    posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        currentUserId={user?.id}
+                      />
+                    ))
+                  )}
+                </div>
+
+                
+                {hasNextPage && (
+                  <div ref={loadMoreRef} className="py-4 text-center">
+                    {isFetchingNextPage && <FeedLoadingSkeleton count={2} />}
                   </div>
-                ) : (
-                  posts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onLike={() => handlePostAction(post.id, "like")}
-                      onRepost={() => handlePostAction(post.id, "repost")}
-                      onComment={() => handlePostAction(post.id, "comment")}
-                      onShare={() => {}}
-                      onQuote={handleQuote}
-                    />
-                  ))
                 )}
-              </div>
+
+                {!hasNextPage && posts.length > 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    You've reached the end
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 
@@ -666,7 +972,10 @@ const CommunityDetail = () => {
                   .sort((a, b) => {
                     if (a.is_pinned && !b.is_pinned) return -1;
                     if (!a.is_pinned && b.is_pinned) return 1;
-                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    return (
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime()
+                    );
                   })
                   .map((announcement) => (
                     <div
@@ -686,7 +995,10 @@ const CommunityDetail = () => {
                                 {announcement.title}
                               </h3>
                               {announcement.is_pinned && (
-                                <Badge variant="secondary" className="text-xs mt-1">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs mt-1"
+                                >
                                   Pinned
                                 </Badge>
                               )}
@@ -696,7 +1008,9 @@ const CommunityDetail = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleEditAnnouncement(announcement)}
+                                  onClick={() =>
+                                    handleEditAnnouncement(announcement)
+                                  }
                                 >
                                   Edit
                                 </Button>
@@ -715,7 +1029,9 @@ const CommunityDetail = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                  onClick={() =>
+                                    handleDeleteAnnouncement(announcement.id)
+                                  }
                                   className="text-red-600 hover:text-red-700"
                                 >
                                   Delete
@@ -740,7 +1056,9 @@ const CommunityDetail = () => {
                             <span>By {announcement.author_full_name}</span>
                             <span>•</span>
                             <span>
-                              {new Date(announcement.created_at).toLocaleDateString()}
+                              {new Date(
+                                announcement.created_at
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
@@ -751,9 +1069,7 @@ const CommunityDetail = () => {
             </div>
           </TabsContent>
 
-          {canManage && (
-            <>
-              <TabsContent value="members" className="mt-0">
+          <TabsContent value="members" className="mt-0">
                 <div className="p-4 space-y-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -780,8 +1096,8 @@ const CommunityDetail = () => {
                               .includes(searchQuery.toLowerCase())
                         )
                         .map((member) => {
-                          const isMemberAdmin = member.role === 'admin';
-                          const isMemberModerator = member.role === 'moderator';
+                          const isMemberAdmin = member.role === "admin";
+                          const isMemberModerator = member.role === "moderator";
 
                           return (
                             <div
@@ -789,7 +1105,10 @@ const CommunityDetail = () => {
                               className="p-4 hover:bg-muted/5"
                             >
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-12 w-12">
+                                <Avatar
+                                  className="h-12 w-12 cursor-pointer"
+                                  onClick={() => navigate(`/profile/${member.id}`)}
+                                >
                                   <AvatarImage
                                     src={member.avatar || undefined}
                                     alt={member.full_name}
@@ -800,7 +1119,10 @@ const CommunityDetail = () => {
                                       .toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div className="flex-1">
+                                <div
+                                  className="flex-1 cursor-pointer"
+                                  onClick={() => navigate(`/profile/${member.id}`)}
+                                >
                                   <div className="flex items-center gap-2">
                                     <h3 className="font-semibold">
                                       {member.full_name}
@@ -840,9 +1162,6 @@ const CommunityDetail = () => {
                                     </p>
                                   )}
                                 </div>
-                                <Button variant="outline" size="sm">
-                                  View Profile
-                                </Button>
                               </div>
                             </div>
                           );
@@ -852,6 +1171,17 @@ const CommunityDetail = () => {
                 </div>
               </TabsContent>
 
+              
+              {(community.is_member || community.community_type === "public") && (
+                <TabsContent value="events" className="mt-0">
+                  <CommunityEventsTab
+                    communityId={id || ""}
+                    canManage={canManage}
+                  />
+                </TabsContent>
+              )}
+
+              {canManage && (
               <TabsContent value="settings" className="mt-0">
                 <div className="p-6 space-y-6">
                   <div>
@@ -897,6 +1227,19 @@ const CommunityDetail = () => {
                             </p>
                           )}
                         </div>
+
+                        {isEditingSettings && (
+                          <div>
+                            <ImageUploadField
+                              label="Cover Image"
+                              currentImage={coverImageUrl}
+                              onUploadComplete={(url) => setCoverImageUrl(url)}
+                              moduleType="communities"
+                              moduleId={id}
+                              aspectRatio="16/9"
+                            />
+                          </div>
+                        )}
 
                         <div>
                           <Label>Community Type</Label>
@@ -962,7 +1305,7 @@ const CommunityDetail = () => {
                             Total Members
                           </span>
                           <span className="font-semibold">
-                            {community?.memberCount.toLocaleString()}
+                            {community?.member_count}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -984,145 +1327,224 @@ const CommunityDetail = () => {
                             Community Created
                           </span>
                           <span className="font-semibold">
-                            {community?.createdAt.toLocaleDateString()}
+                            {moment(community?.created_at).fromNow()}
                           </span>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Management Team</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Administrators
-                          </Label>
-                          <div className="mt-2 space-y-2">
-                            {members
-                              .filter((member) =>
-                                community?.admins?.includes(member.id)
-                              )
-                              .map((admin) => {
-                                const isOwner = community?.created_by === admin.id;
-                                return (
-                                  <div
-                                    key={admin.id}
-                                    className="flex items-center justify-between p-2 bg-muted/50 rounded-md"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarImage src={admin.avatar || undefined} />
-                                        <AvatarFallback className="text-xs">
-                                          {admin.full_name
-                                            .substring(0, 2)
-                                            .toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div>
-                                        <p className="text-sm font-medium">
-                                          {admin.full_name}
-                                          {isOwner && (
-                                            <Crown className="inline h-3 w-3 ml-1 text-yellow-600" />
-                                          )}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          @{admin.username}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {isAdmin && !isOwner && admin.id !== currentUserId && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDemoteFromAdmin(admin.id)}
-                                      >
-                                        Remove Admin
-                                      </Button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                          </div>
-                          {isAdmin && (
-                            <div className="mt-3">
-                              <Label className="text-sm">Promote Member to Admin</Label>
-                              <div className="flex gap-2 mt-2">
-                                <select
-                                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                                  onChange={(e) => {
-                                    if (e.target.value) {
-                                      handlePromoteToAdmin(e.target.value);
-                                      e.target.value = "";
-                                    }
-                                  }}
-                                >
-                                  <option value="">Select a member...</option>
-                                  {members
-                                    .filter(
-                                      (m) =>
-                                        !community?.admins?.includes(m.id) &&
-                                        m.id !== currentUserId
-                                    )
-                                    .map((member) => (
-                                      <option key={member.id} value={member.id}>
-                                        {member.full_name} (@{member.username})
-                                      </option>
-                                    ))}
-                                </select>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {community?.moderators &&
-                          community.moderators.length > 0 && (
+                    
+                    {isAdmin && (
+                      <Card className="border-red-200 dark:border-red-900">
+                        <CardHeader>
+                          <CardTitle className="text-red-600 dark:text-red-400">
+                            Danger Zone
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between p-4 border border-red-200 dark:border-red-900 rounded-md">
                             <div>
-                              <Label className="text-sm font-medium">
-                                Moderators
-                              </Label>
-                              <div className="mt-2 space-y-2">
-                                {members
-                                  .filter((member) =>
-                                    community.moderators?.includes(member.id)
-                                  )
-                                  .map((moderator) => (
-                                    <div
-                                      key={moderator.id}
-                                      className="flex items-center gap-3 p-2 bg-muted/50 rounded-md"
-                                    >
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarImage src={moderator.avatar || undefined} />
-                                        <AvatarFallback className="text-xs">
-                                          {moderator.full_name
-                                            .substring(0, 2)
-                                            .toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div>
-                                        <p className="text-sm font-medium">
-                                          {moderator.full_name}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          @{moderator.username}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
+                              <p className="font-medium">Delete Community</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Permanently delete this community and all of its
+                                content. This action cannot be undone.
+                              </p>
                             </div>
-                          )}
-                      </CardContent>
-                    </Card>
+                            <Button
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this community? This action cannot be undone.')) {
+                                  
+                                  toast({
+                                    title: "Not implemented",
+                                    description: "Community deletion is not yet implemented",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              Delete Community
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </div>
               </TabsContent>
-            </>
-          )}
+              )}
         </Tabs>
       </div>
     </AppLayout>
+  );
+};
+
+
+const CommunityEventsTab = ({
+  communityId,
+  canManage,
+}: {
+  communityId: string;
+  canManage: boolean;
+}) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: upcomingEvents = [], isLoading: upcomingLoading } = useQuery({
+    queryKey: ['community-upcoming-events', communityId],
+    queryFn: () => getCommunityUpcomingEvents(communityId, 10),
+    enabled: !!communityId,
+  });
+
+  const { data: allEvents = [], isLoading: allLoading } = useQuery({
+    queryKey: ['community-events', communityId],
+    queryFn: () => getCommunityEvents(communityId, { page: 1, limit: 20 }),
+    enabled: !!communityId,
+  });
+
+  const createEventMutation = useMutation({
+    mutationFn: (data: Omit<CreateEventRequest, 'space_id'>) => createCommunityEvent(communityId, data),
+    onSuccess: () => {
+      toast.success("Event created successfully");
+      queryClient.invalidateQueries({ queryKey: ['community-events', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['community-upcoming-events', communityId] });
+      setShowCreateForm(false);
+    },
+    onError: () => {
+      toast.error("Failed to create event");
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({ eventId, data }: { eventId: string; data: any }) => updateEvent(eventId, data),
+    onSuccess: () => {
+      toast.success("Event updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['community-events', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['community-upcoming-events', communityId] });
+      setEditingEvent(null);
+    },
+    onError: () => {
+      toast.error("Failed to update event");
+    },
+  });
+
+  if (upcomingLoading || allLoading) {
+    return (
+      <div className="p-8 text-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (showCreateForm || editingEvent) {
+    return (
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          {editingEvent ? "Edit Event" : "Create New Event"}
+        </h3>
+        <EventForm
+          event={editingEvent || undefined}
+          onSubmit={async (data) => {
+            if (editingEvent) {
+              await updateEventMutation.mutateAsync({ eventId: editingEvent.id, data });
+            } else {
+              await createEventMutation.mutateAsync(data);
+            }
+          }}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setEditingEvent(null);
+          }}
+          isSubmitting={createEventMutation.isPending || updateEventMutation.isPending}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Community Events</h3>
+        {canManage && (
+          <Button onClick={() => setShowCreateForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Event
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        
+        <div>
+          <h4 className="font-medium mb-3">Upcoming Events</h4>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No upcoming events</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {upcomingEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onClick={() => setSelectedEvent(event)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        
+        <div>
+          <h4 className="font-medium mb-3">All Events</h4>
+          {allEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No events yet. {canManage && "Create one to get started!"}
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {allEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{event.title}</p>
+                      {event.is_registered && (
+                        <Badge variant="secondary" className="text-xs">Registered</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {moment(event.start_date).format('MMM D, YYYY • h:mm A')}
+                    </p>
+                  </div>
+                  <Badge variant="outline">{event.category}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => !open && setSelectedEvent(null)}
+          canManage={canManage}
+          onEdit={() => {
+            setEditingEvent(selectedEvent);
+            setSelectedEvent(null);
+          }}
+          onDelete={() => {
+            setSelectedEvent(null);
+          }}
+        />
+      )}
+    </div>
   );
 };
 

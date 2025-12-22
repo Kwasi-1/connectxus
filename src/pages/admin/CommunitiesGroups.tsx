@@ -75,9 +75,10 @@ import { User } from "@/types/global";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
 import { groupsApi } from "@/api/groups.api";
-import { getDefaultSpaceId } from "@/lib/apiClient";
 import { type AdminGroup } from "@/data/mockAdminCommunitiesData";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 
 interface CreateCommunityModalProps {
   open: boolean;
@@ -117,7 +118,6 @@ function CreateCommunityModal({
         },
         features: {
           enable_events: true,
-          enable_mentorship: true,
           enable_marketplace: false,
           enable_social_feed: true,
           enable_learning_portal: false,
@@ -508,6 +508,8 @@ function SuspendGroupDialog({
 
 export function CommunitiesGroups() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { selectedSpaceId } = useAdminSpace();
   const [activeTab, setActiveTab] = useState("communities");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -552,22 +554,17 @@ export function CommunitiesGroups() {
   const fetchCommunities = useCallback(async () => {
     try {
       setLoading(true);
-      const spaceId = getDefaultSpaceId();
-
-      if (!spaceId) {
-        throw new Error("No space ID available");
-      }
 
       const categoryParam =
         categoryFilter === "all" ? undefined : categoryFilter;
       const statusParam = statusFilter === "all" ? undefined : statusFilter;
 
       const response = await adminApi.getCommunities(
-        spaceId,
         categoryParam,
         statusParam,
         currentPage,
-        pageSize
+        pageSize,
+        selectedSpaceId
       );
 
       setCommunities(response.communities || []);
@@ -582,23 +579,18 @@ export function CommunitiesGroups() {
     } finally {
       setLoading(false);
     }
-  }, [toast, categoryFilter, statusFilter, currentPage, pageSize]);
+  }, [toast, categoryFilter, statusFilter, currentPage, pageSize, selectedSpaceId]);
 
   const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
-      const spaceId = getDefaultSpaceId();
-
-      if (!spaceId) {
-        throw new Error("No space ID available");
-      }
 
       const status = statusFilter === "all" ? undefined : statusFilter;
       const response = await adminApi.getGroups(
-        spaceId,
         status,
         currentPage,
-        pageSize
+        pageSize,
+        selectedSpaceId
       );
       setGroups(response.groups as AdminGroup[]);
       setTotalGroups(response.total);
@@ -612,7 +604,7 @@ export function CommunitiesGroups() {
     } finally {
       setLoading(false);
     }
-  }, [toast, statusFilter, currentPage, pageSize]);
+  }, [toast, statusFilter, currentPage, pageSize, selectedSpaceId]);
 
   const searchUsersForModerator = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -622,13 +614,8 @@ export function CommunitiesGroups() {
 
     try {
       setUserSearchLoading(true);
-      const spaceId = getDefaultSpaceId();
 
-      if (!spaceId) {
-        throw new Error("No space ID available");
-      }
-
-      const response = await adminApi.getUsers(spaceId, 1, 50);
+      const response = await adminApi.getUsers(1, 50);
       const filteredUsers = response.users.filter(
         (user: any) =>
           user.full_name?.toLowerCase().includes(query.toLowerCase()) ||
@@ -663,19 +650,8 @@ export function CommunitiesGroups() {
   const handleCreateCommunity = useCallback(
     async (communityData: Partial<Community>) => {
       try {
-        const spaceId = getDefaultSpaceId();
-
-        if (!spaceId) {
-          toast({
-            title: "Error",
-            description: "No space ID available. Please log in again.",
-            variant: "destructive",
-          });
-          return;
-        }
 
         const payload = {
-          space_id: spaceId,
           name: communityData.name || "",
           description: communityData.description || "",
           category: communityData.category || "Academic",
@@ -703,7 +679,7 @@ export function CommunitiesGroups() {
           "Failed to create community.";
 
         if (errorCode === "space_not_found") {
-          errorMessage = `${errorMessage}\n\nTo fix this:\n1. Run: psql -d connect_db -f backend/scripts/create-default-space.sql\n2. Add the space_id to frontend/.env.local as VITE_DEFAULT_SPACE_ID`;
+          errorMessage = `${errorMessage}\n\nTo fix this:\n1. Run: psql -d connect_db -f backend/scripts/create-default-space.sql\n2. Ensure your user account is associated with a valid space`;
         }
 
         toast({
@@ -733,7 +709,6 @@ export function CommunitiesGroups() {
         },
         features: {
           enable_events: true,
-          enable_mentorship: true,
           enable_marketplace: false,
           enable_social_feed: true,
           enable_learning_portal: false,
