@@ -14,12 +14,18 @@ export interface Community {
   name: string;
   slug: string;
   description?: string | null;
-  category: string;                  cover_image?: string | null;       is_public: boolean;                settings?: any | null;             member_count: number;
+  category: string;
+  cover_image?: string | null;
+  is_public: boolean;
+  settings?: any | null;
+  member_count: number;
   post_count?: number | null;
+  level: number;
   created_at: string;
   updated_at?: string | null;
-    is_member?: boolean;
-  role?: string | null;            }
+  is_member?: boolean;
+  role?: string | null;
+}
 
 export interface CreateCommunityRequest {
   name: string;
@@ -27,6 +33,7 @@ export interface CreateCommunityRequest {
   category: string;
   cover_image?: string | null;
   is_public: boolean;
+  level?: number | null;
   settings?: any | null;
 }
 
@@ -34,12 +41,19 @@ export interface UpdateCommunityRequest {
   name?: string;
   description?: string | null;
   category?: string;
-  cover_image?: string | null;       is_public?: boolean;               settings?: any | null;
+  cover_image?: string | null;
+  is_public?: boolean;
+  level?: number | null;
+  settings?: any | null;
 }
 
 export interface ListCommunitiesParams extends PaginationParams {
-  space_id?: string;                 sort?: 'recent' | 'popular' | 'members';
+  space_id?: string;
+  sort?: 'recent' | 'popular' | 'members';
   category?: string;
+  filter_level?: number;
+  level_exact_match?: boolean;
+  filter_department?: string;
 }
 
 export interface CommunityMember {

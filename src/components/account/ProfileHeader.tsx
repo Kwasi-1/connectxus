@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 interface ProfileHeaderProps {
   user: UserProfile;
   onUserUpdate: (updatedUser: UserProfile) => void;
+  onRefreshUserData?: () => void; 
   isOwnProfile?: boolean;
   initialIsFollowing?: boolean;
 }
@@ -37,6 +38,7 @@ interface ProfileHeaderProps {
 export const ProfileHeader = ({
   user,
   onUserUpdate,
+  onRefreshUserData,
   isOwnProfile = true,
   initialIsFollowing = false,
 }: ProfileHeaderProps) => {
@@ -512,6 +514,8 @@ export const ProfileHeader = ({
           isOpen={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
           userId={user.id}
+          authProvider={user.auth_provider}
+          onPasswordUpdated={onRefreshUserData}
         />
       )}
     </div>

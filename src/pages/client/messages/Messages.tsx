@@ -34,8 +34,18 @@ import {
   X,
   Loader2,
   Image as ImageIcon,
+  File as FileIcon,
+  Video,
+  Music,
+  FileText,
+  Download,
 } from "lucide-react";
 import { NewChatModal } from "@/components/messages/NewChatModal";
+import {
+  getFileCategory,
+  formatFileSize,
+  ALLOWED_MIME_TYPES,
+} from "@/utils/fileUtils";
 
 type MessageTab = "all" | "groups";
 
@@ -52,12 +62,12 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const wsClient = useRef(getWebSocketClient());
   const markedAsReadRef = useRef<Set<string>>(new Set());
   const [wsConnected, setWsConnected] = useState(false);
@@ -91,16 +101,18 @@ const Messages = () => {
     mutationFn: ({
       conversationId,
       content,
-      attachments,
+      file_ids,
+      message_type,
     }: {
       conversationId: string;
       content: string;
-      attachments?: any;
+      file_ids?: string[];
+      message_type?: 'text' | 'image' | 'file' | 'audio' | 'video';
     }) =>
       sendMessage(conversationId, {
         content,
-        message_type: attachments ? "image" : "text",
-        attachments,
+        message_type: message_type || "text",
+        file_ids,
       }),
     onMutate: async ({ conversationId, content }) => {
       await queryClient.cancelQueries({
@@ -147,8 +159,8 @@ const Messages = () => {
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       setNewMessage("");
-      setSelectedImages([]);
-      setImagePreviews([]);
+      setSelectedFiles([]);
+      setFilePreviews([]);
     },
     onError: (error, variables, context) => {
       if (context?.previousMessages) {
@@ -199,7 +211,6 @@ const Messages = () => {
         };
 
         const typingHandler = (data: any) => {
-          console.log("User typing:", data);
         };
 
         wsClient.current.on("message.created", messageHandler);
@@ -228,11 +239,9 @@ const Messages = () => {
     const conversationChannel = `conv:${selectedConversationId}`;
 
     wsClient.current.subscribe(conversationChannel);
-    console.log(`✅ Subscribed to conversation: ${conversationChannel}`);
 
     return () => {
       wsClient.current.unsubscribe(conversationChannel);
-      console.log(`❌ Unsubscribed from conversation: ${conversationChannel}`);
     };
   }, [selectedConversationId, wsConnected]);
 
@@ -241,14 +250,14 @@ const Messages = () => {
   }, [messages]);
 
   useEffect(() => {
-    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
-    setSelectedImages([]);
-    setImagePreviews([]);
+    filePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    setSelectedFiles([]);
+    setFilePreviews([]);
   }, [selectedConversationId]);
 
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+      filePreviews.forEach((preview) => URL.revokeObjectURL(preview));
     };
   }, []);
 
@@ -331,17 +340,17 @@ const Messages = () => {
     navigate(`/messages/${conversationId}`, { replace: true });
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     const validFiles = files.filter((file) => {
-      if (!file.type.startsWith("image/")) {
-        toast.error(`${file.name} is not an image file`);
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        toast.error(`${file.name} file type is not supported`);
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 5MB`);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 10MB`);
         return false;
       }
       return true;
@@ -349,33 +358,36 @@ const Messages = () => {
 
     if (validFiles.length === 0) return;
 
-    const totalImages = selectedImages.length + validFiles.length;
-    if (totalImages > 4) {
-      toast.error("You can only upload up to 4 images per message");
-      const allowedCount = 4 - selectedImages.length;
+    const totalFiles = selectedFiles.length + validFiles.length;
+    if (totalFiles > 5) {
+      toast.error("You can only upload up to 5 files per message");
+      const allowedCount = 5 - selectedFiles.length;
       validFiles.splice(allowedCount);
     }
 
     const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
-    setSelectedImages([...selectedImages, ...validFiles]);
-    setImagePreviews([...imagePreviews, ...newPreviews]);
+    setSelectedFiles([...selectedFiles, ...validFiles]);
+    setFilePreviews([...filePreviews, ...newPreviews]);
+
+    e.target.value = "";
   };
 
-  const handleRemoveImage = (index: number) => {
-    URL.revokeObjectURL(imagePreviews[index]);
-    setSelectedImages(selectedImages.filter((_, i) => i !== index));
-    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  const handleRemoveFile = (index: number) => {
+    URL.revokeObjectURL(filePreviews[index]);
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+    setFilePreviews(filePreviews.filter((_, i) => i !== index));
   };
 
   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && selectedImages.length === 0) || !selectedConversationId) return;
+    if ((!newMessage.trim() && selectedFiles.length === 0) || !selectedConversationId) return;
 
     try {
-      let attachments = null;
+      let file_ids: string[] = [];
+      let messageType: 'text' | 'image' | 'file' | 'audio' | 'video' = 'text';
 
-      if (selectedImages.length > 0) {
-        setIsUploadingImages(true);
-        const uploadPromises = selectedImages.map((file) =>
+      if (selectedFiles.length > 0) {
+        setIsUploadingFiles(true);
+        const uploadPromises = selectedFiles.map((file) =>
           uploadFile({
             file,
             moduleType: "messages",
@@ -385,24 +397,26 @@ const Messages = () => {
         );
 
         const uploadedFiles = await Promise.all(uploadPromises);
-        attachments = uploadedFiles.map((file) => ({
-          url: file.url,
-          type: "image",
-          size: file.size,
-          filename: file.filename,
-        }));
+        file_ids = uploadedFiles.map((file) => file.file_id);
+
+        const firstFileCategory = getFileCategory(selectedFiles[0].type);
+        if (firstFileCategory === 'image') messageType = 'image';
+        else if (firstFileCategory === 'video') messageType = 'video';
+        else if (firstFileCategory === 'audio') messageType = 'audio';
+        else messageType = 'file';
       }
 
       sendMessageMutation.mutate({
         conversationId: selectedConversationId,
-        content: newMessage.trim() || "(image)",
-        attachments,
+        content: newMessage.trim() || (selectedFiles.length > 0 ? `(${messageType})` : ""),
+        file_ids: file_ids.length > 0 ? file_ids : undefined,
+        message_type: messageType,
       });
     } catch (error) {
-      console.error("Failed to upload images:", error);
-      toast.error("Failed to upload images");
+      console.error("Failed to upload files:", error);
+      toast.error("Failed to upload files");
     } finally {
-      setIsUploadingImages(false);
+      setIsUploadingFiles(false);
     }
   };
 
@@ -713,18 +727,69 @@ const Messages = () => {
                                   message.attachments.length === 2 ? "grid-cols-2" :
                                   "grid-cols-2"
                                 }`}>
-                                  {message.attachments.map((attachment: any, idx: number) => (
-                                    <img
-                                      key={idx}
-                                      src={attachment.url}
-                                      alt={`Attachment ${idx + 1}`}
-                                      className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
-                                      onClick={() => window.open(attachment.url, "_blank")}
-                                    />
-                                  ))}
+                                  {message.attachments.map((attachment: any, idx: number) => {
+                                    const fileType = attachment.type || 'other';
+
+                                    if (fileType === 'image') {
+                                      return (
+                                        <img
+                                          key={idx}
+                                          src={attachment.url}
+                                          alt={attachment.filename || `Image ${idx + 1}`}
+                                          className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() => window.open(attachment.url, "_blank")}
+                                        />
+                                      );
+                                    } else if (fileType === 'video') {
+                                      return (
+                                        <video
+                                          key={idx}
+                                          src={attachment.url}
+                                          controls
+                                          className="rounded-md w-full max-w-xs"
+                                        />
+                                      );
+                                    } else if (fileType === 'audio') {
+                                      return (
+                                        <div key={idx} className="flex items-center gap-2 p-3 rounded-md bg-background/10">
+                                          <Music className="h-6 w-6 flex-shrink-0" />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm truncate">{attachment.filename || 'Audio'}</p>
+                                            {attachment.size && (
+                                              <p className="text-xs opacity-70">{formatFileSize(attachment.size)}</p>
+                                            )}
+                                          </div>
+                                          <audio src={attachment.url} controls className="w-full mt-2" />
+                                        </div>
+                                      );
+                                    } else {
+                                      return (
+                                        <a
+                                          key={idx}
+                                          href={attachment.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 p-3 rounded-md bg-background/10 hover:bg-background/20 transition-colors"
+                                        >
+                                          {fileType === 'document' ? (
+                                            <FileText className="h-6 w-6 flex-shrink-0" />
+                                          ) : (
+                                            <FileIcon className="h-6 w-6 flex-shrink-0" />
+                                          )}
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm truncate">{attachment.filename || 'File'}</p>
+                                            {attachment.size && (
+                                              <p className="text-xs opacity-70">{formatFileSize(attachment.size)}</p>
+                                            )}
+                                          </div>
+                                          <Download className="h-4 w-4 flex-shrink-0" />
+                                        </a>
+                                      );
+                                    }
+                                  })}
                                 </div>
                               )}
-                              {message.content && message.content !== "(image)" && (
+                              {message.content && !message.content.match(/^\((image|video|audio|file)\)$/) && (
                                 <p className="text-sm">{message.content}</p>
                               )}
                               <p
@@ -771,39 +836,56 @@ const Messages = () => {
               </ScrollArea>
 
               <div className="p-4 border-t border-border flex-shrink-0">
-                {imagePreviews.length > 0 && (
+                {filePreviews.length > 0 && (
                   <div className="mb-3 flex gap-2 flex-wrap">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
-                          className="h-20 w-20 object-cover rounded-lg border border-border"
-                        />
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
+                    {filePreviews.map((preview, index) => {
+                      const file = selectedFiles[index];
+                      const category = getFileCategory(file.type);
+
+                      return (
+                        <div key={index} className="relative group">
+                          {category === 'image' ? (
+                            <img
+                              src={preview}
+                              alt={file.name}
+                              className="h-20 w-20 object-cover rounded-lg border border-border"
+                            />
+                          ) : (
+                            <div className="h-20 w-32 flex flex-col items-center justify-center rounded-lg border border-border bg-muted p-2">
+                              {category === 'video' && <Video className="h-6 w-6 mb-1 text-muted-foreground" />}
+                              {category === 'audio' && <Music className="h-6 w-6 mb-1 text-muted-foreground" />}
+                              {category === 'document' && <FileText className="h-6 w-6 mb-1 text-muted-foreground" />}
+                              {category === 'other' && <FileIcon className="h-6 w-6 mb-1 text-muted-foreground" />}
+                              <p className="text-xs truncate w-full text-center">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleRemoveFile(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
                   <input
-                    ref={imageInputRef}
+                    ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept={ALLOWED_MIME_TYPES.join(',')}
                     multiple
-                    onChange={handleImageSelect}
+                    onChange={handleFileSelect}
                     className="hidden"
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={isUploadingImages || selectedImages.length >= 4}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingFiles || selectedFiles.length >= 5}
+                    title="Attach files (images, videos, audio, documents)"
                   >
                     <Paperclip className="h-5 w-5" />
                   </Button>
@@ -820,7 +902,7 @@ const Messages = () => {
                         }
                       }}
                       className="pr-10"
-                      disabled={isUploadingImages}
+                      disabled={isUploadingFiles}
                     />
                     <Button
                       variant="ghost"
@@ -833,12 +915,12 @@ const Messages = () => {
                   <Button
                     onClick={handleSendMessage}
                     disabled={
-                      (!newMessage.trim() && selectedImages.length === 0) ||
+                      (!newMessage.trim() && selectedFiles.length === 0) ||
                       sendMessageMutation.isPending ||
-                      isUploadingImages
+                      isUploadingFiles
                     }
                   >
-                    {isUploadingImages ? (
+                    {isUploadingFiles ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Send className="h-4 w-4" />

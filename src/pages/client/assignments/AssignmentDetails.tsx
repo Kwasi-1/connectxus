@@ -43,9 +43,9 @@ import {
   requestRefund,
   verifyAssignmentPayment,
   deleteAssignment,
-} from "../../../api/assignments.api";
+} from "../../../api/accounts.api";
 import { uploadFile } from "../../../api/files.api";
-import type { Assignment, Application } from "../../../types/assignments";
+import type { Assignment, Application } from "../../../types/accounts";
 import { AssignmentPaymentModal } from "@/components/assignments/AssignmentPaymentModal";
 
 export default function AssignmentDetails() {

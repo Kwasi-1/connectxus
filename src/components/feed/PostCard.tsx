@@ -351,14 +351,14 @@ export function PostCard({
 
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = displayPost.author?.id || displayPost.author_id;
-    navigate(`/profile/${userId}`);
+    const username = displayPost.author?.username || displayPost.username;
+    navigate(`/profile/${username}`);
   };
 
   const handleReposterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (reposter) {
-      navigate(`/profile/${reposter.id}`);
+      navigate(`/profile/${reposter.username}`);
     }
   };
 

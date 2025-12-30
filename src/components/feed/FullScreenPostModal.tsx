@@ -152,7 +152,7 @@ export function FullScreenPostModal({
               <Avatar className="w-10 h-10">
                 <AvatarImage src={post.author.avatar} />
                 <AvatarFallback>
-                  {(post.author.displayName || post.author.username || 'U')
+                  {(post.author.displayName || post.author.username || "U")
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
@@ -236,9 +236,7 @@ export function FullScreenPostModal({
           <div className="flex-1 overflow-y-auto">
             <CommentsSection
               postId={post.id}
-              onReply={(commentId, content) =>
-                console.log("Reply to comment:", commentId, content)
-              }
+              onReply={(commentId, content) => {}}
             />
           </div>
         </div>

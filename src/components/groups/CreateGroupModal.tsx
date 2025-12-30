@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, Plus, Calendar, Upload, Camera } from "lucide-react";
 import { GroupCategory } from "@/types/communities";
 import { useToast } from "@/hooks/use-toast";
+import { uploadFile } from "@/api/files.api";
 
 interface ProjectRole {
   id: string;
@@ -38,8 +39,7 @@ interface CreateGroupModalProps {
     category: GroupCategory;
     tags: string[];
     groupType: "public" | "private" | "project";
-    avatar?: string | null;
-    banner?: string | null;
+    avatar_file_id?: string | null;
     projectRoles?: any[];
     projectDeadline?: Date;
     isAcceptingApplications?: boolean;
@@ -71,8 +71,9 @@ export function CreateGroupModal({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([]);
   const [projectDeadline, setProjectDeadline] = useState("");
@@ -107,42 +108,27 @@ export function CreateGroupModal({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleBannerImageUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
+      if (!file.type.startsWith("image/")) {
         toast({
-          title: "File too large",
-          description: "Banner image must be less than 10MB",
+          title: "Invalid file type",
+          description: "Please select an image file",
           variant: "destructive",
         });
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        setBannerImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setProfileImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setProfileImagePreview(previewUrl);
     }
   };
 
   const removeProfileImage = () => {
-    setProfileImage(null);
-  };
-
-  const removeBannerImage = () => {
-    setBannerImage(null);
+    if (profileImagePreview) {
+      URL.revokeObjectURL(profileImagePreview);
+    }
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
   };
 
   const handleAddRole = () => {
@@ -162,7 +148,7 @@ export function CreateGroupModal({
     setProjectRoles(projectRoles.filter((r) => r.id !== roleId));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !description.trim()) {
       toast({
         title: "Missing Information",
@@ -181,14 +167,38 @@ export function CreateGroupModal({
       return;
     }
 
+    let avatarFileId: string | null = null;
+
+    if (profileImageFile) {
+      try {
+        setIsUploadingImage(true);
+        const uploaded = await uploadFile({
+          file: profileImageFile,
+          moduleType: "groups",
+          accessLevel: "public",
+        });
+        avatarFileId = uploaded.file_id;
+      } catch (error) {
+        console.error("Failed to upload image:", error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload profile image. Please try again.",
+          variant: "destructive",
+        });
+        setIsUploadingImage(false);
+        return;
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
     const groupData = {
       name,
       description,
       category,
       tags,
       groupType,
-      avatar: profileImage,
-      banner: bannerImage,
+      avatar_file_id: avatarFileId,
       ...(groupType === "project" && {
         projectRoles: projectRoles.map((role) => ({
           ...role,
@@ -215,8 +225,11 @@ export function CreateGroupModal({
     setProjectRoles([]);
     setProjectDeadline("");
     setCurrentRole({ name: "", description: "", slots: 1 });
-    setProfileImage(null);
-    setBannerImage(null);
+    if (profileImagePreview) {
+      URL.revokeObjectURL(profileImagePreview);
+    }
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
     onClose();
   };
 
@@ -325,9 +338,9 @@ export function CreateGroupModal({
             <div className="space-y-2">
               <Label>Profile Image</Label>
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 rounded-md">
-                  <AvatarImage src={profileImage || undefined} />
-                  <AvatarFallback className="text-lg rounded-md">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={profileImagePreview || undefined} />
+                  <AvatarFallback className="text-lg">
                     {name ? (
                       name.substring(0, 2).toUpperCase()
                     ) : (
@@ -356,7 +369,7 @@ export function CreateGroupModal({
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Image
                     </Button>
-                    {profileImage && (
+                    {profileImageFile && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -372,59 +385,6 @@ export function CreateGroupModal({
                     Max 5MB. JPG, PNG, or GIF.
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Banner Image (Optional)</Label>
-              <div className="space-y-2">
-                {bannerImage ? (
-                  <div className="relative">
-                    <img
-                      src={bannerImage}
-                      alt="Group banner preview"
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeBannerImage}
-                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                    <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      No banner image selected
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBannerImageUpload}
-                      className="hidden"
-                      id="banner-image-upload"
-                      aria-label="Upload banner image"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        document.getElementById("banner-image-upload")?.click()
-                      }
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Banner
-                    </Button>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Max 10MB. JPG, PNG, or GIF. Recommended size: 800x200px.
-                </p>
               </div>
             </div>
           </div>
@@ -538,10 +498,12 @@ export function CreateGroupModal({
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleClose}>
+            <Button variant="outline" onClick={handleClose} disabled={isUploadingImage}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>Create Group</Button>
+            <Button onClick={handleSubmit} disabled={isUploadingImage}>
+              {isUploadingImage ? "Uploading..." : "Create Group"}
+            </Button>
           </div>
         </div>
       </DialogContent>

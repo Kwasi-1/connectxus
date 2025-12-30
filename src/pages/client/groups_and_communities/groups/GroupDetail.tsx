@@ -546,7 +546,10 @@ const GroupDetail = () => {
   const [showPrivacyChangeConfirm, setShowPrivacyChangeConfirm] =
     useState(false);
 
-  const [editedProfileImage, setEditedProfileImage] = useState<string | null>(
+  const [editedProfileImageFileId, setEditedProfileImageFileId] = useState<string | null>(
+    null
+  );
+  const [editedProfileImagePreview, setEditedProfileImagePreview] = useState<string | null>(
     null
   );
 
@@ -617,7 +620,6 @@ const GroupDetail = () => {
     const isUserOwner = group?.role === "owner";
 
     if (isUserAdmin || isUserOwner) {
-            console.log("Deleting group:", group?.id);
     } else {
             leaveMutation.mutate();
     }
@@ -662,7 +664,8 @@ const GroupDetail = () => {
         moduleId: id,
         accessLevel: "public",
       });
-      setEditedProfileImage(uploaded.url);
+      setEditedProfileImageFileId(uploaded.file_id);
+      setEditedProfileImagePreview(uploaded.url);
       sonnerToast.success("Profile image uploaded successfully");
     } catch (error) {
       console.error("Upload error:", error);
@@ -673,22 +676,25 @@ const GroupDetail = () => {
 
   const saveImageChanges = useCallback(() => {
     const updates: any = {};
-    if (editedProfileImage !== null) {
-      updates.avatar = editedProfileImage;
+    if (editedProfileImageFileId !== null) {
+      updates.avatar_file_id = editedProfileImageFileId;
     }
 
     if (Object.keys(updates).length > 0) {
       updateGroupMutation.mutate(updates);
-      setEditedProfileImage(null);
+      setEditedProfileImageFileId(null);
+      setEditedProfileImagePreview(null);
     }
-  }, [editedProfileImage, updateGroupMutation]);
+  }, [editedProfileImageFileId, updateGroupMutation]);
 
   const cancelImageChanges = useCallback(() => {
-    setEditedProfileImage(null);
+    setEditedProfileImageFileId(null);
+    setEditedProfileImagePreview(null);
   }, []);
 
   const removeGroupProfileImage = useCallback(() => {
-    setEditedProfileImage("");
+    setEditedProfileImageFileId("");
+    setEditedProfileImagePreview("");
   }, []);
 
   const handleJoinGroup = () => {
@@ -1979,8 +1985,8 @@ const GroupDetail = () => {
                             <Avatar className="h-20 w-20">
                               <AvatarImage
                                 src={
-                                  editedProfileImage !== null
-                                    ? editedProfileImage
+                                  editedProfileImagePreview !== null
+                                    ? editedProfileImagePreview
                                     : group?.avatar
                                 }
                                 alt={group?.name || "Group"}
@@ -2013,7 +2019,7 @@ const GroupDetail = () => {
                                   <Upload className="h-4 w-4 mr-2" />
                                   Change Image
                                 </Button>
-                                {(group?.avatar || editedProfileImage) && (
+                                {(group?.avatar || editedProfileImagePreview) && (
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -2032,7 +2038,7 @@ const GroupDetail = () => {
                           </div>
                         </div>
 
-                        {editedProfileImage !== null && (
+                        {editedProfileImageFileId !== null && (
                           <div className="flex gap-2 pt-2">
                             <Button size="sm" onClick={saveImageChanges}>
                               Save Changes

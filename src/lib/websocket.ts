@@ -65,7 +65,6 @@ class WebSocketClient {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-          console.log('✅ WebSocket connected');
           this.isConnected = true;
           this.isConnecting = false;
           this.reconnectAttempts = 0;
@@ -89,7 +88,6 @@ class WebSocketClient {
         };
 
         this.ws.onclose = () => {
-          console.log('WebSocket disconnected');
           this.isConnected = false;
           this.isConnecting = false;
           this.stopHeartbeat();
@@ -115,10 +113,6 @@ class WebSocketClient {
     private handleReconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(
-        `Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
-      );
-
       setTimeout(() => {
         this.connect().catch((error) => {
           console.error('Reconnection failed:', error);
@@ -192,9 +186,7 @@ class WebSocketClient {
           channel: channel,
         })
       );
-      console.log(`📡 Subscribed to channel: ${channel}`);
     } else {
-      console.warn('WebSocket is not connected. Cannot subscribe to channel.');
     }
   }
 
@@ -206,9 +198,7 @@ class WebSocketClient {
           channel: channel,
         })
       );
-      console.log(`📡 Unsubscribed from channel: ${channel}`);
     } else {
-      console.warn('WebSocket is not connected. Cannot unsubscribe from channel.');
     }
   }
 

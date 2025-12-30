@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Paperclip, X, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { createAssignment } from '@/api/assignments.api';
+import { createAssignment } from '@/api/accounts.api';
 import { uploadFile } from '@/api/files.api';
 import { useAuth } from '@/contexts/AuthContext';
 

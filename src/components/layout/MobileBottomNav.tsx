@@ -7,7 +7,7 @@ const navigationItems = [
   { icon: 'streamline-plump:home-1', activeIcon: 'streamline-plump:home-1-solid', label: 'Home', path: '/feed', id: 'home' },
   { icon: 'uil:users-alt', activeIcon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
   { icon: 'hugeicons:book-open-01', activeIcon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: 'ph:graduation-cap', activeIcon: 'ph:graduation-cap', label: 'Assignments', path: '/assignments', id: 'assignments' },
+  { icon: 'ph:hand-heart', activeIcon: 'ph:hand-heart-fill', label: 'Help', path: '/help', id: 'help' },
   { icon: 'tabler:message', activeIcon: 'tabler:message', label: 'Messages', path: '/messages', id: 'messages' },
 ];
 

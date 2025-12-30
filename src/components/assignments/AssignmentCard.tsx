@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, DollarSign, User, Calendar, TrendingUp } from 'lucide-react';
-import { Assignment } from '../../types/assignments';
+import { Assignment } from '../../types/accounts';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 

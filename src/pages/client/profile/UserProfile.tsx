@@ -12,15 +12,15 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
-  getUserById,
+  getUserByUsername,
   UserProfile as ApiUserProfile,
-  checkFollowingStatus,
+  checkFollowingStatusByUsername,
 } from "@/api/users.api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const UserProfile = () => {
-  const { userId } = useParams();
+  const { username } = useParams();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [user, setUser] = useState<UserProfileType | null>(null);
@@ -30,8 +30,8 @@ const UserProfile = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!userId) {
-        setError("User ID is required");
+      if (!username) {
+        setError("Username is required");
         setIsLoading(false);
         return;
       }
@@ -40,15 +40,15 @@ const UserProfile = () => {
         setIsLoading(true);
         setError(null);
 
-                const isOwnProfile = authUser?.id === userId;
+                const isOwnProfile = authUser?.username === username;
 
                 const promises: [
           Promise<ApiUserProfile>,
           Promise<boolean> | Promise<false>
         ] = [
-          getUserById(userId),
+          getUserByUsername(username),
                     !isOwnProfile && authUser
-            ? checkFollowingStatus(userId)
+            ? checkFollowingStatusByUsername(username)
             : Promise.resolve(false),
         ];
 
@@ -76,7 +76,8 @@ const UserProfile = () => {
           roles: userData.roles || [],
           department: userData.department || undefined,
           level: userData.level || undefined,
-          posts: [], 
+          auth_provider: userData.auth_provider, // For OAuth password update functionality
+          posts: [],
           joinedGroups: [],
           tutoringRequests: [],
         };
@@ -92,10 +93,43 @@ const UserProfile = () => {
     };
 
     fetchUserProfile();
-  }, [userId, authUser]);
+  }, [username, authUser]);
 
   const handleUserUpdate = (updatedUser: UserProfileType) => {
     setUser(updatedUser);
+  };
+
+  const handleRefreshUserData = async () => {
+    if (!username) return;
+
+    try {
+      const userData = await getUserByUsername(username);
+      const transformedUser: UserProfileType = {
+        id: userData.id,
+        username: userData.username,
+        displayName: userData.full_name,
+        email: userData.email,
+        avatar: userData.avatar || undefined,
+        bio: userData.bio || undefined,
+        verified: userData.verified || false,
+        followers: userData.followers_count || 0,
+        following: userData.following_count || 0,
+        university: undefined,
+        major: userData.major || undefined,
+        year: userData.year || undefined,
+        createdAt: userData.created_at ? new Date(userData.created_at) : new Date(),
+        roles: userData.roles || [],
+        department: userData.department || undefined,
+        level: userData.level || undefined,
+        auth_provider: userData.auth_provider,
+        posts: user?.posts || [],
+        joinedGroups: user?.joinedGroups || [],
+        tutoringRequests: user?.tutoringRequests || [],
+      };
+      setUser(transformedUser);
+    } catch (err: any) {
+      console.error("Error refreshing user data:", err);
+    }
   };
 
   if (isLoading) {
@@ -125,7 +159,7 @@ const UserProfile = () => {
     );
   }
 
-    const isOwnProfile = authUser?.id === userId;
+  const isOwnProfile = authUser?.id === user.id;
 
   return (
     <AppLayout>
@@ -139,6 +173,7 @@ const UserProfile = () => {
         <ProfileHeader
           user={user}
           onUserUpdate={handleUserUpdate}
+          onRefreshUserData={handleRefreshUserData}
           isOwnProfile={isOwnProfile}
           initialIsFollowing={isFollowing}
         />

@@ -8,11 +8,13 @@ import { format } from "date-fns";
 interface TutorApplicationCardProps {
   application: ApiTutorApplication;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
 export function TutorApplicationCard({
   application,
   onEdit,
+  onDelete,
 }: TutorApplicationCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,6 +91,10 @@ export function TutorApplicationCard({
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
+          </Button>
+          <Button variant="destructive" size="sm" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
           </Button>
         </div>
       </CardContent>

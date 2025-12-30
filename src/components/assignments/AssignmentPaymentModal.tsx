@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Application, Assignment } from "@/types/assignments";
+import { Application, Assignment } from "@/types/accounts";
 import {
   DollarSign,
   CreditCard,
@@ -17,7 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
-import { initializeAssignmentPayment } from "@/api/assignments.api";
+import { initializeAssignmentPayment } from "@/api/accounts.api";
 import { toast } from "sonner";
 
 interface AssignmentPaymentModalProps {

@@ -89,22 +89,6 @@ export function AdminManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
 
-  useEffect(() => {
-    console.log("AdminManagement component mounted");
-    return () => {
-      console.log("AdminManagement component unmounted");
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log("Modal states changed:", {
-      showCreateModal,
-      showEditModal,
-      showPermissionsModal,
-      showDeleteDialog,
-    });
-  }, [showCreateModal, showEditModal, showPermissionsModal, showDeleteDialog]);
-
   const [newAdmin, setNewAdmin] = useState({
     name: "",
     email: "",
@@ -237,10 +221,6 @@ export function AdminManagement() {
   });
 
   const handleCreateAdmin = useCallback(() => {
-    console.log("handleCreateAdmin called", {
-      newAdmin,
-      admins: admins.length,
-    });
     try {
       if (
         !newAdmin.name.trim() ||
@@ -290,7 +270,6 @@ export function AdminManagement() {
         createdBy: "current-super-admin",
       };
 
-      console.log("Creating admin:", admin);
       setAdmins((prev) => [...prev, admin]);
       setShowCreateModal(false);
       setNewAdmin({
@@ -451,7 +430,6 @@ export function AdminManagement() {
   };
 
   const openPermissionsModal = (admin: AdminUser) => {
-    console.log("openPermissionsModal called", { admin });
     try {
       setSelectedAdmin(admin);
       setShowPermissionsModal(true);

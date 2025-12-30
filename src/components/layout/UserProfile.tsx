@@ -29,7 +29,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ collapsed = false }) =
   };
 
   const handleSettings = () => {
-        console.log('Settings clicked');
   };
 
   const handleSignOut = () => {

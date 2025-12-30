@@ -31,10 +31,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createAccountDetail,
   updateAccountDetail,
-} from "@/api/assignments.api";
+} from "@/api/accounts.api";
 import { toast } from "sonner";
 import { CreditCard, Smartphone } from "lucide-react";
-import type { AccountDetail } from "@/types/assignments";
+import type { AccountDetail } from "@/types/accounts";
 
 const accountSchema = z
   .object({

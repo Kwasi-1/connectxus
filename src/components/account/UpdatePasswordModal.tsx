@@ -18,12 +18,16 @@ interface UpdatePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  authProvider?: string; 
+  onPasswordUpdated?: () => void; 
 }
 
 export const UpdatePasswordModal = ({
   isOpen,
   onClose,
   userId,
+  authProvider = "email",
+  onPasswordUpdated,
 }: UpdatePasswordModalProps) => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,13 +40,20 @@ export const UpdatePasswordModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
-      toast.error("All fields are required");
+    const isEmailUser = authProvider === "email";
+
+    if (isEmailUser && !oldPassword) {
+      toast.error("Current password is required");
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters");
+    if (!newPassword || !confirmPassword) {
+      toast.error("New password and confirmation are required");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
       return;
     }
 
@@ -55,11 +66,16 @@ export const UpdatePasswordModal = ({
 
     try {
       await updatePassword(userId, {
-        old_password: oldPassword,
+        old_password: oldPassword || undefined, 
         new_password: newPassword,
       });
 
       toast.success("Password updated successfully");
+
+      if (authProvider === "google" || authProvider === "facebook") {
+        onPasswordUpdated?.();
+      }
+
       handleClose();
     } catch (error: any) {
       console.error("Error updating password:", error);
@@ -87,35 +103,40 @@ export const UpdatePasswordModal = ({
         <DialogHeader>
           <DialogTitle>Update Password</DialogTitle>
           <DialogDescription>
-            Enter your current password and choose a new one.
+            {authProvider === "google"
+              ? "Set a password to enable email/password login for your account."
+              : "Enter your current password and choose a new one."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="oldPassword">Current Password</Label>
-            <div className="relative">
-              <Input
-                id="oldPassword"
-                type={showOldPassword ? "text" : "password"}
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                placeholder="Enter current password"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowOldPassword(!showOldPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showOldPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
+          {/* Only show old password field for email-based users */}
+          {authProvider === "email" && (
+            <div className="space-y-2">
+              <Label htmlFor="oldPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="oldPassword"
+                  type={showOldPassword ? "text" : "password"}
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showOldPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">New Password</Label>

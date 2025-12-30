@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, UserCheck } from "lucide-react";
 
-type FilterType = "all" | "department" | "may-know";
+type FilterType = "all" | "department" | "may-know" | "following";
 
 interface PeopleFiltersProps {
   activeFilter: FilterType;
@@ -19,6 +19,11 @@ export function PeopleFilters({
       id: "may-know" as FilterType,
       label: "People You May Know",
       icon: UserPlus,
+    },
+    {
+      id: "following" as FilterType,
+      label: "Following",
+      icon: UserCheck,
     },
   ];
 

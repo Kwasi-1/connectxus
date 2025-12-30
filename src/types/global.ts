@@ -29,6 +29,7 @@ export interface User {
   role: string;
   isActive?: boolean;
   status?: string;
+  auth_provider?: string; 
 }
 
 export interface Post {

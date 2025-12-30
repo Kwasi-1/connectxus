@@ -5,7 +5,7 @@ import {
   Mail,
   Users,
   BookOpen,
-  GraduationCap,
+  HandHeart,
   User,
   X,
 } from "lucide-react";
@@ -32,7 +32,7 @@ const navigationItems = [
   { icon: Mail, label: "Messages", path: "/messages", id: "messages" },
   { icon: Users, label: "Groups", path: "/hub", id: "groups" },
   { icon: BookOpen, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: GraduationCap, label: "Assignments", path: "/assignments", id: "assignments" },
+  { icon: HandHeart, label: "Help", path: "/help", id: "help" },
   { icon: User, label: "Account", path: "/account", id: "account" },
 ];
 

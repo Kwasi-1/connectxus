@@ -14,15 +14,19 @@ export interface Group {
   community_id?: string | null;
   name: string;
   description?: string | null;
-  category: string;                  group_type: 'project' | 'public' | 'private';    avatar?: string | null;
-  banner?: string | null;            allow_invites: boolean;
+  category: string;
+  group_type: 'project' | 'public' | 'private';
+  avatar?: string | null;
+  allow_invites: boolean;
   allow_member_posts: boolean;
   created_by?: string | null;
   tags?: string[];
-  settings?: any | null;             member_count: number;
+  settings?: any | null;
+  member_count: number;
+  level: number;
   created_at: string;
   updated_at?: string | null;
-    is_member?: boolean;
+  is_member?: boolean;
   role?: string | null;
   join_request_status?: 'pending' | 'approved' | 'rejected';
   user_role_applications?: Array<{
@@ -46,10 +50,10 @@ export interface CreateGroupRequest {
   description?: string | null;
   category: string;
   group_type: 'project' | 'study' | 'social';
-  avatar?: string | null;
-  banner?: string | null;
+  avatar_file_id?: string | null;
   allow_invites?: boolean;
   allow_member_posts?: boolean;
+  level?: number | null;
   tags?: string[];
   settings?: any | null;
   roles?: CreateRoleRequest[];
@@ -60,10 +64,10 @@ export interface UpdateGroupRequest {
   description?: string | null;
   category?: string;
   group_type?: 'project' | 'study' | 'social';
-  avatar?: string | null;
-  banner?: string | null;
+  avatar_file_id?: string | null;
   allow_invites?: boolean;
   allow_member_posts?: boolean;
+  level?: number | null;
   tags?: string[];
   settings?: any | null;
 }
@@ -104,10 +108,15 @@ export interface GroupMember {
 }
 
 export interface ListGroupsParams extends PaginationParams {
-  space_id?: string;                 community_id?: string;
+  space_id?: string;
+  community_id?: string;
   group_type?: 'project' | 'study' | 'social';
   category?: string;
   sort?: 'recent' | 'popular';
+  filter_level?: number;
+  level_exact_match?: boolean;
+  filter_department?: string;
+  filter_group_type?: string;
 }
 
 export const getGroups = async (params?: Omit<ListGroupsParams, 'space_id'>): Promise<Group[]> => {

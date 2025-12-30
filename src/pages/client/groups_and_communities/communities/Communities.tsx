@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Search, Users, ArrowLeft, Filter, Plus } from "lucide-react";
+import { Search, Users, ArrowLeft, Filter, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,13 +19,9 @@ import {
   createCommunity,
   CreateCommunityRequest,
 } from "@/api/communities.api";
+import { getDepartmentsPaginated, Department } from "@/api/departments.api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +30,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -44,6 +49,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type CommunityCategory =
   | "Academic"
@@ -61,13 +68,37 @@ const categoryFilters: CommunityCategory[] = [
   "Faculty",
 ];
 
+const LEVEL_OPTIONS = [
+  { value: 100, label: "100 Level" },
+  { value: 200, label: "200 Level" },
+  { value: 300, label: "300 Level" },
+  { value: 400, label: "400 Level" },
+  { value: 500, label: "500 Level" },
+  { value: 600, label: "600 Level" },
+  { value: 700, label: "700 Level" },
+  { value: 800, label: "800 Level" },
+];
+
+interface CommunityFilters {
+  category?: string;
+  level?: number;
+  levelAndBelow?: boolean;
+  department?: string;
+}
+
 const Communities = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("my");
   const [searchQuery, setSearchQuery] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<
-    CommunityCategory | "All"
-  >("All");
+
+  const [pendingFilters, setPendingFilters] = useState<CommunityFilters>({});
+  const [appliedFilters, setAppliedFilters] = useState<CommunityFilters>({});
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
+  const [departmentsPage, setDepartmentsPage] = useState(1);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newCommunity, setNewCommunity] = useState<CreateCommunityRequest>({
     name: "",
@@ -78,6 +109,31 @@ const Communities = () => {
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  const hasActiveFilters =
+    !!appliedFilters.category ||
+    !!appliedFilters.level ||
+    !!appliedFilters.department ||
+    !!searchQuery;
+
+  const {
+    data: departmentsData,
+    isLoading: loadingDepartments,
+    refetch: refetchDepartments,
+  } = useQuery({
+    queryKey: ["departments-filter", debouncedDepartmentSearch, departmentsPage],
+    queryFn: () =>
+      getDepartmentsPaginated({
+        query: debouncedDepartmentSearch,
+        page: departmentsPage,
+        limit: departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10,
+      }),
+    enabled: filterSheetOpen,
+    staleTime: 300000, 
+  });
+
+  const departments = departmentsData || [];
 
   const {
     data: myCommunities = [],
@@ -100,9 +156,23 @@ const Communities = () => {
     error: errorRecommended,
     isError: isErrorRecommended,
   } = useInfiniteQuery({
-    queryKey: ["recommended-communities", selectedCategory],
-    queryFn: ({ pageParam = 1 }) =>
-      getRecommendedCommunities({ page: pageParam, limit: 20 }),
+    queryKey: ["recommended-communities", appliedFilters],
+    queryFn: ({ pageParam = 1 }) => {
+      const params: any = { page: pageParam, limit: 20 };
+
+      if (appliedFilters.level) {
+        params.filter_level = appliedFilters.level;
+        params.level_exact_match = !appliedFilters.levelAndBelow;
+      }
+      if (appliedFilters.department) {
+        params.filter_department = appliedFilters.department;
+      }
+      if (appliedFilters.category) {
+        params.category = appliedFilters.category;
+      }
+
+      return getRecommendedCommunities(params);
+    },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 20 ? allPages.length + 1 : undefined;
     },
@@ -184,9 +254,7 @@ const Communities = () => {
           community.description
             .toLowerCase()
             .includes(searchQuery.toLowerCase()));
-      const matchesCategory =
-        selectedCategory === "All" || community.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      return matchesSearch;
     });
   };
 
@@ -217,6 +285,61 @@ const Communities = () => {
     }
     createMutation.mutate(newCommunity);
   };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(pendingFilters);
+    setFilterSheetOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setPendingFilters({});
+    setAppliedFilters({});
+    setSearchQuery("");
+    setSelectedDepartment(null);
+    setDepartmentSearchQuery("");
+    setDepartmentsPage(1);
+    setFilterSheetOpen(false);
+  };
+
+  const removeFilter = (filterKey: keyof CommunityFilters) => {
+    const newFilters = { ...appliedFilters };
+    delete newFilters[filterKey];
+    if (filterKey === "level") {
+      delete newFilters.levelAndBelow;
+    }
+    if (filterKey === "department") {
+      setSelectedDepartment(null);
+    }
+    setAppliedFilters(newFilters);
+    setPendingFilters(newFilters);
+  };
+
+  const handleSelectDepartment = (dept: Department) => {
+    setSelectedDepartment(dept);
+    setPendingFilters((prev) => ({
+      ...prev,
+      department: dept.id,
+    }));
+    setDepartmentSearchQuery("");
+    setDepartmentsPage(1);
+  };
+
+  const handleLoadMoreDepartments = () => {
+    setDepartmentsPage((prev) => prev + 1);
+  };
+
+  useEffect(() => {
+    setDepartmentsPage(1);
+  }, [debouncedDepartmentSearch]);
+
+  useEffect(() => {
+    if (filterSheetOpen && pendingFilters.department && !selectedDepartment) {
+      const dept = departments.find((d) => d.id === pendingFilters.department);
+      if (dept) {
+        setSelectedDepartment(dept);
+      }
+    }
+  }, [filterSheetOpen, pendingFilters.department, selectedDepartment, departments]);
 
   if (isLoading) {
     return (
@@ -304,8 +427,13 @@ const Communities = () => {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-lg">{community.name}</CardTitle>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <Badge variant="secondary">{community.category}</Badge>
+                  {community.level && (
+                    <Badge variant="outline" className="text-xs">
+                      {community.level} Level
+                    </Badge>
+                  )}
                   <span className="text-sm text-muted-foreground flex items-center">
                     <Users className="h-3 w-3 mr-1" />
                     {community.member_count?.toLocaleString() || 0}
@@ -443,77 +571,245 @@ const Communities = () => {
                   />
                 </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                  <SheetTrigger asChild>
                     <Button
                       variant="outline"
                       className="hover:bg-app-hover px-3.5 text-app-text-main transition-colors border border-app-border rounded-full"
-                      title="Filter by category"
+                      title="Filter communities"
                     >
                       <Filter className="h-5 w-5" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="min-w-[250px] max-h-[400px] overflow-hidden pt-0"
-                  >
-                    {/* Search Input - Sticky at top */}
-                    <div className="sticky top-0 z-10 bg-background p-2">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          placeholder="Search categories..."
-                          value={categorySearch}
-                          onChange={(e) => setCategorySearch(e.target.value)}
-                          className="pl-8 h-9 ring-0 focus:ring-0 outline-none focus:outline-none"
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filter Communities</SheetTitle>
+                      <SheetDescription>
+                        Refine your search with advanced filters
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="space-y-6 py-6">
+                      {/* Category Filter */}
+                      <div className="space-y-3">
+                        <Label>Category</Label>
+                        <Select
+                          value={pendingFilters.category || "all"}
+                          onValueChange={(value) =>
+                            setPendingFilters((prev) => ({
+                              ...prev,
+                              category: value === "all" ? undefined : value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="All categories" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All categories</SelectItem>
+                            {categoryFilters.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Level Filter */}
+                      <div className="space-y-3">
+                        <Label>Level</Label>
+                        <Select
+                          value={pendingFilters.level?.toString() || ""}
+                          onValueChange={(value) =>
+                            setPendingFilters((prev) => ({
+                              ...prev,
+                              level: value ? parseInt(value) : undefined,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LEVEL_OPTIONS.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value.toString()}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Level And Below Checkbox */}
+                        {pendingFilters.level && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="levelAndBelow"
+                              checked={pendingFilters.levelAndBelow || false}
+                              onCheckedChange={(checked) =>
+                                setPendingFilters((prev) => ({
+                                  ...prev,
+                                  levelAndBelow: checked === true,
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor="levelAndBelow"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              And below
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Department Filter */}
+                      <div className="space-y-3">
+                        <Label>Department</Label>
+
+                        {/* Selected Department Display */}
+                        {selectedDepartment && (
+                          <div className="flex items-center justify-between p-3 border rounded-md bg-secondary/50">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{selectedDepartment.name}</p>
+                              <p className="text-xs text-muted-foreground">{selectedDepartment.code}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDepartment(null);
+                                setPendingFilters((prev) => {
+                                  const newFilters = { ...prev };
+                                  delete newFilters.department;
+                                  return newFilters;
+                                });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Department Search */}
+                        {!selectedDepartment && (
+                          <>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                              <Input
+                                placeholder="Search departments..."
+                                value={departmentSearchQuery}
+                                onChange={(e) => setDepartmentSearchQuery(e.target.value)}
+                                className="pl-10"
+                              />
+                            </div>
+
+                            {/* Department List */}
+                            <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                              {loadingDepartments ? (
+                                <div className="flex justify-center p-4">
+                                  <LoadingSpinner />
+                                </div>
+                              ) : departments.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground">
+                                  {departmentSearchQuery ? "No departments found" : "No departments available"}
+                                </div>
+                              ) : (
+                                <>
+                                  {departments.map((dept) => (
+                                    <button
+                                      key={dept.id}
+                                      onClick={() => handleSelectDepartment(dept)}
+                                      className="w-full text-left p-3 hover:bg-secondary transition-colors border-b last:border-b-0"
+                                    >
+                                      <p className="font-medium text-sm">{dept.name}</p>
+                                      <p className="text-xs text-muted-foreground">{dept.code}</p>
+                                    </button>
+                                  ))}
+
+                                  {/* Load More Button */}
+                                  {departments.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={handleLoadMoreDepartments}
+                                    >
+                                      See more
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    {/* Scrollable category list */}
-                    <div className="max-h-[400px] overflow-y-auto scrollbar-hide scroll-smooth">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedCategory("All");
-                          setCategorySearch("");
-                        }}
+                    <SheetFooter className="gap-2 sm:gap-0">
+                      <Button
+                        variant="outline"
+                        onClick={handleResetFilters}
+                        className="flex-1"
                       >
-                        All
-                      </DropdownMenuItem>
-
-                      {categoryFilters
-                        .filter((category) =>
-                          category
-                            .toLowerCase()
-                            .includes(categorySearch.toLowerCase())
-                        )
-                        .map((category) => (
-                          <DropdownMenuItem
-                            key={category}
-                            onClick={() => {
-                              setSelectedCategory(category);
-                              setCategorySearch("");
-                            }}
-                          >
-                            {category}
-                          </DropdownMenuItem>
-                        ))}
-
-                      {categoryFilters.filter((category) =>
-                        category
-                          .toLowerCase()
-                          .includes(categorySearch.toLowerCase())
-                      ).length === 0 &&
-                        categorySearch && (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No categories found
-                          </div>
-                        )}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                        Reset
+                      </Button>
+                      <Button onClick={handleApplyFilters} className="flex-1">
+                        Apply Filters
+                      </Button>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
               </div>
+
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Active filters:
+                  </span>
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchQuery}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => setSearchQuery("")}
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.category && (
+                    <Badge variant="secondary" className="gap-1">
+                      {appliedFilters.category}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeFilter("category")}
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.level && (
+                    <Badge variant="secondary" className="gap-1">
+                      {appliedFilters.level} Level
+                      {appliedFilters.levelAndBelow && " & below"}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeFilter("level")}
+                      />
+                    </Badge>
+                  )}
+                  {appliedFilters.department && selectedDepartment && (
+                    <Badge variant="secondary" className="gap-1">
+                      {selectedDepartment.name}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeFilter("department")}
+                      />
+                    </Badge>
+                  )}
+                </div>
+              )}
 
               {/* Communities Grid */}
               <div className="space-y-3">
