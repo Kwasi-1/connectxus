@@ -41,7 +41,9 @@ export default function HelpRequests() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<"available" | "my-requests">("available");
+  const [activeTab, setActiveTab] = useState<"available" | "my-requests">(
+    "available"
+  );
 
   const [pendingFilters, setPendingFilters] = useState<HelpRequestFilters>({
     type: "all",
@@ -66,9 +68,9 @@ export default function HelpRequests() {
     toggleVisibility,
     deleteRequest,
   } = useHelpRequests({
-    tab: 'available',
+    tab: "available",
     filters: appliedFilters,
-    enabled: !!user && activeTab === 'available',
+    enabled: !!user && activeTab === "available",
   });
 
   const {
@@ -80,14 +82,16 @@ export default function HelpRequests() {
     toggleVisibility: toggleMyVisibility,
     deleteRequest: deleteMyRequest,
   } = useHelpRequests({
-    tab: 'my-requests',
-    enabled: !!user && activeTab === 'my-requests',
+    tab: "my-requests",
+    enabled: !!user && activeTab === "my-requests",
   });
 
   const loading = loadingAvailable || loadingMy;
-  const isFetchingNextPage = activeTab === 'available' ? fetchingNextAvailable : fetchingNextMy;
-  const hasNextPage = activeTab === 'available' ? hasNextAvailable : hasNextMy;
-  const fetchNextPage = activeTab === 'available' ? fetchNextAvailable : fetchNextMy;
+  const isFetchingNextPage =
+    activeTab === "available" ? fetchingNextAvailable : fetchingNextMy;
+  const hasNextPage = activeTab === "available" ? hasNextAvailable : hasNextMy;
+  const fetchNextPage =
+    activeTab === "available" ? fetchNextAvailable : fetchNextMy;
 
   const { loadMoreRef } = useInfiniteScroll({
     loading: isFetchingNextPage,
@@ -183,8 +187,8 @@ export default function HelpRequests() {
   };
 
   return (
-    <AppLayout>
-      <div className="p-6 max-w-7xl mx-auto">
+    <AppLayout showRightSidebar={false}>
+      <div className="p-6 max-w-7xl mx-auto custom-fonts">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -194,9 +198,9 @@ export default function HelpRequests() {
                 Connect with peers who can help or request help from others
               </p>
             </div>
-            <Button onClick={handleRequestHelp} size="lg">
-              <Plus className="h-4 w-4 mr-2" />
-              Request Help
+            <Button variant="outline" onClick={handleRequestHelp}>
+              <Plus className="h-4 w-4" />
+              <span className="hidden md:block ml-2">Request Help</span>
             </Button>
           </div>
 
@@ -262,11 +266,16 @@ export default function HelpRequests() {
               )}
               {appliedFilters.level !== "all" && (
                 <Badge variant="secondary" className="gap-1">
-                  Level: {appliedFilters.level}{appliedFilters.levelAndBelow ? " and below" : ""}
+                  Level: {appliedFilters.level}
+                  {appliedFilters.levelAndBelow ? " and below" : ""}
                   <X
                     className="h-3 w-3 cursor-pointer"
                     onClick={() =>
-                      setAppliedFilters((prev) => ({ ...prev, level: "all", levelAndBelow: false }))
+                      setAppliedFilters((prev) => ({
+                        ...prev,
+                        level: "all",
+                        levelAndBelow: false,
+                      }))
                     }
                   />
                 </Badge>
@@ -279,7 +288,9 @@ export default function HelpRequests() {
         <Tabs
           defaultValue="available"
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as "available" | "my-requests")}
+          onValueChange={(value) =>
+            setActiveTab(value as "available" | "my-requests")
+          }
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -302,7 +313,9 @@ export default function HelpRequests() {
             ) : filteredAvailableRequests.length === 0 ? (
               <div className="text-center py-12">
                 <HelpCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No help requests found</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No help requests found
+                </h3>
                 <p className="text-muted-foreground">
                   {hasActiveFilters
                     ? "Try adjusting your search or filters"
@@ -460,7 +473,11 @@ export default function HelpRequests() {
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
-              <Button variant="outline" onClick={resetFilters} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={resetFilters}
+                className="flex-1"
+              >
                 Reset
               </Button>
               <Button onClick={applyFilters} className="flex-1">
