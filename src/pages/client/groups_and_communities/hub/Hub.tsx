@@ -172,12 +172,12 @@ const Hub = () => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-14 w-14 rounded-sm">
               <AvatarImage
                 src={community.cover_image || undefined}
                 alt={community.name}
               />
-              <AvatarFallback>
+              <AvatarFallback className="rounded-sm">
                 {community.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -275,19 +275,19 @@ const Hub = () => {
           <TabsList className="w-full justify-start rounded-none h-auto bg-transparent border-b pb-0">
             <TabsTrigger
               value="communities"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              className="px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
             >
               My Communities
             </TabsTrigger>
             <TabsTrigger
               value="groups"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              className="px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
             >
               My Groups
             </TabsTrigger>
             <TabsTrigger
               value="events"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent font-medium py-4"
+              className="px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
             >
               Events
             </TabsTrigger>
@@ -299,7 +299,7 @@ const Hub = () => {
               {myCommunities.length > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Your Communities</h2>
+                    <h2 className="text-base font-medium">Your Communities</h2>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -331,7 +331,7 @@ const Hub = () => {
               {/* Discover Communities */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">
+                  <h2 className="text-base font-medium">
                     Discover Communities
                   </h2>
                   <Button

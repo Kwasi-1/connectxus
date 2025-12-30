@@ -64,7 +64,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 <span className="text-background font-bold text-sm">CV</span>
               </div>
               <SheetTitle className="font-semibold text-xl text-foreground">
-                Campus Vibe
+                Campus Connect
               </SheetTitle>
             </div>
           </SheetHeader>

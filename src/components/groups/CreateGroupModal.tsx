@@ -325,9 +325,9 @@ export function CreateGroupModal({
             <div className="space-y-2">
               <Label>Profile Image</Label>
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-16 w-16 rounded-md">
                   <AvatarImage src={profileImage || undefined} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-lg rounded-md">
                     {name ? (
                       name.substring(0, 2).toUpperCase()
                     ) : (

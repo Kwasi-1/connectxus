@@ -243,7 +243,7 @@ export const ProfileHeader = ({
                 src={avatarPreview || user.avatar}
                 alt={user.username}
               />
-              <AvatarFallback className="text-4xl">
+              <AvatarFallback className="text-3xl">
                 {user.username.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>

@@ -514,7 +514,7 @@ export function PostCard({
   return (
     <Card
       className={cn(
-        "rounded-none border-0 border-b hover:bg-muted/5 transition-colors cursor-pointer",
+        "rounded-none border-0 border-b transition-colors cursor-pointer",
         className
       )}
       onClick={handlePostClick}

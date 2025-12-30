@@ -232,7 +232,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted justify-start"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
                 onClick={() => navigate("/explore")}
               >
                 Show more
@@ -283,7 +283,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted justify-start"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
                 onClick={() => navigate("/announcements")}
               >
                 View all announcements
@@ -367,7 +367,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:bg-muted text-left items-start justify-start"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
                 onClick={() => navigate("/people")}
               >
                 Show more

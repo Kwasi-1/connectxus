@@ -115,7 +115,7 @@ const Feed = () => {
   return (
     <>
       <AppLayout onCreatePost={handleCreatePost}>
-        <div className="flex-1 border-l xl:border-l-0 border-r border-border">
+        <div className="flex-1 border-l-0 xl:border-l-0 border-r-0 border-border">
           <FeedHeader activeFilter={activeTab} onFilterChange={handleTabChange} />
 
           <div className='min-h-screen'>
