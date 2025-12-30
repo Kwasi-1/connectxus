@@ -439,7 +439,7 @@ const Messages = () => {
 
   if (loadingConversations) {
     return (
-      <AppLayout>
+      <AppLayout showRightSidebar={false}>
         <div className="border-r border-border h-full">
           <div className="p-4 border-b">
             <h1 className="text-2xl font-bold">Messages</h1>
