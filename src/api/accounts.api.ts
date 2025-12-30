@@ -15,7 +15,7 @@ import type {
   AssignmentsResponse,
   ApplicationsResponse,
   AccountDetailsResponse,
-} from "../types/assignments";
+} from "../types/accounts";
 
 interface ApiResponse<T> {
   status: string;

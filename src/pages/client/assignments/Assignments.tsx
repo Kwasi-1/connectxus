@@ -35,13 +35,13 @@ import {
   getMyApplications,
   getUserEarnings,
   getMyAccountDetails,
-} from "@/api/assignments.api";
+} from "@/api/accounts.api";
 import type {
   Assignment,
   Application,
   Earnings,
   AccountDetail,
-} from "@/types/assignments";
+} from "@/types/accounts";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -201,8 +201,6 @@ export default function Assignments() {
 
       let newAssignments = response.assignments || [];
 
-      console.log("Raw assignments from backend:", newAssignments);
-      console.log("Number of assignments fetched:", newAssignments.length);
 
       
       newAssignments = shuffleArray(newAssignments);
@@ -210,7 +208,6 @@ export default function Assignments() {
       
       if (append) {
         const uniqueNewAssignments = newAssignments.filter(a => !seenIds.has(a.id));
-        console.log("Unique new assignments after deduplication:", uniqueNewAssignments.length);
         setAvailableAssignments((prev) => [...prev, ...uniqueNewAssignments]);
 
         
@@ -223,7 +220,6 @@ export default function Assignments() {
         setSeenIds(new Set(newIds));
       }
 
-      console.log("Total assignments in state:", append ? "appended" : newAssignments.length);
 
       
       setHasMore(newAssignments.length >= ITEMS_PER_PAGE);
@@ -311,12 +307,7 @@ export default function Assignments() {
 
   
   const filteredAssignments = useMemo(() => {
-    console.log("Filtering assignments. Total before filter:", availableAssignments.length);
-    console.log("Applied filters:", appliedFilters);
-    console.log("Search query:", debouncedSearchQuery);
     const filtered = filterAssignments(availableAssignments);
-    console.log("Filtered assignments count:", filtered.length);
-    console.log("Filtered assignments:", filtered);
     return filtered;
   }, [availableAssignments, filterAssignments]);
 

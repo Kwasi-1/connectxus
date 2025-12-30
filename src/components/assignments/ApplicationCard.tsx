@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Calendar, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
-import { Application } from '../../types/assignments';
+import { Application } from '../../types/accounts';
 import { format } from 'date-fns';
 
 interface ApplicationCardProps {

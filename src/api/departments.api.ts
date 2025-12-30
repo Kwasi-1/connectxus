@@ -5,6 +5,11 @@ interface ApiResponse<T> {
   data: T;
 }
 
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
 export interface Department {
   id: string;
   space_id: string;
@@ -39,10 +44,30 @@ export const searchDepartments = async (
   return response.data.data.departments;
 };
 
+export const getDepartmentsPaginated = async (
+  params?: PaginationParams & { query?: string }
+): Promise<Department[]> => {
+  const queryParams: any = {
+    page: params?.page || 1,
+    limit: params?.limit || 10,
+  };
+
+  if (params?.query) {
+    queryParams.q = params.query;
+  }
+
+  const response = await apiClient.get<ApiResponse<{ departments: Department[] }>>(
+    `/departments`,
+    { params: queryParams }
+  );
+  return response.data.data.departments;
+};
+
 export const departmentsApi = {
   getDepartmentsBySpace,
   getDepartmentById,
   searchDepartments,
+  getDepartmentsPaginated,
 };
 
 export default departmentsApi;

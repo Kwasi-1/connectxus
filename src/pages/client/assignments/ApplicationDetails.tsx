@@ -22,8 +22,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   getApplicationById,
   completeAssignment,
-} from "../../../api/assignments.api";
-import type { Application } from "../../../types/assignments";
+} from "../../../api/accounts.api";
+import type { Application } from "../../../types/accounts";
 
 export default function ApplicationDetails() {
   const { id } = useParams<{ id: string }>();

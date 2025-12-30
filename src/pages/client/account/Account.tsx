@@ -60,7 +60,8 @@ const Account = () => {
         followers: userProfile.followers_count || 0,
         following: userProfile.following_count || 0,
         verified: userProfile.verified || false,
-        posts: [], 
+        auth_provider: userProfile.auth_provider, 
+        posts: [],
       }
     : undefined;
 
@@ -71,6 +72,12 @@ const Account = () => {
       avatar: updatedUser.avatar,
       level: updatedUser.level,
       department_id: updatedUser.department_id || undefined,
+    });
+  };
+
+  const handleRefreshUserData = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["user-profile", authUser?.id],
     });
   };
 
@@ -93,7 +100,11 @@ const Account = () => {
           </Button>
           <h1 className="text-xl font-semibold">{transformedUser.username}</h1>
         </div>
-        <ProfileHeader user={transformedUser} onUserUpdate={handleUserUpdate} />
+        <ProfileHeader
+          user={transformedUser}
+          onUserUpdate={handleUserUpdate}
+          onRefreshUserData={handleRefreshUserData}
+        />
         <ErrorBoundary>
           <ProfileTabs
             user={transformedUser}

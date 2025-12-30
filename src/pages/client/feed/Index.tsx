@@ -99,7 +99,6 @@ const Index = () => {
   };
 
   const handleComment = (postId: string) => {
-    console.log('Comment on post:', postId);
   };
 
   const handleRepost = (postId: string) => {
@@ -115,7 +114,6 @@ const Index = () => {
   };
 
   const handleShare = (postId: string) => {
-    console.log('Share post:', postId);
   };
 
   const handleMediaClick = (post: Post) => {

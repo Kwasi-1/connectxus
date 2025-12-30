@@ -660,7 +660,6 @@ export function CommunitiesGroups() {
           settings: communityData.settings || [],
         };
 
-        console.log("Creating community with payload:", payload);
 
         await adminApi.createCommunity(payload);
 

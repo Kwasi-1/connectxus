@@ -37,19 +37,24 @@ export interface TutorApplication {
   id: string;
   user_id: string;
   subject: string;
-  experience?: string; 
-  qualifications?: string; 
-  teaching_style?: string; 
-  motivation?: string; 
-  references?: string; 
-  availability?: any; 
-  session_rate?: number; 
+  experience?: string;
+  qualifications?: string;
+  teaching_style?: string;
+  motivation?: string;
+  references?: string;
+  availability?: any;
+  session_rate?: number;
   semester_rate?: number;
   status: "pending" | "approved" | "rejected";
   reviewed_by?: string;
   reviewer_notes?: string;
   reviewed_at?: string;
   submitted_at: string;
+}
+
+export interface ApplicationStatusResponse {
+  id: string;
+  status: "pending" | "approved" | "rejected";
 }
 
 export interface TutoringSession {
@@ -174,7 +179,9 @@ export const getRecommendedTutors = async (
     max_session_rate?: number;
     min_semester_rate?: number;
     max_semester_rate?: number;
-    filter_level?: string;
+    filter_level?: number;
+    level_exact_match?: boolean;
+    min_rating?: number;
     has_discount?: boolean;
   } = {}
 ): Promise<TutorProfile[]> => {
@@ -224,8 +231,8 @@ export const submitTutorApplication = async (data: {
   motivation: string;
   reference_letters?: string;
   availability: string[];
-}): Promise<TutorApplication> => {
-  const response = await apiClient.post<ApiResponse<TutorApplication>>(
+}): Promise<ApplicationStatusResponse> => {
+  const response = await apiClient.post<ApiResponse<ApplicationStatusResponse>>(
     "/tutoring/tutors/applications",
     {
       subject: data.subject,
@@ -267,6 +274,38 @@ export const getMyTutorApplication =
       return null;
     }
   };
+
+export const checkTutorApplicationExists = async (): Promise<ApplicationStatusResponse | null> => {
+  try {
+    const response = await apiClient.get<ApiResponse<ApplicationStatusResponse>>(
+      "/tutoring/tutors/applications/check"
+    );
+    return response.data.data;
+  } catch (error: any) {
+    return null;
+  }
+};
+
+export const updateTutorPricingAndAvailability = async (
+  applicationId: string,
+  data: {
+    session_rate?: string;
+    semester_rate?: string;
+    availability: string[];
+  }
+): Promise<TutorApplication> => {
+  const response = await apiClient.patch<ApiResponse<TutorApplication>>(
+    `/tutoring/tutors/applications/${applicationId}`,
+    data
+  );
+  return response.data.data;
+};
+
+export const deleteTutorApplication = async (
+  applicationId: string
+): Promise<void> => {
+  await apiClient.delete(`/tutoring/tutors/applications/${applicationId}`);
+};
 
 export const getTutoringSession = async (
   sessionId: string
@@ -372,6 +411,7 @@ export interface TutoringRequest {
   requester_phone?: string;
   space_id: string;
   tutor_id?: string;
+  tutor_user_id?: string;
   tutor_username?: string;
   tutor_full_name?: string;
   tutor_phone?: string;
@@ -778,6 +818,7 @@ export interface SessionReview {
 
 export interface CreateSessionReviewRequest {
   session_type: "tutoring" | "tutoring";
+  session_id: string;
   tutor_id: string;
   reviewee_id: string;
   rating: number;

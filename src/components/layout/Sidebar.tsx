@@ -27,7 +27,7 @@ const navigationItems = [
   { icon: MessagesIcon, label: "Messages", path: "/messages", id: "messages" },
   { icon: GroupsIcon, label: "Groups", path: "/hub", id: "groups" },
   { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: MentorsIcon, label: "Assignments", path: "/assignments", id: "assignments" },
+  { icon: MentorsIcon, label: "Help", path: "/help", id: "help" },
   { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
 ];
 

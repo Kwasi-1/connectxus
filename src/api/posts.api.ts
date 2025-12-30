@@ -127,7 +127,7 @@ export const getFollowingFeed = async (
   params?: PaginationParams
 ): Promise<Post[]> => {
   const response = await apiClient.get<ApiResponse<Post[]>>(
-    "/posts/feed/following",
+    "/posts/feed/for-you",
     { params }
   );
   return transformPosts(response.data.data);
@@ -149,6 +149,17 @@ export const getPostsByUser = async (
 ): Promise<Post[]> => {
   const response = await apiClient.get<ApiResponse<Post[]>>(
     `/posts/user/${userId}`,
+    { params }
+  );
+  return transformPosts(response.data.data);
+};
+
+export const getPostsByUsername = async (
+  username: string,
+  params?: PaginationParams
+): Promise<Post[]> => {
+  const response = await apiClient.get<ApiResponse<Post[]>>(
+    `/posts/username/${username}`,
     { params }
   );
   return transformPosts(response.data.data);
@@ -365,6 +376,7 @@ export const postsApi = {
   getFollowingFeed,
   getUniversityFeed,
   getPostsByUser,
+  getPostsByUsername,
   getPostsByCommunity,
   getPostsByGroup,
   getTrendingPosts,

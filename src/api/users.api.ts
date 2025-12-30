@@ -28,8 +28,10 @@ export interface UserProfile {
   interests?: string[];
   followers_count?: number | null;
   following_count?: number | null;
+  is_following?: boolean | null; // Whether the current user follows this user
   created_at?: string | null;
   updated_at?: string | null;
+  auth_provider?: string; // "email" or "google"
 }
 
 export interface UpdateUserRequest {
@@ -42,7 +44,7 @@ export interface UpdateUserRequest {
 }
 
 export interface UpdatePasswordRequest {
-  old_password: string;
+  old_password?: string; // Optional for Google OAuth users
   new_password: string;
 }
 
@@ -179,6 +181,43 @@ export const getPeopleYouMayKnow = async (
   return response.data.data;
 };
 
+export const followUserByUsername = async (username: string): Promise<void> => {
+  await apiClient.post(`/users/username/${username}/follow`);
+};
+
+export const unfollowUserByUsername = async (username: string): Promise<void> => {
+  await apiClient.delete(`/users/username/${username}/follow`);
+};
+
+export const checkFollowingStatusByUsername = async (username: string): Promise<boolean> => {
+  const response = await apiClient.get<ApiResponse<{ is_following: boolean }>>(
+    `/users/username/${username}/following/status`
+  );
+  return response.data.data.is_following;
+};
+
+export const getUserFollowersByUsername = async (
+  username: string,
+  params?: PaginationParams
+): Promise<UserProfile[]> => {
+  const response = await apiClient.get<ApiResponse<UserProfile[]>>(
+    `/users/username/${username}/followers`,
+    { params }
+  );
+  return response.data.data;
+};
+
+export const getUserFollowingByUsername = async (
+  username: string,
+  params?: PaginationParams
+): Promise<UserProfile[]> => {
+  const response = await apiClient.get<ApiResponse<UserProfile[]>>(
+    `/users/username/${username}/following`,
+    { params }
+  );
+  return response.data.data;
+};
+
 export const usersApi = {
   getUserById,
   getUserByUsername,
@@ -195,6 +234,11 @@ export const usersApi = {
   getAllPeopleInSpace,
   getPeopleInDepartment,
   getPeopleYouMayKnow,
+  followUserByUsername,
+  unfollowUserByUsername,
+  checkFollowingStatusByUsername,
+  getUserFollowersByUsername,
+  getUserFollowingByUsername,
 };
 
 export default usersApi;

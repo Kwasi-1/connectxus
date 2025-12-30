@@ -509,7 +509,6 @@ const CommunityDetail = () => {
   };
 
   const handleQuote = (postId: string) => {
-    console.log("Quote post:", postId);
   };
 
   const handlePromoteToAdmin = (userId: string) => {

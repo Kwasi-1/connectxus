@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Search, Users, Lock, Plus, ArrowLeft, Filter } from "lucide-react";
+import { Search, Users, Lock, Plus, ArrowLeft, Filter, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GroupCategory } from "@/types/communities";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,11 +23,24 @@ import {
 import { toast } from "sonner";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getDepartmentsPaginated, Department } from "@/api/departments.api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const categoryFilters: GroupCategory[] = [
   "Study Group",
@@ -39,23 +52,70 @@ const categoryFilters: GroupCategory[] = [
   "Other",
 ];
 
+const levelOptions = [
+  { value: "100", label: "100 Level" },
+  { value: "200", label: "200 Level" },
+  { value: "300", label: "300 Level" },
+  { value: "400", label: "400 Level" },
+  { value: "500", label: "500 Level" },
+  { value: "600", label: "600 Level" },
+  { value: "700", label: "700 Level" },
+  { value: "800", label: "800 Level" },
+];
+
+const groupTypeOptions = [
+  { value: "project", label: "Project" },
+  { value: "study", label: "Study" },
+  { value: "social", label: "Social" },
+];
+
 type HubTab = "my-groups" | "explore-groups";
+
+interface FilterState {
+  category?: string;
+  level?: number;
+  levelIncludeBelow?: boolean;
+  department?: string;
+  groupType?: string;
+}
 
 const GroupsNew = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("my-groups");
-  const [categorySearch, setCategorySearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<
-    GroupCategory | "All"
-  >("All");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  const [pendingFilters, setPendingFilters] = useState<FilterState>({});
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>({});
+
+  const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
+  const [departmentsPage, setDepartmentsPage] = useState(1);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: userGroups = [], isLoading: loadingUserGroups } = useQuery({
     queryKey: ["user-groups"],
     queryFn: () => getUserGroups({ page: 1, limit: 100 }),
     staleTime: 60000,
+  });
+
+  const {
+    data: departmentsData,
+    isLoading: loadingDepartments,
+  } = useQuery({
+    queryKey: ["departments-filter", debouncedDepartmentSearch, departmentsPage],
+    queryFn: () =>
+      getDepartmentsPaginated({
+        query: debouncedDepartmentSearch,
+        page: departmentsPage,
+        limit: departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10,
+      }),
+    enabled: filterSheetOpen,
+    staleTime: 300000,
   });
 
   const {
@@ -65,9 +125,29 @@ const GroupsNew = () => {
     isFetchingNextPage,
     isLoading: loadingRecommendedGroups,
   } = useInfiniteQuery({
-    queryKey: ["recommended-groups", selectedCategory],
-    queryFn: ({ pageParam = 1 }) =>
-      getRecommendedGroups({ page: pageParam, limit: 20 }),
+    queryKey: ["recommended-groups", appliedFilters],
+    queryFn: ({ pageParam = 1 }) => {
+      const params: any = {
+        page: pageParam,
+        limit: 20,
+      };
+
+      if (appliedFilters.category) {
+        params.category = appliedFilters.category;
+      }
+      if (appliedFilters.level) {
+        params.filter_level = appliedFilters.level;
+        params.level_exact_match = !appliedFilters.levelIncludeBelow;
+      }
+      if (appliedFilters.department) {
+        params.filter_department = appliedFilters.department;
+      }
+      if (appliedFilters.groupType) {
+        params.filter_group_type = appliedFilters.groupType;
+      }
+
+      return getRecommendedGroups(params);
+    },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 20 ? allPages.length + 1 : undefined;
     },
@@ -153,14 +233,68 @@ const GroupsNew = () => {
         (group.description?.toLowerCase() || "").includes(
           searchQuery.toLowerCase()
         );
-      const matchesCategory =
-        selectedCategory === "All" || group.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      return matchesSearch;
     });
   };
 
   const myGroups = userGroups;
   const exploreGroups = recommendedGroups;
+
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...pendingFilters });
+    setFilterSheetOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setPendingFilters({});
+    setSelectedDepartment(null);
+    setDepartmentSearchQuery("");
+    setDepartmentsPage(1);
+  };
+
+  const handleClearAllFilters = () => {
+    setPendingFilters({});
+    setAppliedFilters({});
+    setSelectedDepartment(null);
+    setDepartmentSearchQuery("");
+    setDepartmentsPage(1);
+  };
+
+  const handleRemoveFilter = (filterKey: keyof FilterState) => {
+    const newFilters = { ...appliedFilters };
+    delete newFilters[filterKey];
+    if (filterKey === "levelIncludeBelow") {
+      delete newFilters.levelIncludeBelow;
+    }
+    if (filterKey === "department") {
+      setSelectedDepartment(null);
+    }
+    setAppliedFilters(newFilters);
+    setPendingFilters(newFilters);
+  };
+
+  const handleDepartmentSelect = (department: Department) => {
+    setSelectedDepartment(department);
+    setPendingFilters((prev) => ({
+      ...prev,
+      department: department.id,
+    }));
+    setDepartmentSearchQuery("");
+    setDepartmentsPage(1);
+  };
+
+  const handleLoadMoreDepartments = () => {
+    setDepartmentsPage((prev) => prev + 1);
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (appliedFilters.category) count++;
+    if (appliedFilters.level) count++;
+    if (appliedFilters.department) count++;
+    if (appliedFilters.groupType) count++;
+    return count;
+  };
 
   const handleJoinGroup = (groupId: string, groupType: string) => {
     if (groupType === "private") {
@@ -180,8 +314,7 @@ const GroupsNew = () => {
       description: groupData.description,
       category: groupData.category,
       group_type: groupData.groupType,
-      avatar: groupData.avatar,
-      banner: groupData.banner,
+      avatar_file_id: groupData.avatar_file_id,
       tags: groupData.tags,
       allow_invites: groupData.groupType !== "private",
       allow_member_posts: true,
@@ -407,7 +540,7 @@ const GroupsNew = () => {
           <TabsContent value="explore" className="mt-0">
             <div className="p-4 space-y-4">
               {/* Search and Filters */}
-              <div className="flex items-center gap-2 ">
+              <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
@@ -418,77 +551,75 @@ const GroupsNew = () => {
                   />
                 </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="hover:bg-app-hover px-3.5 text-app-text-main transition-colors border border-app-border rounded-full"
-                      title="Filter by category"
-                    >
-                      <Filter className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="min-w-[250px] max-h-[400px] overflow-hidden pt-0"
-                  >
-                    {/* Search Input - Sticky at top */}
-                    <div className="sticky top-0 z-10 bg-background p-2">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          placeholder="Search categories..."
-                          value={categorySearch}
-                          onChange={(e) => setCategorySearch(e.target.value)}
-                          className="pl-8 h-9 ring-0 focus:ring-0 outline-none focus:outline-none"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Scrollable category list */}
-                    <div className="max-h-[400px] overflow-y-auto scrollbar-hide scroll-smooth">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedCategory("All");
-                          setCategorySearch("");
-                        }}
-                      >
-                        All
-                      </DropdownMenuItem>
-
-                      {categoryFilters
-                        .filter((category) =>
-                          category
-                            .toLowerCase()
-                            .includes(categorySearch.toLowerCase())
-                        )
-                        .map((category) => (
-                          <DropdownMenuItem
-                            key={category}
-                            onClick={() => {
-                              setSelectedCategory(category);
-                              setCategorySearch("");
-                            }}
-                          >
-                            {category}
-                          </DropdownMenuItem>
-                        ))}
-
-                      {categoryFilters.filter((category) =>
-                        category
-                          .toLowerCase()
-                          .includes(categorySearch.toLowerCase())
-                      ).length === 0 &&
-                        categorySearch && (
-                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No categories found
-                          </div>
-                        )}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  variant="outline"
+                  className="hover:bg-app-hover px-3.5 text-app-text-main transition-colors border border-app-border rounded-full relative"
+                  onClick={() => setFilterSheetOpen(true)}
+                  title="Filter groups"
+                >
+                  <Filter className="h-5 w-5" />
+                  {getActiveFilterCount() > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {getActiveFilterCount()}
+                    </span>
+                  )}
+                </Button>
               </div>
+
+              {/* Active Filters */}
+              {getActiveFilterCount() > 0 && (
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-sm text-muted-foreground">Filters:</span>
+                  {appliedFilters.category && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => handleRemoveFilter("category")}
+                    >
+                      {appliedFilters.category}
+                      <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  )}
+                  {appliedFilters.level && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => handleRemoveFilter("level")}
+                    >
+                      {appliedFilters.level} Level{appliedFilters.levelIncludeBelow ? " & Below" : ""}
+                      <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  )}
+                  {appliedFilters.groupType && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => handleRemoveFilter("groupType")}
+                    >
+                      {groupTypeOptions.find(opt => opt.value === appliedFilters.groupType)?.label}
+                      <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  )}
+                  {appliedFilters.department && selectedDepartment && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => handleRemoveFilter("department")}
+                    >
+                      {selectedDepartment.name}
+                      <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAllFilters}
+                    className="h-6 text-xs"
+                  >
+                    Clear all
+                  </Button>
+                </div>
+              )}
 
               {/* Groups Grid */}
               <div className="space-y-3">
@@ -530,6 +661,208 @@ const GroupsNew = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Filter Sheet */}
+      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Filter Groups</SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-6 py-6">
+            {/* Category Filter */}
+            <div className="space-y-3">
+              <Label>Category</Label>
+              <Select
+                value={pendingFilters.category || "all"}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    category: value === "all" ? undefined : value,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categoryFilters.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Level Filter */}
+            <div className="space-y-3">
+              <Label>Level</Label>
+              <Select
+                value={pendingFilters.level?.toString() || "all"}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    level: value === "all" ? undefined : parseInt(value),
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All levels</SelectItem>
+                  {levelOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {pendingFilters.level && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="level-below"
+                    checked={pendingFilters.levelIncludeBelow || false}
+                    onCheckedChange={(checked) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        levelIncludeBelow: checked === true,
+                      }))
+                    }
+                  />
+                  <label
+                    htmlFor="level-below"
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
+                    Include {pendingFilters.level} and below
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Group Type Filter */}
+            <div className="space-y-3">
+              <Label>Group Type</Label>
+              <Select
+                value={pendingFilters.groupType || "all"}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({
+                    ...prev,
+                    groupType: value === "all" ? undefined : value,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {groupTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Department Filter */}
+            <div className="space-y-3">
+              <Label>Department</Label>
+
+              {/* Selected Department */}
+              {selectedDepartment ? (
+                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                  <span className="text-sm font-medium">{selectedDepartment.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedDepartment(null);
+                      setPendingFilters((prev) => {
+                        const newFilters = { ...prev };
+                        delete newFilters.department;
+                        return newFilters;
+                      });
+                    }}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* Department Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search departments..."
+                      value={departmentSearchQuery}
+                      onChange={(e) => {
+                        setDepartmentSearchQuery(e.target.value);
+                        setDepartmentsPage(1);
+                      }}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Department List */}
+                  <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                    {loadingDepartments ? (
+                      <div className="flex items-center justify-center p-4">
+                        <LoadingSpinner />
+                      </div>
+                    ) : departmentsData && departmentsData.length > 0 ? (
+                      <>
+                        {departmentsData.map((dept) => (
+                          <div
+                            key={dept.id}
+                            className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                            onClick={() => handleDepartmentSelect(dept)}
+                          >
+                            <div className="font-medium text-sm">{dept.name}</div>
+                            {dept.code && (
+                              <div className="text-xs text-muted-foreground">{dept.code}</div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* See More Button */}
+                        {departmentsData.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
+                          <Button
+                            variant="ghost"
+                            className="w-full text-sm text-primary"
+                            onClick={handleLoadMoreDepartments}
+                            disabled={loadingDepartments}
+                          >
+                            See more
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        {departmentSearchQuery ? "No departments found" : "Start typing to search"}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <SheetFooter className="gap-2">
+            <Button variant="outline" onClick={handleResetFilters} className="flex-1">
+              Reset
+            </Button>
+            <Button onClick={handleApplyFilters} className="flex-1">
+              Apply Filters
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Create Group Modal */}
       <CreateGroupModal

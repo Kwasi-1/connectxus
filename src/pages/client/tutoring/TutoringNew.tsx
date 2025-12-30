@@ -56,6 +56,7 @@ import {
   cancelTutoringRequest,
   markTutoringSessionComplete,
   createSessionReview,
+  deleteTutorApplication,
 } from "@/api/tutoring.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
@@ -80,6 +81,8 @@ interface TutorFilters {
   minSemesterRate: number;
   maxSemesterRate: number;
   level: string;
+  levelAndBelow: boolean;
+  minRating: number;
   hasDiscount: boolean;
 }
 
@@ -105,6 +108,8 @@ const TutoringContent = () => {
     minSemesterRate: 0,
     maxSemesterRate: MAX_SEMESTER_RATE,
     level: "all",
+    levelAndBelow: false,
+    minRating: 0,
     hasDiscount: false,
   });
 
@@ -116,6 +121,8 @@ const TutoringContent = () => {
     minSemesterRate: 0,
     maxSemesterRate: MAX_SEMESTER_RATE,
     level: "all",
+    levelAndBelow: false,
+    minRating: 0,
     hasDiscount: false,
   });
 
@@ -188,13 +195,11 @@ const TutoringContent = () => {
   
   const filterTutors = useCallback(
     (tutorsList: ExtendedTutorProfile[]): ExtendedTutorProfile[] => {
-      return tutorsList.filter((tutor) => {
-        
+      const filtered = tutorsList.filter((tutor) => {
         if (isApprovedTutor && tutor.applicant_id === user?.id) {
           return false;
         }
 
-        
         const searchLower = debouncedSearchQuery.toLowerCase();
         const userName = tutor.full_name || tutor.username || tutor.user?.name || "";
         const tutorSubject = tutor.subject || "";
@@ -210,48 +215,11 @@ const TutoringContent = () => {
           tutorExperience.toLowerCase().includes(searchLower) ||
           tutorQualifications.toLowerCase().includes(searchLower);
 
-        
-        const matchesSubject =
-          appliedFilters.subjectType === "all" ||
-          tutorSubject === appliedFilters.subjectType;
-
-        
-        const sessionRate = parseFloat(String(tutor.session_rate || tutor.hourly_rate || 0));
-        const matchesSessionRate =
-          sessionRate >= appliedFilters.minSessionRate &&
-          sessionRate <= appliedFilters.maxSessionRate;
-
-        
-        const semesterRate = parseFloat(String(tutor.semester_rate || 0));
-        const matchesSemesterRate =
-          semesterRate >= appliedFilters.minSemesterRate &&
-          semesterRate <= appliedFilters.maxSemesterRate;
-
-        
-        const hasDiscountAvailable =
-          tutor.semester_rate &&
-          tutor.session_rate &&
-          tutor.semester_rate < tutor.session_rate * 12;
-        const matchesDiscount =
-          !appliedFilters.hasDiscount || hasDiscountAvailable;
-
-        
-        const matchesLevel =
-          appliedFilters.level === "all" ||
-          !tutor.level ||
-          tutor.level === appliedFilters.level;
-
-        return (
-          matchesSearch &&
-          matchesSubject &&
-          matchesSessionRate &&
-          matchesSemesterRate &&
-          matchesDiscount &&
-          matchesLevel
-        );
+        return matchesSearch;
       });
+      return filtered;
     },
-    [debouncedSearchQuery, appliedFilters, user, isApprovedTutor]
+    [debouncedSearchQuery, user, isApprovedTutor]
   );
 
   
@@ -294,7 +262,13 @@ const TutoringContent = () => {
         params.max_semester_rate = appliedFilters.maxSemesterRate;
       }
       if (appliedFilters.level !== "all") {
-        params.filter_level = appliedFilters.level;
+        params.filter_level = parseInt(appliedFilters.level);
+        if (!appliedFilters.levelAndBelow) {
+          params.level_exact_match = true;
+        }
+      }
+      if (appliedFilters.minRating !== 0) {
+        params.min_rating = appliedFilters.minRating;
       }
       if (appliedFilters.hasDiscount) {
         params.has_discount = true;
@@ -303,8 +277,6 @@ const TutoringContent = () => {
       
       let newTutors = await getRecommendedTutors(params);
 
-      console.log("Raw tutors from backend:", newTutors);
-      console.log("Number of tutors fetched:", newTutors.length);
 
       
       newTutors = shuffleArray(newTutors);
@@ -312,7 +284,6 @@ const TutoringContent = () => {
       
       if (append) {
         const uniqueNewTutors = newTutors.filter(t => !seenIds.has(t.id));
-        console.log("Unique new tutors after deduplication:", uniqueNewTutors.length);
         setTutors((prev) => [...prev, ...uniqueNewTutors]);
 
         
@@ -325,7 +296,6 @@ const TutoringContent = () => {
         setSeenIds(new Set(newIds));
       }
 
-      console.log("Total tutors in state:", append ? "appended" : newTutors.length);
 
       
       setHasMore(newTutors.length >= ITEMS_PER_PAGE);
@@ -359,12 +329,7 @@ const TutoringContent = () => {
 
   
   const filteredTutors = useMemo(() => {
-    console.log("Filtering tutors. Total before filter:", tutors.length);
-    console.log("Applied filters:", appliedFilters);
-    console.log("Search query:", debouncedSearchQuery);
     const filtered = filterTutors(tutors);
-    console.log("Filtered tutors count:", filtered.length);
-    console.log("Filtered tutors:", filtered);
     return filtered;
   }, [tutors, filterTutors]);
 
@@ -383,6 +348,8 @@ const TutoringContent = () => {
       minSemesterRate: 0,
       maxSemesterRate: MAX_SEMESTER_RATE,
       level: "all",
+      levelAndBelow: false,
+      minRating: 0,
       hasDiscount: false,
     };
     setPendingFilters(defaultFilters);
@@ -398,6 +365,7 @@ const TutoringContent = () => {
     appliedFilters.maxSessionRate !== MAX_SESSION_RATE ||
     appliedFilters.minSemesterRate !== 0 ||
     appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE ||
+    appliedFilters.minRating !== 0 ||
     appliedFilters.hasDiscount ||
     searchQuery !== "";
 
@@ -591,18 +559,21 @@ const TutoringContent = () => {
   const createReviewMutation = useMutation({
     mutationFn: ({
       sessionId,
+      tutorId,
       revieweeId,
       rating,
       reviewText,
     }: {
       sessionId: string;
+      tutorId: string;
       revieweeId: string;
       rating: number;
       reviewText: string;
     }) =>
       createSessionReview({
         session_type: "tutoring",
-        tutor_id: sessionId,
+        session_id: sessionId,
+        tutor_id: tutorId,
         reviewee_id: revieweeId,
         rating,
         review_text: reviewText || undefined,
@@ -778,8 +749,24 @@ const TutoringContent = () => {
     sonnerToast.success("Application updated successfully");
   };
 
-  const handleDeleteApplication = async (applicationId: string) => {
-    sonnerToast.info("Delete functionality coming soon");
+  const handleDeleteApplication = async () => {
+    if (!myTutorApplication) return;
+
+    if (!confirm("Are you sure you want to delete your tutor application? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deleteTutorApplication(myTutorApplication.id);
+      queryClient.invalidateQueries({ queryKey: ["my-tutor-application"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tutor-profile"] });
+      sonnerToast.success("Application deleted successfully");
+    } catch (error: any) {
+      console.error("Error deleting application:", error);
+      sonnerToast.error("Failed to delete application", {
+        description: error.response?.data?.error?.message || error.message || "Please try again later.",
+      });
+    }
   };
 
   const handleAcceptRequest = (requestId: string, message?: string) => {
@@ -929,11 +916,12 @@ const TutoringContent = () => {
 
   
   const handleSubmitReview = (rating: number, reviewText: string) => {
-    if (!selectedRequest || !selectedRequest.tutor_id) return;
+    if (!selectedRequest || !selectedRequest.tutor_id || !selectedRequest.tutor_user_id) return;
 
     createReviewMutation.mutate({
       sessionId: selectedRequest.id,
-      revieweeId: selectedRequest.tutor_id,
+      tutorId: selectedRequest.tutor_id,
+      revieweeId: selectedRequest.tutor_user_id,
       rating,
       reviewText,
     });
@@ -1055,6 +1043,17 @@ const TutoringContent = () => {
                       />
                     </Badge>
                   )}
+                  {appliedFilters.minRating !== 0 && (
+                    <Badge variant="secondary" className="gap-1">
+                      Rating: {appliedFilters.minRating}+ ⭐
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setAppliedFilters((prev) => ({ ...prev, minRating: 0 }))
+                        }
+                      />
+                    </Badge>
+                  )}
                   {(appliedFilters.minSessionRate !== 0 ||
                     appliedFilters.maxSessionRate !== MAX_SESSION_RATE) && (
                     <Badge variant="secondary" className="gap-1">
@@ -1167,6 +1166,7 @@ const TutoringContent = () => {
                 <TutorApplicationCard
                   application={myTutorApplication}
                   onEdit={handleEditApplication}
+                  onDelete={handleDeleteApplication}
                 />
               )}
             </TabsContent>
@@ -1325,6 +1325,7 @@ const TutoringContent = () => {
                 <TutorApplicationCard
                   application={myTutorApplication}
                   onEdit={handleEditApplication}
+                  onDelete={handleDeleteApplication}
                 />
               )}
             </TabsContent>
@@ -1594,7 +1595,7 @@ const TutoringContent = () => {
               </Select>
             </div>
 
-            
+
             <div className="space-y-2">
               <Label>Level</Label>
               <Select
@@ -1604,19 +1605,67 @@ const TutoringContent = () => {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Levels" />
+                  <SelectValue placeholder="My Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
+                  <SelectItem value="all">My Level (default)</SelectItem>
                   <SelectItem value="100">Level 100</SelectItem>
                   <SelectItem value="200">Level 200</SelectItem>
                   <SelectItem value="300">Level 300</SelectItem>
                   <SelectItem value="400">Level 400</SelectItem>
+                  <SelectItem value="500">Level 500</SelectItem>
+                  <SelectItem value="600">Level 600</SelectItem>
+                  <SelectItem value="700">Level 700</SelectItem>
+                  <SelectItem value="800">Level 800</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            
+            {/* And Below Toggle - only show when a specific level is selected */}
+            {pendingFilters.level !== "all" && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="levelAndBelow"
+                  checked={pendingFilters.levelAndBelow}
+                  onChange={(e) =>
+                    setPendingFilters((prev) => ({
+                      ...prev,
+                      levelAndBelow: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="levelAndBelow" className="cursor-pointer">
+                  And Below
+                </Label>
+              </div>
+            )}
+
+            {/* Minimum Rating Filter */}
+            <div className="space-y-2">
+              <Label>Minimum Rating</Label>
+              <Select
+                value={pendingFilters.minRating.toString()}
+                onValueChange={(value) =>
+                  setPendingFilters((prev) => ({ ...prev, minRating: parseInt(value) }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any Rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Any Rating</SelectItem>
+                  <SelectItem value="1">⭐ 1+ Stars</SelectItem>
+                  <SelectItem value="2">⭐⭐ 2+ Stars</SelectItem>
+                  <SelectItem value="3">⭐⭐⭐ 3+ Stars</SelectItem>
+                  <SelectItem value="4">⭐⭐⭐⭐ 4+ Stars</SelectItem>
+                  <SelectItem value="5">⭐⭐⭐⭐⭐ 5 Stars</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+
             <div className="space-y-3">
               <Label>
                 Session Rate (GHS {pendingFilters.minSessionRate} - GHS {pendingFilters.maxSessionRate}/hr)

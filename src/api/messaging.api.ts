@@ -8,12 +8,20 @@ interface ApiResponse<T> {
 export interface PaginationParams {
   page?: number;        limit?: number;     }
 
+export interface Attachment {
+  url: string;
+  filename: string;
+  size: number;
+  type: 'image' | 'video' | 'document' | 'audio' | 'other';
+  mime_type: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
   content: string;
-  attachments?: any | null;
+  attachments?: Attachment[];
   message_type: 'text' | 'image' | 'file' | 'audio' | 'video';
   reply_to_id?: string | null;
   reactions?: any | null;
@@ -70,8 +78,10 @@ export interface CreateConversationRequest {
 
 export interface SendMessageRequest {
   content: string;
-  attachments?: any | null;          message_type?: 'text' | 'image' | 'file' | 'audio' | 'video';
-  reply_to_id?: string | null;    }
+  file_ids?: string[];
+  message_type?: 'text' | 'image' | 'file' | 'audio' | 'video';
+  reply_to_id?: string | null;
+}
 
 export const getConversations = async (params?: PaginationParams): Promise<Conversation[]> => {
   const response = await apiClient.get<ApiResponse<Conversation[]>>('/conversations', { params });

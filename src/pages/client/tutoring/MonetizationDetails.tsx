@@ -27,13 +27,13 @@ import {
 import { format } from "date-fns";
 import { useCurrency } from "@/hooks/useCurrency";
 import { getTutorServiceDetails, requestTutorPayout, verifyTutoringPayment } from "@/api/tutoring.api";
-import { getMyAccountDetails } from "@/api/assignments.api";
+import { getMyAccountDetails } from "@/api/accounts.api";
 import { AccountModal } from "@/components/assignments/AccountModal";
 import { RequestPayoutModal } from "@/components/tutoring/RequestPayoutModal";
 import { PaymentModal } from "@/components/tutoring/PaymentModal";
 import { toast as sonnerToast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import type { AccountDetail } from "@/types/assignments";
+import type { AccountDetail } from "@/types/accounts";
 
 export const MonetizationDetails = () => {
   const { serviceId } = useParams<{ serviceId: string }>();

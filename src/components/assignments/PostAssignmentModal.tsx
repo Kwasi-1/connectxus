@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
-import { createAssignment } from '../../api/assignments.api';
-import { CreateAssignmentRequest } from '../../types/assignments';
+import { createAssignment } from '../../api/accounts.api';
+import { CreateAssignmentRequest } from '../../types/accounts';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface PostAssignmentModalProps {

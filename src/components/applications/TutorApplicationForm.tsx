@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Plus, Clock, Paperclip, FileText, Loader2 } from "lucide-react";
+import { X, Plus, Clock, Paperclip, FileText, Loader2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { submitTutorApplication, updateTutorApplication } from "@/api/tutoring.api";
@@ -51,6 +51,7 @@ export function TutorApplicationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const existingApplication = location.state?.application;
+  const isApproved = existingApplication?.status === "approved";
 
   const [subject, setSubject] = useState("");
   const [sessionRate, setSessionRate] = useState("");
@@ -326,6 +327,19 @@ export function TutorApplicationForm() {
         </p>
       </div>
 
+      {isApproved && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start space-x-3">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="font-medium text-blue-900">Application Approved</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Your application has been approved! You can only update your <strong>Session Rate</strong>, <strong>Semester Rate</strong>, and <strong>Availability</strong>.
+              All other fields are locked.
+            </p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <Card>
@@ -341,6 +355,7 @@ export function TutorApplicationForm() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   required
+                  disabled={isApproved}
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -350,7 +365,7 @@ export function TutorApplicationForm() {
 
               <div>
                 <Label htmlFor="subject-type">Subject Type *</Label>
-                <Select value={subjectType} onValueChange={setSubjectType}>
+                <Select value={subjectType} onValueChange={setSubjectType} disabled={isApproved}>
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -366,7 +381,7 @@ export function TutorApplicationForm() {
 
               <div>
                 <Label htmlFor="level">Level (Optional)</Label>
-                <Select value={level} onValueChange={setLevel}>
+                <Select value={level} onValueChange={setLevel} disabled={isApproved}>
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
@@ -438,6 +453,7 @@ export function TutorApplicationForm() {
                     placeholder="0"
                     value={discount}
                     onChange={(e) => setDiscount(e.target.value)}
+                    disabled={isApproved}
                     className="w-32"
                     min="0"
                     max="100"
@@ -555,6 +571,7 @@ export function TutorApplicationForm() {
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
                   required
+                  disabled={isApproved}
                   rows={3}
                   className="mt-2"
                 />
@@ -570,6 +587,7 @@ export function TutorApplicationForm() {
                   value={qualifications}
                   onChange={(e) => setQualifications(e.target.value)}
                   required
+                  disabled={isApproved}
                   rows={3}
                   className="mt-2"
                 />
@@ -590,6 +608,7 @@ export function TutorApplicationForm() {
                   value={teachingStyle}
                   onChange={(e) => setTeachingStyle(e.target.value)}
                   required
+                  disabled={isApproved}
                   rows={3}
                   className="mt-2"
                 />
@@ -603,6 +622,7 @@ export function TutorApplicationForm() {
                   value={motivation}
                   onChange={(e) => setMotivation(e.target.value)}
                   required
+                  disabled={isApproved}
                   rows={3}
                   className="mt-2"
                 />
@@ -661,7 +681,7 @@ export function TutorApplicationForm() {
                     type="button"
                     variant="outline"
                     onClick={() => attachmentFilesInputRef.current?.click()}
-                    disabled={isSubmitting || isUploadingAttachmentFiles || attachmentFiles.length >= 3}
+                    disabled={isApproved || isSubmitting || isUploadingAttachmentFiles || attachmentFiles.length >= 3}
                     className="w-full"
                   >
                     <Paperclip className="h-4 w-4 mr-2" />

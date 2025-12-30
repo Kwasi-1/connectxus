@@ -21,10 +21,10 @@ import GroupDetail from "./pages/client/groups_and_communities/groups/GroupDetai
 import Tutoring from "./pages/client/tutoring/TutoringNew";
 import MonetizationDetails from "./pages/client/tutoring/MonetizationDetails";
 import { TutorDetails } from "./pages/client/tutoring/TutorDetails";
-import Assignments from "./pages/client/assignments/Assignments";
-import AssignmentDetails from "./pages/client/assignments/AssignmentDetails";
-import ApplicationDetails from "./pages/client/assignments/ApplicationDetails";
-import PostAssignment from "./pages/client/assignments/PostAssignment";
+import HelpRequests from "./pages/client/help/HelpRequests";
+import HelpRequestDetails from "./pages/client/help/HelpRequestDetails";
+import PostHelpRequest from "./pages/client/help/PostHelpRequest";
+import EditHelpRequest from "./pages/client/help/EditHelpRequest";
 import Account from "./pages/client/account/Account";
 import UserProfile from "./pages/client/profile/UserProfile";
 import Compose from "./pages/client/feed/Compose";
@@ -152,7 +152,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/profile/:userId"
+                  path="/profile/:username"
                   element={
                     <ProtectedRoute>
                       <UserProfile />
@@ -280,34 +280,34 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/assignments"
+                  path="/help"
                   element={
                     <ProtectedRoute>
-                      <Assignments />
+                      <HelpRequests />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/assignments/new"
+                  path="/help/new"
                   element={
                     <ProtectedRoute>
-                      <PostAssignment />
+                      <PostHelpRequest />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/assignments/applications/:id"
+                  path="/help/edit/:id"
                   element={
                     <ProtectedRoute>
-                      <ApplicationDetails />
+                      <EditHelpRequest />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/assignments/:id"
+                  path="/help/:id"
                   element={
                     <ProtectedRoute>
-                      <AssignmentDetails />
+                      <HelpRequestDetails />
                     </ProtectedRoute>
                   }
                 />

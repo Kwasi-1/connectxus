@@ -68,7 +68,6 @@ const Notifications = () => {
                     const notificationSound = new Audio("/notification.mp3");
           notificationSound.volume = 0.3;
           notificationSound.play().catch((error) => {
-            console.log("Could not play notification sound:", error);
           });
 
                     toast.info(notification.title || "New notification", {

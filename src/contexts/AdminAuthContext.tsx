@@ -75,7 +75,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         role: apiUser.role as AdminRole,
         permissions: getPermissionsByRole(apiUser.role),
         avatar: apiUser.avatar || undefined,
-        university: 'University', // Can be fetched from space data if needed
+        university: 'University',
         department: apiUser.department_id || undefined,
         createdAt: apiUser.created_at ? new Date(apiUser.created_at) : new Date(),
         lastLogin: new Date(),

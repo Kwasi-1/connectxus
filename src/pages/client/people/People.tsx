@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   getAllPeopleInSpace,
   getPeopleInDepartment,
   getPeopleYouMayKnow,
+  getUserFollowing,
   searchUsers,
   followUser,
   unfollowUser,
@@ -21,7 +22,7 @@ import {
 } from "@/api/users.api";
 import { toast } from "sonner";
 
-type FilterType = "all" | "department" | "may-know";
+type FilterType = "all" | "department" | "may-know" | "following";
 
 export function People() {
   const { user } = useAuth();
@@ -50,11 +51,26 @@ export function People() {
     enabled: activeFilter === "may-know" && !searchQuery,
   });
 
+  const { data: followingPeople = [], isLoading: loadingFollowing } = useQuery({
+    queryKey: ["people", "following"],
+    queryFn: () => getUserFollowing(user?.id || "", { limit: 100 }),
+    enabled: activeFilter === "following" && !searchQuery && !!user?.id,
+  });
+
   const { data: searchResults = [], isLoading: loadingSearch } = useQuery({
     queryKey: ["people", "search", searchQuery],
     queryFn: () => searchUsers({ q: searchQuery, limit: 100 }),
     enabled: !!searchQuery && searchQuery.length > 0,
   });
+
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      const followingUserIds = searchResults
+        .filter((user) => user.is_following === true)
+        .map((user) => user.id);
+      setFollowingIds(new Set(followingUserIds));
+    }
+  }, [searchResults]);
 
   const followMutation = useMutation({
     mutationFn: (userId: string) => followUser(userId),
@@ -115,6 +131,10 @@ export function People() {
       case "may-know":
         people = mayKnowPeople;
         isLoading = loadingMayKnow;
+        break;
+      case "following":
+        people = followingPeople;
+        isLoading = loadingFollowing;
         break;
     }
   }
@@ -229,7 +249,11 @@ export function People() {
                           variant={
                             followingIds.has(person.id) ? "outline" : "default"
                           }
-                          className="w-full bg-foreground hover:bg-foreground/80"
+                          className={
+                            followingIds.has(person.id)
+                              ? "w-full"
+                              : "w-full bg-foreground hover:bg-foreground/80 text-background"
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             handleFollow(person.id);

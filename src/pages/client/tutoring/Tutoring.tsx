@@ -29,6 +29,7 @@ import {
   payForTutoringSession,
   completeTutoringSession,
   requestTutoringRefund,
+  deleteTutorApplication,
   TutoringRequest,
 } from "@/api/tutoring.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
@@ -294,7 +295,7 @@ const Tutoring = () => {
   };
 
   const handleEditApplication = () => {
-    navigate("/tutoring/become-tutor");
+    navigate("/tutoring/become-tutor", { state: { application: myTutorApplication } });
   };
 
   const handleSaveApplication = () => {
@@ -302,8 +303,24 @@ const Tutoring = () => {
     sonnerToast.success("Application updated successfully");
   };
 
-  const handleDeleteApplication = async (applicationId: string) => {
-    sonnerToast.info("Delete functionality coming soon");
+  const handleDeleteApplication = async () => {
+    if (!myTutorApplication) return;
+
+    if (!confirm("Are you sure you want to delete your tutor application? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deleteTutorApplication(myTutorApplication.id);
+      queryClient.invalidateQueries({ queryKey: ["my-tutor-application"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tutor-profile"] });
+      sonnerToast.success("Application deleted successfully");
+    } catch (error: any) {
+      console.error("Error deleting application:", error);
+      sonnerToast.error("Failed to delete application", {
+        description: error.response?.data?.error?.message || error.message || "Please try again later.",
+      });
+    }
   };
 
   const handleAcceptRequest = async (requestId: string) => {
@@ -532,6 +549,7 @@ const Tutoring = () => {
                   <TutorApplicationCard
                     application={myTutorApplication}
                     onEdit={handleEditApplication}
+                    onDelete={handleDeleteApplication}
                   />
                 )}
               </TabsContent>
@@ -654,6 +672,7 @@ const Tutoring = () => {
                   <TutorApplicationCard
                     application={myTutorApplication}
                     onEdit={handleEditApplication}
+                    onDelete={handleDeleteApplication}
                   />
                 )}
               </TabsContent>
