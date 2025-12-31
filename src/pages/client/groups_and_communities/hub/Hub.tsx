@@ -35,7 +35,11 @@ import {
   getRecommendedCommunities,
   Community,
 } from "@/api/communities.api";
-import { getRecommendedEvents, getUserRegisteredEvents, Event } from "@/api/events.api";
+import {
+  getRecommendedEvents,
+  getUserRegisteredEvents,
+  Event,
+} from "@/api/events.api";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
@@ -47,7 +51,9 @@ import { HubTab } from "@/types/communities";
 const Hub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("communities");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventFilter, setEventFilter] = useState<"registered" | "not-registered">("not-registered");
+  const [eventFilter, setEventFilter] = useState<
+    "registered" | "not-registered"
+  >("not-registered");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const navigate = useNavigate();
@@ -89,12 +95,14 @@ const Hub = () => {
       staleTime: 60000,
     });
 
-  const { data: recommendedCommunities = [], isLoading: loadingRecommendedCommunities } =
-    useQuery({
-      queryKey: ["recommended-communities"],
-      queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
-      staleTime: 60000,
-    });
+  const {
+    data: recommendedCommunities = [],
+    isLoading: loadingRecommendedCommunities,
+  } = useQuery({
+    queryKey: ["recommended-communities"],
+    queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
+    staleTime: 60000,
+  });
 
   const {
     data: eventsData,
@@ -137,14 +145,14 @@ const Hub = () => {
   const myCommunities = userCommunities;
   const myGroups = userGroups;
 
-  const joinedCommunityIds = new Set(userCommunities.map(c => c.id));
+  const joinedCommunityIds = new Set(userCommunities.map((c) => c.id));
   const exploreCommunities = recommendedCommunities
-    .filter(c => !joinedCommunityIds.has(c.id))
+    .filter((c) => !joinedCommunityIds.has(c.id))
     .slice(0, 3);
 
-  const joinedGroupIds = new Set(userGroups.map(g => g.id));
+  const joinedGroupIds = new Set(userGroups.map((g) => g.id));
   const exploreGroups = recommendedGroups
-    .filter(g => !joinedGroupIds.has(g.id))
+    .filter((g) => !joinedGroupIds.has(g.id))
     .slice(0, 3);
 
   if (isLoading) {
@@ -431,18 +439,24 @@ const Hub = () => {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 bg-muted rounded-full p-[3px]">
               <Button
-                variant={eventFilter === "not-registered" ? "default" : "outline"}
+                size="sm"
+                variant={eventFilter === "not-registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("not-registered")}
-                className="flex-1"
+                className={`flex-1 rounded-full  ${
+                  eventFilter === "not-registered" && "hover:bg-background"
+                }`}
               >
                 Recommended
               </Button>
               <Button
-                variant={eventFilter === "registered" ? "default" : "outline"}
+                size="sm"
+                variant={eventFilter === "registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("registered")}
-                className="flex-1"
+                className={`flex-1 rounded-full  ${
+                  eventFilter === "registered" && "hover:bg-background"
+                }`}
               >
                 Registered
               </Button>
@@ -479,7 +493,9 @@ const Hub = () => {
                             if (event.group_id) {
                               navigate(`/groups/${event.group_id}?tab=events`);
                             } else if (event.community_id) {
-                              navigate(`/communities/${event.community_id}?tab=events`);
+                              navigate(
+                                `/communities/${event.community_id}?tab=events`
+                              );
                             } else {
                               setSelectedEvent(event);
                             }
@@ -489,7 +505,10 @@ const Hub = () => {
                       ))}
 
                     {hasNextPage && (
-                      <div ref={infiniteScrollRef} className="flex justify-center py-4">
+                      <div
+                        ref={infiniteScrollRef}
+                        className="flex justify-center py-4"
+                      >
                         {isFetchingNextPage && (
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         )}
@@ -500,7 +519,9 @@ const Hub = () => {
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {eventFilter === "registered" ? "No Registered Events" : "No Events Available"}
+                      {eventFilter === "registered"
+                        ? "No Registered Events"
+                        : "No Events Available"}
                     </h3>
                     <p className="text-muted-foreground">
                       {eventFilter === "registered"

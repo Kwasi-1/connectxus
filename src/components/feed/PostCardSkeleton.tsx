@@ -24,7 +24,7 @@ export function PostCardSkeleton() {
 
           {/* Image placeholder (sometimes) */}
           {Math.random() > 0.5 && (
-            <Skeleton className="h-64 w-full rounded-2xl mt-3" />
+            <Skeleton className="h-64 w-full rounded-xl mt-3" />
           )}
 
           {/* Engagement buttons */}

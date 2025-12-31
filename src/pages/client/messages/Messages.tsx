@@ -901,7 +901,7 @@ const Messages = () => {
                           handleSendMessage();
                         }
                       }}
-                      className="pr-10"
+                      className="pr-10 rounded-full"
                       disabled={isUploadingFiles}
                     />
                     <Button
@@ -919,6 +919,7 @@ const Messages = () => {
                       sendMessageMutation.isPending ||
                       isUploadingFiles
                     }
+                    className="rounded-full px-3"
                   >
                     {isUploadingFiles ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

@@ -39,7 +39,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   is_student: boolean;
-  level?: string | null;
+  level?: number | null;
   department_id?: string | null;
   major?: string | null;
   year?: number | null;

@@ -17,7 +17,7 @@ export const LandingPage: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 p-7 min-h-screen">
         {/* Left Section - Gradient Background with Text */}
-        <div className="hidden lg:flex relative overflow-hidden gradientbg rounded-md bg-image h-[calc(100vh-50px)]">
+        <div className="sticky top-5 hidden lg:flex relative overflow-hidden gradientbg rounded-md bg-image h-[calc(100vh-50px)]">
           {/* <div className="absolute inset-0 " /> */}
           <div className="relative z-10 flex flex-col justify-between p-6 w-full">
             {/* Logo */}
@@ -41,7 +41,7 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* Right Section - Auth Form */}
-        <div className="flex items-center justify-center p-6 lg:p-12 lg:px-6 bg-background h-full">
+        <div className="flex items-center justify-center p-6 lg:p-12 lg:px-6 bg-background h-full overflow-y-auto">
           <div className="w-full max-w-lg">
             {/* Back Button */}
             <button
