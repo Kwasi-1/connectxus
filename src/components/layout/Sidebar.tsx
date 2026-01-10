@@ -6,18 +6,15 @@ import { useState } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { UserProfile } from "./UserProfile";
 import Logo from "../shared/Logo";
-import HomeIcon from "@/assets/icons/Home.svg?react";
-import IconlyHome2 from "@/assets/icons/IconSet";
-import IconlySearch from "@/assets/icons/IconSet";
-import IconlyNotification from "@/assets/icons/IconSet";
-import IconlyMessage from "@/assets/icons/IconSet";
-import IconlyCategory from "@/assets/icons/IconSet";
-import ExploreIcon from "@/assets/icons/ExploreIcon.svg?react";
-import NotificationsIcon from "@/assets/icons/NotificationsIcon.svg?react";
-import MessagesIcon from "@/assets/icons/Message.svg?react";
-import GroupsIcon from "@/assets/icons/Category.svg?react";
-import TutoringIcon from "@/assets/icons/TutoringIcon.svg?react";
-import MentorsIcon from "@/assets/icons/MentorsIcon.svg?react";
+import {
+  IconlyHome2,
+  IconlySearch,
+  IconlyNotification,
+  IconlyMessage,
+  IconlyCategory,
+} from "@/assets/icons/IconSet";
+import TutoringIcon from "@/assets/icons/Tutoring.svg?react";
+import HelpIcon from "@/assets/icons/Help.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 
 const navigationItems = [
@@ -29,10 +26,10 @@ const navigationItems = [
     path: "/notifications",
     id: "notifications",
   },
-  { icon:  IconlyMessage, label: "Messages", path: "/messages", id: "messages" },
+  { icon: IconlyMessage, label: "Messages", path: "/messages", id: "messages" },
   { icon: IconlyCategory, label: "Groups", path: "/hub", id: "groups" },
   { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: MentorsIcon, label: "Help", path: "/help", id: "help" },
+  { icon: HelpIcon, label: "Campus Help", path: "/help", id: "help" },
   { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
 ];
 
