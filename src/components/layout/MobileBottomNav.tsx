@@ -1,14 +1,26 @@
-
-import { useNavigate, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Icon } from '@iconify/react';
+import { useNavigate, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Icon } from "@iconify/react";
+import {
+  IconlyHome2,
+  IconlyMessage,
+  IconlyCategory,
+} from "@/assets/icons/IconSet";
+import TutoringIcon from "@/assets/icons/Tutoring.svg?react";
+import HelpIcon from "@/assets/icons/Help.svg?react";
 
 const navigationItems = [
-  { icon: 'streamline-plump:home-1', activeIcon: 'streamline-plump:home-1-solid', label: 'Home', path: '/feed', id: 'home' },
-  { icon: 'uil:users-alt', activeIcon: 'uil:users-alt', label: 'Groups', path: '/hub', id: 'groups' },
-  { icon: 'hugeicons:book-open-01', activeIcon: 'hugeicons:book-open-01', label: 'Tutoring', path: '/tutoring', id: 'tutoring' },
-  { icon: 'ph:hand-heart', activeIcon: 'ph:hand-heart-fill', label: 'Help', path: '/help', id: 'help' },
-  { icon: 'tabler:message', activeIcon: 'tabler:message', label: 'Messages', path: '/messages', id: 'messages' },
+  { icon: IconlyHome2, label: "Home", path: "/feed", id: "home" },
+  { icon: IconlyCategory, label: "Groups", path: "/hub", id: "groups" },
+  { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
+  { icon: HelpIcon, label: "Campus Help", path: "/help", id: "help" },
+  {
+    icon: IconlyMessage,
+    activeIcon: IconlyMessage,
+    label: "Messages",
+    path: "/messages",
+    id: "messages",
+  },
 ];
 
 export function MobileBottomNav() {
@@ -27,6 +39,8 @@ export function MobileBottomNav() {
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border/50 lg:hidden z-50">
       <nav className="flex justify-around items-center py-2">
         {navigationItems.map((item) => {
+          const Icon = item.icon;
+
           const isActive = isActiveRoute(item.path);
 
           return (
@@ -39,8 +53,20 @@ export function MobileBottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon icon={isActive ? item.activeIcon : item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
-              <span className={cn("text-xs hidden sm:block truncate", isActive && "font-semibold")}>
+              {/* <Icon icon={isActive ? item.activeIcon : item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} /> */}
+
+              <Icon
+                className={cn(
+                  "h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1 transtion duration-300",
+                  isActive ? "fill-transparent scale-110" : "stroke-current"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-xs hidden sm:block truncate",
+                  isActive && "font-semibold"
+                )}
+              >
                 {item.label}
               </span>
             </button>
