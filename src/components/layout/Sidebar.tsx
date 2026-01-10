@@ -7,6 +7,11 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { UserProfile } from "./UserProfile";
 import Logo from "../shared/Logo";
 import HomeIcon from "@/assets/icons/Home.svg?react";
+import IconlyHome2 from "@/assets/icons/IconSet";
+import IconlySearch from "@/assets/icons/IconSet";
+import IconlyNotification from "@/assets/icons/IconSet";
+import IconlyMessage from "@/assets/icons/IconSet";
+import IconlyCategory from "@/assets/icons/IconSet";
 import ExploreIcon from "@/assets/icons/ExploreIcon.svg?react";
 import NotificationsIcon from "@/assets/icons/NotificationsIcon.svg?react";
 import MessagesIcon from "@/assets/icons/Message.svg?react";
@@ -16,16 +21,16 @@ import MentorsIcon from "@/assets/icons/MentorsIcon.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 
 const navigationItems = [
-  { icon: HomeIcon, label: "Home", path: "/feed", id: "home" },
-  { icon: ExploreIcon, label: "Explore", path: "/search", id: "explore" },
+  { icon: IconlyHome2, label: "Home", path: "/feed", id: "home" },
+  { icon: IconlySearch, label: "Explore", path: "/search", id: "explore" },
   {
-    icon: NotificationsIcon,
+    icon: IconlyNotification,
     label: "Notifications",
     path: "/notifications",
     id: "notifications",
   },
-  { icon: MessagesIcon, label: "Messages", path: "/messages", id: "messages" },
-  { icon: GroupsIcon, label: "Groups", path: "/hub", id: "groups" },
+  { icon:  IconlyMessage, label: "Messages", path: "/messages", id: "messages" },
+  { icon: IconlyCategory, label: "Groups", path: "/hub", id: "groups" },
   { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
   { icon: MentorsIcon, label: "Help", path: "/help", id: "help" },
   { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
