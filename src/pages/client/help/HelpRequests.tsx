@@ -295,11 +295,9 @@ export default function HelpRequests() {
         >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="available">
-              <HelpCircle className="h-4 w-4 mr-2" />
               Available Help
             </TabsTrigger>
             <TabsTrigger value="my-requests">
-              <List className="h-4 w-4 mr-2" />
               My Requests
             </TabsTrigger>
           </TabsList>
@@ -324,7 +322,7 @@ export default function HelpRequests() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredAvailableRequests.map((request) => (
                     <HelpRequestCard
                       key={request.id}

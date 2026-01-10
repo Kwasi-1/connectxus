@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label";
 interface ProfileHeaderProps {
   user: UserProfile;
   onUserUpdate: (updatedUser: UserProfile) => void;
-  onRefreshUserData?: () => void; 
+  onRefreshUserData?: () => void;
   isOwnProfile?: boolean;
   initialIsFollowing?: boolean;
 }
@@ -76,7 +76,7 @@ export const ProfileHeader = ({
   const { data: spacesData, isLoading: isLoadingSpaces } = useQuery({
     queryKey: ["spaces"],
     queryFn: getSpaces,
-    enabled: isEditing && isOwnProfile, 
+    enabled: isEditing && isOwnProfile,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -98,7 +98,7 @@ export const ProfileHeader = ({
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024; 
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       sonnerToast.error("Image must be less than 5MB");
       return;
@@ -237,15 +237,17 @@ export const ProfileHeader = ({
 
   return (
     <div className="relative">
-      <div className="h-36 bg-gradient-to-r from-blue-400 to-purple-600 relative">
-        <div className="absolute -bottom-16 left-4">
+      {/* <div className=" absolute h-40 bg-gradient-to-b from-transparent to-background relative" /> */}
+
+      <div className="h-40 bg-gradient-to-r from-blue-400 to-purple-600 relative">
+        <div className="absolute -bottom-10 md:-bottom-16 left-4">
           <div className="relative">
-            <Avatar className="h-32 w-32 border-4 border-background">
+            <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background rounded-3xl md:rounded-[28px]">
               <AvatarImage
                 src={avatarPreview || user.avatar}
                 alt={user.username}
               />
-              <AvatarFallback className="text-3xl">
+              <AvatarFallback className="text-3xl rounded-3xl">
                 {user.username.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>

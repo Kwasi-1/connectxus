@@ -45,7 +45,7 @@ export const ProfileTabs = ({
     deletePost,
     sharePost,
   } = useFeed({
-    type: 'user',
+    type: "user",
     userId: user.id,
     enabled: activeTab === "posts",
   });
@@ -60,7 +60,7 @@ export const ProfileTabs = ({
     repostPost: repostLikedPost,
     sharePost: shareLikedPost,
   } = useFeed({
-    type: 'liked',
+    type: "liked",
     userId: user.id,
     enabled: activeTab === "likes" && isOwnProfile,
   });
@@ -81,26 +81,27 @@ export const ProfileTabs = ({
     navigate(`/post/${postId}`);
   };
 
-  const handleQuote = (postId: string) => {
-  };
+  const handleQuote = (postId: string) => {};
 
   const getTabs = () => {
     const baseTabs = [
       {
         id: "posts",
         label: "Posts",
-        icon: MessageSquare,
         count: posts?.length || 0,
       },
     ];
 
     if (isOwnProfile) {
-      baseTabs.push({ id: "likes", label: "Likes", icon: Heart, count: likedPosts?.length || 0 });
+      baseTabs.push({
+        id: "likes",
+        label: "Likes",
+        count: likedPosts?.length || 0,
+      });
 
       baseTabs.push({
         id: "settings",
         label: "Settings",
-        icon: Settings,
         count: null,
       });
     }
@@ -111,16 +112,21 @@ export const ProfileTabs = ({
   const tabs = getTabs();
 
   return (
-    <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="w-full overflow-x-auto justify-start h-auto p-0 bg-transparent border-b rounded-none">
+    <Tabs
+      defaultValue="posts"
+      value={activeTab}
+      onValueChange={setActiveTab}
+      className="w-full"
+    >
+      <TabsList className="w-full text-muted-foreground h-10 bg-transparent rounded-none p-0 overflow-x-auto justify-start border-b">
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.id}
             value={tab.id}
-            className="flex-1 min-w-0 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none py-4 px-6"
+            className="px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <tab.icon className="h-4 w-4" />
+              {/* <tab.icon className="h-4 w-4" /> */}
               <span className="truncate">{tab.label}</span>
               {tab.count !== null && (
                 <span className="text-muted-foreground">({tab.count})</span>
@@ -196,7 +202,9 @@ export const ProfileTabs = ({
                     {/* Infinite scroll trigger */}
                     {hasMoreLiked && (
                       <div ref={likedLoadMoreRef} className="py-4 text-center">
-                        {isFetchingMoreLiked && <FeedLoadingSkeleton count={2} />}
+                        {isFetchingMoreLiked && (
+                          <FeedLoadingSkeleton count={2} />
+                        )}
                       </div>
                     )}
 

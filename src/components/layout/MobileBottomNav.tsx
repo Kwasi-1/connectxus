@@ -39,7 +39,7 @@ export function MobileBottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon icon={isActive ? item.activeIcon : item.icon} className={cn("h-7 w-7 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
+              <Icon icon={isActive ? item.activeIcon : item.icon} className={cn("h-6 w-6 sm:h-[1.35rem] sm:w-[1.35rem] mb-1", isActive && "stroke-2")} />
               <span className={cn("text-xs hidden sm:block truncate", isActive && "font-semibold")}>
                 {item.label}
               </span>
