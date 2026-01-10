@@ -17,7 +17,7 @@ import TutoringIcon from "@/assets/icons/Tutoring.svg?react";
 import HelpIcon from "@/assets/icons/Help.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 
-const navigationItems = [
+export const navigationItems = [
   { icon: IconlyHome2, label: "Home", path: "/feed", id: "home" },
   { icon: IconlySearch, label: "Explore", path: "/search", id: "explore" },
   {

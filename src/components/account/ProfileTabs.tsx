@@ -128,14 +128,20 @@ export const ProfileTabs = ({
       onValueChange={setActiveTab}
       className="w-full"
     >
-      <TabsList className="w-full text-muted-foreground h-12 bg-transparent rounded-none p-0 overflow-x-auto justify-start border-b">
+      <TabsList className="w-full text-muted-foreground h-10 bg-transparent rounded-none p-0 overflow-x-auto justify-start border-b gap-4 px-3">
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.id}
             value={tab.id}
-            className="flex-1 px-4 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground data-[state=active]:font-semibold hover:bg-accent/50 transition-colors"
+            className="mx- px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
           >
-            <span className="truncate">{tab.label}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              {/* <tab.icon className="h-4 w-4" /> */}
+              <span className="truncate">{tab.label}</span>
+              {tab.count !== null && (
+                <span className="text-muted-foreground">({tab.count})</span>
+              )}
+            </div>
           </TabsTrigger>
         ))}
       </TabsList>

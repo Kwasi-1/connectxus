@@ -237,102 +237,129 @@ export const ProfileHeader = ({
 
   return (
     <div className="relative">
-      {/* <div className=" absolute h-40 bg-gradient-to-b from-transparent to-background relative" /> */}
+      {/* Cover Image */}
+      <div className="h-48 md:h-52 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
+        {/* Back button overlay - optional */}
+        <div className="absolute top-4 left-4 z-10">
+          {/* Add back button here if needed */}
+        </div>
 
-      <div className="h-40 bg-gradient-to-r from-blue-400 to-purple-600 relative">
-        <div className="absolute -bottom-10 md:-bottom-16 left-4">
-          <div className="relative">
-            <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background rounded-3xl md:rounded-[28px]">
-              <AvatarImage
-                src={avatarPreview || user.avatar}
-                alt={user.username}
+        {/* Gradient overlay at bottom of cover for smooth transition */}
+        <div className="absolute -bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
+      </div>
+
+      {/* Avatar positioned outside cover container to avoid clipping */}
+      <div className="absolute top-36 md:top-36 left-4 md:left-6 z-10">
+        <div className="relative">
+          <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background  rounded-3xl md:rounded-[28px] shadow-md">
+            <AvatarImage
+              src={avatarPreview || user.avatar}
+              alt={user.username}
+            />
+            <AvatarFallback className="text-3xl rounded-3xl">
+              {user.username.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {isEditing && isOwnProfile && (
+            <>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarSelect}
+                className="hidden"
               />
-              <AvatarFallback className="text-3xl rounded-3xl">
-                {user.username.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            {isEditing && isOwnProfile && (
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
+                disabled={isUploadingAvatar}
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Camera className="h-5 w-5" />
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="pt-14 md:pt-16 px-4 md:px-6 pb-4">
+        <div className="flex items-start justify-between mb-1">
+          {/* Name and username */}
+          <div className="flex-1 min-w-0">
+            {isEditing && isOwnProfile ? (
+              <Input
+                value={editForm.displayName}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, displayName: e.target.value })
+                }
+                placeholder="Display Name"
+                className="text-xl font-bold mb-1"
+              />
+            ) : (
               <>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarSelect}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
-                  disabled={isUploadingAvatar}
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">
+                  {user.displayName || user.username}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  @{user.username}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 ml-3">
+            {isOwnProfile ? (
+              <Button
+                onClick={() => setIsEditing(!isEditing)}
+                variant="outline"
+                size="sm"
+                className="rounded-full font-medium border-muted-foreground/30"
+              >
+                {isEditing ? "Cancel" : "Edit profile"}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={handleMessage}
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-9 w-9 border-muted-foreground/30"
+                  disabled={isMessageLoading}
                 >
-                  {isUploadingAvatar ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Camera className="h-5 w-5" />
-                  )}
-                </button>
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={handleFollow}
+                  variant={isFollowing ? "outline" : "default"}
+                  size="sm"
+                  className="rounded-full font-medium"
+                  disabled={isFollowLoading}
+                >
+                  {isFollowLoading
+                    ? "Loading..."
+                    : isFollowing
+                    ? "Following"
+                    : "Follow"}
+                </Button>
               </>
             )}
           </div>
         </div>
-      </div>
-
-      <div className="pt-8 px-6 pb-4">
-        <div className="flex justify-end mb-4">
-          {isOwnProfile ? (
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              variant="outline"
-              className="rounded-full"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              {isEditing ? "Cancel" : "Edit Profile"}
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              {isFollowing && (
-                <Button
-                  onClick={handleMessage}
-                  variant="outline"
-                  className="rounded-full"
-                  disabled={isMessageLoading}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  {isMessageLoading ? "Loading..." : "Message"}
-                </Button>
-              )}
-              <Button
-                onClick={handleFollow}
-                variant={isFollowing ? "outline" : "default"}
-                className="rounded-full"
-                disabled={isFollowLoading}
-              >
-                {isFollowLoading
-                  ? "Loading..."
-                  : isFollowing
-                  ? "Following"
-                  : "Follow"}
-              </Button>
-            </div>
-          )}
-        </div>
 
         {isEditing && isOwnProfile ? (
-          <div className="space-y-4 max-w-lg">
-            <Input
-              value={editForm.displayName}
-              onChange={(e) =>
-                setEditForm({ ...editForm, displayName: e.target.value })
-              }
-              placeholder="Display Name"
-            />
+          <div className="space-y-4 max-w-lg mt-3">
             <Textarea
               value={editForm.bio}
               onChange={(e) =>
                 setEditForm({ ...editForm, bio: e.target.value })
               }
-              placeholder="Bio"
+              placeholder="Tell us about yourself..."
               rows={3}
+              className="text-sm"
             />
 
             <div className="space-y-3">
@@ -419,11 +446,12 @@ export const ProfileHeader = ({
               </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap pt-2">
               <Button
                 onClick={handleSave}
                 size="sm"
                 disabled={isUploadingAvatar}
+                className="rounded-full font-medium"
               >
                 {isUploadingAvatar ? (
                   <>
@@ -439,6 +467,7 @@ export const ProfileHeader = ({
                 variant="outline"
                 size="sm"
                 disabled={isUploadingAvatar}
+                className="rounded-full font-medium border-muted-foreground/30"
               >
                 Cancel
               </Button>
@@ -447,6 +476,7 @@ export const ProfileHeader = ({
                 variant="secondary"
                 size="sm"
                 type="button"
+                className="rounded-full font-medium"
               >
                 <KeyRound className="h-4 w-4 mr-2" />
                 Change Password
@@ -454,36 +484,56 @@ export const ProfileHeader = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{user.username}</h1>
-              {user.verified && <Badge variant="default">Verified</Badge>}
-            </div>
-            <p className="text-muted-foreground">@{user.username}</p>
-            {user.bio && (
-              <p className="text-base text-wrap text-foreground/90 whitespace-pre-line break-words">
-                {user.bio}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {user.space_name && <span>🏫 {user.space_name}</span>}
-              {user.department_name && <span>🎓 {user.department_name}</span>}
-              {user.level && <span>📚 Level {user.level}</span>}
-            </div>
-            <div className="flex gap-6 text-sm">
+          <div className="space-y-3 mt-3">
+            {/* Stats row */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowFollowingModal(true)}
-                className="hover:underline cursor-pointer transition-all"
+                className="hover:underline cursor-pointer transition-all text-sm"
               >
-                <strong>{user.following}</strong> Following
+                <span className="font-bold text-foreground">
+                  {user.following}
+                </span>{" "}
+                <span className="text-muted-foreground">Following</span>
               </button>
               <button
                 onClick={() => setShowFollowersModal(true)}
-                className="hover:underline cursor-pointer transition-all"
+                className="hover:underline cursor-pointer transition-all text-sm"
               >
-                <strong>{user.followers}</strong> Followers
+                <span className="font-bold text-foreground">
+                  {user.followers}
+                </span>{" "}
+                <span className="text-muted-foreground">Followers</span>
               </button>
             </div>
+
+            {/* Bio */}
+            {user.bio && (
+              <p className="text-sm text-foreground leading-relaxed">
+                {user.bio}
+              </p>
+            )}
+
+            {/* Additional info with icons */}
+            {(user.space_name || user.department_name || user.level) && (
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                {user.space_name && (
+                  <span className="flex items-center gap-1">
+                    🏫 {user.space_name}
+                  </span>
+                )}
+                {user.department_name && (
+                  <span className="flex items-center gap-1">
+                    🎓 {user.department_name}
+                  </span>
+                )}
+                {user.level && (
+                  <span className="flex items-center gap-1">
+                    📚 Level {user.level}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

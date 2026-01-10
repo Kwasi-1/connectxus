@@ -17,24 +17,37 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { UserProfile } from "./UserProfile";
+import {
+  IconlyHome2,
+  IconlySearch,
+  IconlyNotification,
+  IconlyMessage,
+  IconlyCategory,
+} from "@/assets/icons/IconSet";
+import TutoringIcon from "@/assets/icons/Tutoring.svg?react";
+import HelpIcon from "@/assets/icons/Help.svg?react";
+import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
+import { navigationItems } from "./Sidebar";
 
-const navigationItems = [
-  { icon: Home, label: "Home", path: "/", id: "home" },
-  { icon: Search, label: "Explore", path: "/search", id: "search" },
-  {
-    icon: Bell,
-    label: "Notifications",
-    path: "/notifications",
-    id: "notifications",
-  },
-  { icon: Mail, label: "Messages", path: "/messages", id: "messages" },
-  { icon: Users, label: "Groups", path: "/hub", id: "groups" },
-  { icon: BookOpen, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-  { icon: HandHeart, label: "Help", path: "/help", id: "help" },
-  { icon: User, label: "Account", path: "/account", id: "account" },
-];
+// const navigationItems = [
+//   { icon: IconlyHome2, label: "Home", path: "/feed", id: "home" },
+//   { icon: IconlySearch, label: "Explore", path: "/search", id: "explore" },
+//   {
+//     icon: IconlyNotification,
+//     label: "Notifications",
+//     path: "/notifications",
+//     id: "notifications",
+//   },
+//   { icon: IconlyMessage, label: "Messages", path: "/messages", id: "messages" },
+//   { icon: IconlyCategory, label: "Groups", path: "/hub", id: "groups" },
+//   { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
+//   { icon: HelpIcon, label: "Campus Help", path: "/help", id: "help" },
+//   { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
+// ];
+
+const navItems = navigationItems;
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -70,24 +83,28 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </SheetHeader>
 
           <nav className="flex-1 p-6 space-y-1 md:space-y-4 overflow-y-auto scrollbar-hide">
-            {navigationItems.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveRoute(item.path);
 
               return (
-                <Button
+                <Link
                   key={item.id}
-                  variant="ghost"
-                  onClick={() => handleNavigation(item.path)}
+                  to={item.path}
                   className={cn(
-                    "w-full justify-start text-left px-4 py-3 text-lg md:text-xl font-[300] rounded-full transition-colors",
-                    "hover:bg-muted",
+                    "w-fit xl:w-full justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
+                    "hover:bg-muted font-[300] gap-4",
                     isActive && "font-bold"
                   )}
                 >
-                  <Icon className="mr-4 h-6 w-6" />
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 text-3xl xl:h-[22px] xl:w-[22px] transtion duration-300",
+                      isActive ? "fill-transparent scale-110" : "stroke-current"
+                    )}
+                  />
                   {item.label}
-                </Button>
+                </Link>
               );
             })}
           </nav>
