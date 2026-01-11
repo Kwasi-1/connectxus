@@ -22,6 +22,7 @@ import { X, Plus, Calendar, Upload, Camera } from "lucide-react";
 import { GroupCategory } from "@/types/communities";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFile } from "@/api/files.api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProjectRole {
   id: string;
@@ -62,12 +63,14 @@ export function CreateGroupModal({
   onCreateGroup,
 }: CreateGroupModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [groupType, setGroupType] = useState<"public" | "private" | "project">(
     "public"
   );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<GroupCategory>("Study Group");
+  const [level, setLevel] = useState<number>(0); 
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -158,10 +161,10 @@ export function CreateGroupModal({
       return;
     }
 
-    if (groupType === "project" && projectRoles.length === 0) {
+    if (groupType === "project" && projectRoles.length < 2) {
       toast({
         title: "Missing Roles",
-        description: "Please add at least one role for the project",
+        description: "Please add at least 2 roles for the project",
         variant: "destructive",
       });
       return;
@@ -198,6 +201,7 @@ export function CreateGroupModal({
       category,
       tags,
       groupType,
+      level,
       avatar_file_id: avatarFileId,
       ...(groupType === "project" && {
         projectRoles: projectRoles.map((role) => ({
@@ -220,6 +224,7 @@ export function CreateGroupModal({
     setName("");
     setDescription("");
     setCategory("Study Group");
+    setLevel(0);
     setTags([]);
     setGroupType("public");
     setProjectRoles([]);
@@ -302,6 +307,35 @@ export function CreateGroupModal({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="level">Level *</Label>
+            <Select
+              value={level.toString()}
+              onValueChange={(value) => setLevel(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">All Levels</SelectItem>
+                {[100, 200, 300, 400].map((lvl) => {
+                  const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                  if (userLevelNum === 0 || lvl <= userLevelNum) {
+                    return (
+                      <SelectItem key={lvl} value={lvl.toString()}>
+                        Level {lvl}
+                      </SelectItem>
+                    );
+                  }
+                  return null;
+                })}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select the minimum level required to join this group
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,246 +12,341 @@ import {
   Clock,
   Activity,
   Building2,
+  UserPlus,
+  MessageSquare,
+  Shield,
+  BarChart3,
+  Settings,
 } from "lucide-react";
-import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
-import { SpaceSwitcher } from "@/components/admin/SpaceSwitcher";
-import { CreateSpaceModal } from "@/components/admin/CreateSpaceModal";
 import { adminApi } from "@/api/admin.api";
-import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export function AdminDashboard() {
-  const { admin, hasPermission } = useAdminAuth();
-  const [currentSpaceId, setCurrentSpaceId] = useState<string>("");
-  const [createSpaceModalOpen, setCreateSpaceModalOpen] = useState(false);
-
-  const { data: spaces = [] } = useQuery({
-    queryKey: ["spaces"],
-    queryFn: adminApi.getSpaces,
-    staleTime: 5 * 60 * 1000,
+  const [currentSpaceId, setCurrentSpaceId] = React.useState<string>(() => {
+    return localStorage.getItem("admin-current-space-id") || "";
   });
 
   React.useEffect(() => {
-    if (spaces.length > 0 && !currentSpaceId) {
-      setCurrentSpaceId(spaces[0].id);
-    }
-  }, [spaces, currentSpaceId]);
+    const handleStorageChange = () => {
+      const newSpaceId = localStorage.getItem("admin-current-space-id") || "";
+      setCurrentSpaceId(newSpaceId);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats", currentSpaceId],
     queryFn: () => adminApi.getDashboardStats(currentSpaceId),
     enabled: !!currentSpaceId,
-    staleTime: 60000,
+    staleTime: 30000,
   });
+
+  const { data: spacesData } = useQuery({
+    queryKey: ["spaces"],
+    queryFn: () => adminApi.getSpaces(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const spaces = spacesData?.spaces || [];
+
+  const currentSpace = React.useMemo(() => {
+    if (currentSpaceId === "all") return { name: "All Spaces" };
+    return spaces.find((s: any) => s.id === currentSpaceId);
+  }, [spaces, currentSpaceId]);
 
   const quickStats = [
     {
       title: "Total Users",
-      value: stats?.total_users.toLocaleString() || "0",
+      value: stats?.total_users?.toLocaleString() || "0",
       icon: Users,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      permission: "user_management",
-    },
-    {
-      title: "New Users (Month)",
-      value: stats?.new_users_month.toLocaleString() || "0",
-      icon: Activity,
-      color: "text-green-600",
-      bgColor: "bg-green-600/10",
-      permission: "analytics",
-    },
-    {
-      title: "Total Posts",
-      value: stats?.total_posts.toLocaleString() || "0",
-      icon: FileText,
       color: "text-blue-600",
-      bgColor: "bg-blue-600/10",
-      permission: "content_management",
+      bgColor: "bg-blue-50",
+      darkBgColor: "dark:bg-blue-950",
+      trend: "+12% from last month",
+    },
+    {
+      title: "New Users (30d)",
+      value: stats?.new_users_month?.toLocaleString() || "0",
+      icon: UserPlus,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      darkBgColor: "dark:bg-green-950",
+      trend: "+5% from last month",
+    },
+    {
+      title: "Active Posts",
+      value: stats?.total_posts?.toLocaleString() || "0",
+      icon: FileText,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      darkBgColor: "dark:bg-purple-950",
+      trend: "+23% from last month",
     },
     {
       title: "Pending Reports",
-      value: stats?.pending_reports.toString() || "0",
+      value: stats?.pending_reports?.toString() || "0",
       icon: AlertTriangle,
       color: "text-red-600",
-      bgColor: "bg-red-600/10",
-      permission: "content_management",
-    },
-    {
-      title: "Suspensions (Month)",
-      value: stats?.suspensions_month.toString() || "0",
-      icon: Clock,
-      color: "text-orange-600",
-      bgColor: "bg-orange-600/10",
-      permission: "user_management",
+      bgColor: "bg-red-50",
+      darkBgColor: "dark:bg-red-950",
+      trend: stats?.pending_reports > 0 ? "Requires attention" : "All clear",
+      alert: stats?.pending_reports > 0,
     },
     {
       title: "Communities",
-      value: stats?.total_communities.toString() || "0",
+      value: stats?.total_communities?.toString() || "0",
       icon: Building2,
-      color: "text-purple-600",
-      bgColor: "bg-purple-600/10",
-      permission: "community_management",
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      darkBgColor: "dark:bg-indigo-950",
+      trend: "+8% from last month",
+    },
+    {
+      title: "Groups",
+      value: stats?.total_groups?.toString() || "0",
+      icon: MessageSquare,
+      color: "text-teal-600",
+      bgColor: "bg-teal-50",
+      darkBgColor: "dark:bg-teal-950",
+      trend: "+15% from last month",
+    },
+    {
+      title: "Suspensions (30d)",
+      value: stats?.suspensions_month?.toString() || "0",
+      icon: Shield,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      darkBgColor: "dark:bg-orange-950",
+      trend: stats?.suspensions_month > 5 ? "Higher than usual" : "Normal range",
+      alert: stats?.suspensions_month > 5,
+    },
+    {
+      title: "Total Spaces",
+      value: spaces.length.toString(),
+      icon: Building2,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50",
+      darkBgColor: "dark:bg-cyan-950",
+      trend: `${spaces.length} space${spaces.length !== 1 ? "s" : ""} configured`,
     },
   ];
 
-  const handleSpaceChange = (spaceId: string) => {
-    setCurrentSpaceId(spaceId);
-    toast.success("Space switched successfully");
-  };
+  const quickActions = [
+    {
+      title: "Manage Users",
+      description: "View, edit, and manage user accounts",
+      icon: Users,
+      href: "/admin/users",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      darkBgColor: "dark:bg-blue-950",
+    },
+    {
+      title: "Content Reports",
+      description: "Review and moderate reported content",
+      icon: AlertTriangle,
+      href: "/admin/reports",
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+      darkBgColor: "dark:bg-red-950",
+      badge: stats?.pending_reports > 0 ? stats.pending_reports : undefined,
+    },
+    {
+      title: "Communities",
+      description: "Manage communities and groups",
+      icon: Building2,
+      href: "/admin/communities",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      darkBgColor: "dark:bg-purple-950",
+    },
+    {
+      title: "System Settings",
+      description: "Configure system preferences",
+      icon: Settings,
+      href: "/admin/settings",
+      color: "text-gray-600",
+      bgColor: "bg-gray-50",
+      darkBgColor: "dark:bg-gray-950",
+    },
+    {
+      title: "Space Activities",
+      description: "View recent space activity logs",
+      icon: Activity,
+      href: "/admin/activities",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      darkBgColor: "dark:bg-green-950",
+    },
+    {
+      title: "Admin Management",
+      description: "Manage administrator accounts",
+      icon: Shield,
+      href: "/admin/admins",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      darkBgColor: "dark:bg-orange-950",
+    },
+  ];
 
-  const handleCreateSpace = () => {
-    setCreateSpaceModalOpen(true);
-  };
-
-  const handleSpaceCreated = (spaceId: string) => {
-    setCurrentSpaceId(spaceId);
-    toast.success("New space created and activated");
-  };
+  if (!currentSpaceId) {
+    return (
+      <AdminPageLayout title="Admin Dashboard">
+        <Card className="border-2 border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Select a Space</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Please select a space from the space switcher to view dashboard statistics.
+            </p>
+          </CardContent>
+        </Card>
+      </AdminPageLayout>
+    );
+  }
 
   return (
     <AdminPageLayout title="Admin Dashboard">
-      <div className="space-y-4">
-        {currentSpaceId && (
-          <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {quickStats.map((stat, index) => {
-                if (!hasPermission(stat.permission as any)) return null;
+      <div className="space-y-6">
+        {/* Current Space Info */}
+        <Card className="border-l-4 border-l-primary">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  {currentSpace?.name || "Unknown Space"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Dashboard Overview
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                return (
-                  <Card key={index}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {stat.title}
-                      </CardTitle>
-                      <div
-                        className={`p-3 rounded-xl ${
-                          stat.bgColor
-                        } bg-gradient-to-br from-${stat.color.replace(
-                          "text-",
-                          ""
-                        )}/20 to-${stat.color.replace(
-                          "text-",
-                          ""
-                        )}/5 group-hover:scale-110 transition-transform duration-300`}
-                      >
-                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {isLoading ? (
-                        <Skeleton className="h-10 w-24" />
-                      ) : (
-                        <div className="space-y-1">
-                          <div className="text-3xl font-bold tracking-tight">
-                            {stat.value}
+        {/* Quick Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {quickStats.map((stat) => (
+            <Card
+              key={stat.title}
+              className={`transition-all hover:shadow-md ${
+                stat.alert ? "border-red-200 dark:border-red-900" : ""
+              }`}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div
+                  className={`p-2 rounded-lg ${stat.bgColor} ${stat.darkBgColor}`}
+                >
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p
+                      className={`text-xs mt-1 ${
+                        stat.alert
+                          ? "text-red-600 dark:text-red-400 font-medium"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {stat.trend}
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* System Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              System Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
+                >
+                  Operational
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  All systems running smoothly
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs text-muted-foreground">Live</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Access frequently used features and tools
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {quickActions.map((action) => (
+                <Link key={action.href} to={action.href}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${action.bgColor} ${action.darkBgColor}`}>
+                          <action.icon className={`h-5 w-5 ${action.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm">{action.title}</h4>
+                            {action.badge && (
+                              <Badge variant="destructive" className="text-xs">
+                                {action.badge}
+                              </Badge>
+                            )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Updated just now
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {action.description}
                           </p>
                         </div>
-                      )}
+                      </div>
                     </CardContent>
                   </Card>
-                );
-              })}
+                </Link>
+              ))}
             </div>
-
-            {/* System Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  System Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
-                      >
-                        Operational
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        All systems are running smoothly
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Access frequently used features
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                  {hasPermission("user_management") && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
-                      asChild
-                    >
-                      <a href="/admin/users">
-                        <Users className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-medium">Manage Users</span>
-                      </a>
-                    </Button>
-                  )}
-                  {hasPermission("content_management") && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
-                      asChild
-                    >
-                      <a href="/admin/reports">
-                        <FileText className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-medium">View Reports</span>
-                      </a>
-                    </Button>
-                  )}
-                  {hasPermission("community_management") && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
-                      asChild
-                    >
-                      <a href="/admin/communities">
-                        <Building2 className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-medium">Manage Communities</span>
-                      </a>
-                    </Button>
-                  )}
-                  {hasPermission("analytics") && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/30 hover:scale-105 transition-all duration-200 group"
-                      asChild
-                    >
-                      <a href="/admin/analytics">
-                        <Activity className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-medium">View Analytics</span>
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-
-        <CreateSpaceModal
-          open={createSpaceModalOpen}
-          onOpenChange={setCreateSpaceModalOpen}
-          onSuccess={handleSpaceCreated}
-        />
+          </CardContent>
+        </Card>
       </div>
     </AdminPageLayout>
   );

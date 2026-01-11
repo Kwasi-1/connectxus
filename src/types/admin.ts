@@ -180,4 +180,6 @@ export interface AdminAuthContextType {
   signOut: () => void;
   hasPermission: (permission: AdminPermission) => boolean;
   hasRole: (role: AdminRole) => boolean;
+  selectedSpaceId: string | null;
+  setSelectedSpaceId: (spaceId: string | null) => void;
 }

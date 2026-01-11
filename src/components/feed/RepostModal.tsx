@@ -1,4 +1,4 @@
-import { Repeat2, Quote } from 'lucide-react';
+import { Repeat2, Quote, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +14,7 @@ interface RepostModalProps {
   post: Post;
   onRepost: (postId: string) => void;
   onQuote: (postId: string) => void;
+  onViewInteractions?: (postId: string) => void;
   isReposted?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function RepostModal({
   post,
   onRepost,
   onQuote,
+  onViewInteractions,
   isReposted = false,
 }: RepostModalProps) {
   const handleRepost = () => {
@@ -32,6 +34,11 @@ export function RepostModal({
 
   const handleQuote = () => {
     onQuote(post.id);
+    onClose();
+  };
+
+  const handleViewInteractions = () => {
+    onViewInteractions?.(post.id);
     onClose();
   };
 
@@ -85,6 +92,20 @@ export function RepostModal({
                   <div className="font-medium">Quote</div>
                   <div className="text-sm text-muted-foreground">
                     Add a comment to this post
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start px-4 py-6 hover:bg-accent"
+                onClick={handleViewInteractions}
+              >
+                <BarChart3 className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">View Post Interactions</div>
+                  <div className="text-sm text-muted-foreground">
+                    See quotes and reposts
                   </div>
                 </div>
               </Button>

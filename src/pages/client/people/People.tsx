@@ -4,11 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PeopleFilters } from "@/components/people/PeopleFilters";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllPeopleInSpace,
   getPeopleInDepartment,
@@ -21,6 +21,8 @@ import {
   UserProfile,
 } from "@/api/users.api";
 import { toast } from "sonner";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type FilterType = "all" | "department" | "may-know" | "following";
 
@@ -32,35 +34,139 @@ export function People() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("may-know");
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
-  const { data: allPeople = [], isLoading: loadingAll } = useQuery({
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
+
+  const {
+    data: allPeopleData,
+    isLoading: loadingAll,
+    fetchNextPage: fetchNextAll,
+    hasNextPage: hasNextAll,
+    isFetchingNextPage: isFetchingNextAll,
+  } = useInfiniteQuery({
     queryKey: ["people", "all"],
-    queryFn: () => getAllPeopleInSpace({ limit: 100 }),
-    enabled: activeFilter === "all" && !searchQuery,
+    queryFn: ({ pageParam = 1 }) =>
+      getAllPeopleInSpace({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    enabled: activeFilter === "all" && !debouncedSearchQuery,
+    initialPageParam: 1,
   });
 
-  const { data: departmentPeople = [], isLoading: loadingDepartment } =
-    useQuery({
-      queryKey: ["people", "department"],
-      queryFn: () => getPeopleInDepartment({ limit: 100 }),
-      enabled: activeFilter === "department" && !searchQuery,
-    });
+  const {
+    data: departmentPeopleData,
+    isLoading: loadingDepartment,
+    fetchNextPage: fetchNextDepartment,
+    hasNextPage: hasNextDepartment,
+    isFetchingNextPage: isFetchingNextDepartment,
+  } = useInfiniteQuery({
+    queryKey: ["people", "department"],
+    queryFn: ({ pageParam = 1 }) =>
+      getPeopleInDepartment({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    enabled: activeFilter === "department" && !debouncedSearchQuery,
+    initialPageParam: 1,
+  });
 
-  const { data: mayKnowPeople = [], isLoading: loadingMayKnow } = useQuery({
+  const {
+    data: mayKnowPeopleData,
+    isLoading: loadingMayKnow,
+    fetchNextPage: fetchNextMayKnow,
+    hasNextPage: hasNextMayKnow,
+    isFetchingNextPage: isFetchingNextMayKnow,
+  } = useInfiniteQuery({
     queryKey: ["people", "may-know"],
-    queryFn: () => getPeopleYouMayKnow({ limit: 100 }),
-    enabled: activeFilter === "may-know" && !searchQuery,
+    queryFn: ({ pageParam = 1 }) =>
+      getPeopleYouMayKnow({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    enabled: activeFilter === "may-know" && !debouncedSearchQuery,
+    initialPageParam: 1,
   });
 
-  const { data: followingPeople = [], isLoading: loadingFollowing } = useQuery({
+  const {
+    data: followingPeopleData,
+    isLoading: loadingFollowing,
+    fetchNextPage: fetchNextFollowing,
+    hasNextPage: hasNextFollowing,
+    isFetchingNextPage: isFetchingNextFollowing,
+  } = useInfiniteQuery({
     queryKey: ["people", "following"],
-    queryFn: () => getUserFollowing(user?.id || "", { limit: 100 }),
-    enabled: activeFilter === "following" && !searchQuery && !!user?.id,
+    queryFn: ({ pageParam = 1 }) =>
+      getUserFollowing(user?.id || "", { page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    enabled:
+      activeFilter === "following" && !debouncedSearchQuery && !!user?.id,
+    initialPageParam: 1,
   });
 
-  const { data: searchResults = [], isLoading: loadingSearch } = useQuery({
-    queryKey: ["people", "search", searchQuery],
-    queryFn: () => searchUsers({ q: searchQuery, limit: 100 }),
-    enabled: !!searchQuery && searchQuery.length > 0,
+  const {
+    data: searchResultsData,
+    isLoading: loadingSearch,
+    fetchNextPage: fetchNextSearch,
+    hasNextPage: hasNextSearch,
+    isFetchingNextPage: isFetchingNextSearch,
+  } = useInfiniteQuery({
+    queryKey: ["people", "search", debouncedSearchQuery],
+    queryFn: ({ pageParam = 1 }) =>
+      searchUsers({ q: debouncedSearchQuery, page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
+    enabled: !!debouncedSearchQuery && debouncedSearchQuery.length > 0,
+    initialPageParam: 1,
+  });
+
+  const allPeople = allPeopleData?.pages.flatMap((page) => page) || [];
+  const departmentPeople =
+    departmentPeopleData?.pages.flatMap((page) => page) || [];
+  const mayKnowPeople = mayKnowPeopleData?.pages.flatMap((page) => page) || [];
+  const followingPeople =
+    followingPeopleData?.pages.flatMap((page) => page) || [];
+  const searchResults = searchResultsData?.pages.flatMap((page) => page) || [];
+
+  let fetchNextPage: (() => void) | undefined;
+  let hasNextPage = false;
+  let isFetchingNextPage = false;
+
+  if (debouncedSearchQuery) {
+    fetchNextPage = fetchNextSearch;
+    hasNextPage = hasNextSearch || false;
+    isFetchingNextPage = isFetchingNextSearch;
+  } else {
+    switch (activeFilter) {
+      case "all":
+        fetchNextPage = fetchNextAll;
+        hasNextPage = hasNextAll || false;
+        isFetchingNextPage = isFetchingNextAll;
+        break;
+      case "department":
+        fetchNextPage = fetchNextDepartment;
+        hasNextPage = hasNextDepartment || false;
+        isFetchingNextPage = isFetchingNextDepartment;
+        break;
+      case "may-know":
+        fetchNextPage = fetchNextMayKnow;
+        hasNextPage = hasNextMayKnow || false;
+        isFetchingNextPage = isFetchingNextMayKnow;
+        break;
+      case "following":
+        fetchNextPage = fetchNextFollowing;
+        hasNextPage = hasNextFollowing || false;
+        isFetchingNextPage = isFetchingNextFollowing;
+        break;
+    }
+  }
+
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetchingNextPage,
+    hasMore: hasNextPage,
+    onLoadMore: fetchNextPage,
   });
 
   useEffect(() => {
@@ -108,14 +214,14 @@ export function People() {
     }
   };
 
-  const handleCardClick = (userId: string) => {
-    navigate(`/profile/${userId}`);
+  const handleCardClick = (username: string) => {
+    navigate(`/profile/${username}`);
   };
 
   let people: UserProfile[] = [];
   let isLoading = false;
 
-  if (searchQuery) {
+  if (debouncedSearchQuery) {
     people = searchResults;
     isLoading = loadingSearch;
   } else {
@@ -199,7 +305,7 @@ export function People() {
                       className="flex items-start gap-4"
                       onClick={(e) => {
                         if (!(e.target as HTMLElement).closest("button")) {
-                          handleCardClick(person.id);
+                          handleCardClick(person.username);
                         }
                       }}
                     >
@@ -241,6 +347,11 @@ export function People() {
                               Level {person.level}
                             </span>
                           )}
+                          {person.department_name && (
+                            <span className="text-muted-foreground">
+                              {person.department_name}
+                            </span>
+                          )}
                         </div>
 
                         {/* Follow Button */}
@@ -270,6 +381,22 @@ export function People() {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Infinite Scroll Loader */}
+              {hasNextPage && (
+                <div ref={loadMoreRef} className="py-8 flex justify-center">
+                  {isFetchingNextPage && (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              )}
+
+              {/* End of List */}
+              {!hasNextPage && people.length > 0 && (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  You've reached the end
+                </div>
+              )}
             </div>
           )}
 
@@ -280,7 +407,7 @@ export function People() {
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No people found</h3>
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery
+                  {debouncedSearchQuery
                     ? "Try adjusting your search query"
                     : "Try adjusting your filters"}
                 </p>

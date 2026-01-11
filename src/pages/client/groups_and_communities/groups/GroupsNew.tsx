@@ -20,6 +20,7 @@ import {
   createGroup,
   Group as ApiGroup,
 } from "@/api/groups.api";
+import { searchGroups } from "@/api/search.api";
 import { toast } from "sonner";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import {
@@ -92,6 +93,7 @@ const GroupsNew = () => {
   const [departmentsPage, setDepartmentsPage] = useState(1);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -158,6 +160,16 @@ const GroupsNew = () => {
 
   const recommendedGroups = recommendedGroupsData?.pages.flatMap(page => page) ?? [];
 
+  const {
+    data: searchResults = [],
+    isLoading: loadingSearch,
+  } = useQuery({
+    queryKey: ["search-groups", debouncedSearchQuery],
+    queryFn: () => searchGroups({ query: debouncedSearchQuery, page: 1, limit: 50 }),
+    enabled: debouncedSearchQuery.length > 0,
+    staleTime: 30000,
+  });
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastGroupRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -175,7 +187,7 @@ const GroupsNew = () => {
     [isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  const isLoading = loadingUserGroups || loadingRecommendedGroups;
+  const isLoading = loadingUserGroups || loadingRecommendedGroups || loadingSearch;
 
   const joinGroupMutation = useMutation({
     mutationFn: (groupId: string) => joinGroup(groupId),
@@ -226,19 +238,26 @@ const GroupsNew = () => {
     },
   });
 
-  const filteredGroups = (groupsList: ApiGroup[]) => {
-    return groupsList.filter((group) => {
-      const matchesSearch =
-        group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (group.description?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        );
-      return matchesSearch;
-    });
+  const getDisplayList = () => {
+    if (activeTab === "my-groups") {
+      return debouncedSearchQuery.length > 0 ? searchResults : userGroups;
+    } else {
+      return debouncedSearchQuery.length > 0 ? searchResults : recommendedGroups;
+    }
   };
 
-  const myGroups = userGroups;
-  const exploreGroups = recommendedGroups;
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+    }
+  };
+
+  const myGroupsIds = new Set(userGroups.map((g) => g.id));
+  const displayList = getDisplayList();
+
+  const myGroups = activeTab === "my-groups" ? displayList : userGroups;
+  const exploreGroups = activeTab === "explore"
+    ? displayList.filter((g) => !myGroupsIds.has(g.id))
+    : recommendedGroups.filter((g) => !myGroupsIds.has(g.id));
 
   const handleApplyFilters = () => {
     setAppliedFilters({ ...pendingFilters });
@@ -316,6 +335,7 @@ const GroupsNew = () => {
       group_type: groupData.groupType,
       avatar_file_id: groupData.avatar_file_id,
       tags: groupData.tags,
+      level: groupData.level,
       allow_invites: groupData.groupType !== "private",
       allow_member_posts: true,
       ...(groupData.groupType === "project" &&
@@ -510,26 +530,27 @@ const GroupsNew = () => {
                   placeholder="Search your groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
                   className="pl-10 rounded-full"
                 />
               </div>
 
               {/* Groups Grid */}
               <div className="space-y-3">
-                {filteredGroups(myGroups).length === 0 ? (
+                {myGroups.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
                       No groups found
                     </h3>
                     <p className="text-muted-foreground">
-                      {myGroups.length === 0
+                      {userGroups.length === 0
                         ? "You haven't joined any groups yet"
                         : "Try adjusting your search"}
                     </p>
                   </div>
                 ) : (
-                  filteredGroups(myGroups).map((group) => (
+                  myGroups.map((group) => (
                     <GroupCard key={group.id} group={group} />
                   ))
                 )}
@@ -547,6 +568,7 @@ const GroupsNew = () => {
                     placeholder="Search groups..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleSearchKeyPress}
                     className="pl-10 rounded-full"
                   />
                 </div>
@@ -623,7 +645,7 @@ const GroupsNew = () => {
 
               {/* Groups Grid */}
               <div className="space-y-3">
-                {filteredGroups(exploreGroups).length === 0 ? (
+                {exploreGroups.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
@@ -635,8 +657,8 @@ const GroupsNew = () => {
                   </div>
                 ) : (
                   <>
-                    {filteredGroups(exploreGroups).map((group, index) => {
-                      const isLastItem = index === filteredGroups(exploreGroups).length - 1;
+                    {exploreGroups.map((group, index) => {
+                      const isLastItem = index === exploreGroups.length - 1;
                       return (
                         <div
                           key={group.id}

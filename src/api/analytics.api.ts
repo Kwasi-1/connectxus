@@ -37,21 +37,14 @@ export interface SystemMetrics {
   last_updated: string;
 }
 
-export const getReport = async (reportId: string): Promise<Report> => {
+export const getReport = async (
+  reportId: string,
+  reportType: "post" | "comment" | "message" | "user"
+): Promise<Report> => {
   const response = await apiClient.get<ApiResponse<Report>>(
-    `/analytics/reports/${reportId}`
-  );
-  return response.data.data;
-};
-
-export const getReportsByContent = async (
-  contentId: string,
-  contentType: string
-): Promise<Report[]> => {
-  const response = await apiClient.get<ApiResponse<Report[]>>(
-    "/analytics/reports/by-content",
+    `/analytics/reports/${reportId}`,
     {
-      params: { content_id: contentId, content_type: contentType },
+      params: { report_type: reportType },
     }
   );
   return response.data.data;
@@ -76,11 +69,15 @@ export const createReport = async (
 
 export const updateReport = async (
   reportId: string,
+  reportType: "post" | "comment" | "message" | "user",
   data: Partial<Report>
 ): Promise<Report> => {
   const response = await apiClient.put<ApiResponse<Report>>(
     `/analytics/reports/${reportId}`,
-    data
+    data,
+    {
+      params: { report_type: reportType },
+    }
   );
   return response.data.data;
 };
@@ -108,10 +105,7 @@ export const getSystemMetrics = async (): Promise<SystemMetrics> => {
 
 export const getSpaceMetrics = async (spaceId?: string): Promise<any> => {
   const response = await apiClient.get<ApiResponse<any>>(
-    "/analytics/metrics/space",
-    {
-      params: spaceId ? { space_id: spaceId } : {},
-    }
+    "/analytics/metrics/space"
   );
   return response.data.data;
 };
@@ -195,7 +189,6 @@ export const getPopularTutorSubjects = async (): Promise<any[]> => {
 
 export const analyticsApi = {
   getReport,
-  getReportsByContent,
   getPendingReports,
   createReport,
   updateReport,

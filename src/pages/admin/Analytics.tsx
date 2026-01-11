@@ -1,557 +1,284 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   TrendingUp,
-  TrendingDown,
   Users,
-  MessageSquare,
-  Calendar,
+  FileText,
   GraduationCap,
-  Download,
-  Filter,
+  HelpCircle,
+  MessageSquare,
+  Building2,
+  Calendar,
   BarChart3,
-  PieChart,
-  Activity,
+  AlertCircle,
+  Clock,
+  ShieldBan,
+  Building,
+  Layers,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart as RechartsPieChart,
-  Cell,
-  Pie,
-} from "recharts";
+import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
-import { useToast } from "@/hooks/use-toast";
-import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { GrowthChart } from "@/components/admin/GrowthChart";
+import { DistributionChart } from "@/components/admin/DistributionChart";
 
 export function Analytics() {
-  const { toast } = useToast();
-  const { selectedSpaceId } = useAdminSpace();
-  const [timeRange, setTimeRange] = useState("30d");
-  const [isLoading, setIsLoading] = useState(true);
-  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
-  const [engagementData, setEngagementData] = useState<any>({});
-  const [activityData, setActivityData] = useState<any>({});
-
-  const [categoryData, setCategoryData] = useState<any[]>([
-    { name: "Academic", value: 0, color: "hsl(var(--chart-1))" },
-    { name: "Social", value: 0, color: "hsl(var(--chart-2))" },
-    { name: "Events", value: 0, color: "hsl(var(--chart-3))" },
-    { name: "Announcements", value: 0, color: "hsl(var(--chart-4))" },
-  ]);
-  const [groupActivityData, setGroupActivityData] = useState<any[]>([]);
-  const [tutoringStats, setTutoringStats] = useState({
-    active_tutors: 0,
-    sessions_this_month: 0,
-    average_rating: 0,
-    tutors_growth: "+0%",
-    sessions_growth: "+0%",
-  });
-  const [eventStats, setEventStats] = useState({
-    events_this_month: 0,
-    total_attendees: 0,
-    attendance_rate: 0,
-    upcoming_events: 0,
-    avg_attendees: 0,
-    attendance_growth: "+0%",
-  });
-
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeRange, selectedSpaceId]);
-
-  const loadAnalytics = async () => {
-    try {
-      setIsLoading(true);      const now = new Date();
-      const since = new Date();
-      switch (timeRange) {
-        case "7d":
-          since.setDate(now.getDate() - 7);
-          break;
-        case "30d":
-          since.setDate(now.getDate() - 30);
-          break;
-        case "90d":
-          since.setDate(now.getDate() - 90);
-          break;
-        case "1y":
-          since.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-
-      const [userGrowth, engagement, activity] = await Promise.all([
-        adminApi.getUserGrowth(selectedSpaceId, since),
-        adminApi.getEngagementMetrics(selectedSpaceId, since),
-        adminApi.getActivityAnalytics(selectedSpaceId, since),
-      ]);
-
-      setUserGrowthData(userGrowth || []);
-      setEngagementData(engagement || {});
-      setActivityData(activity || {});
-
-      if (engagement && engagement.weekly_data) {
-        setEngagementData(engagement.weekly_data);
-      }
-
-      if (activity && activity.content_by_category) {
-        const categories = [
-          {
-            name: "Academic",
-            value: activity.content_by_category.academic || 0,
-            color: "hsl(var(--chart-1))",
-          },
-          {
-            name: "Social",
-            value: activity.content_by_category.social || 0,
-            color: "hsl(var(--chart-2))",
-          },
-          {
-            name: "Events",
-            value: activity.content_by_category.events || 0,
-            color: "hsl(var(--chart-3))",
-          },
-          {
-            name: "Announcements",
-            value: activity.content_by_category.announcements || 0,
-            color: "hsl(var(--chart-4))",
-          },
-        ];
-        setCategoryData(categories);
-      }
-
-      if (activity && activity.top_groups) {
-        setGroupActivityData(activity.top_groups);
-      }
-
-      if (activity && activity.tutoring) {
-        setTutoringStats({
-          active_tutors: activity.tutoring.active_tutors || 0,
-          sessions_this_month: activity.tutoring.sessions_this_month || 0,
-          average_rating: activity.tutoring.average_rating || 0,
-          tutors_growth: activity.tutoring.tutors_growth || "+0%",
-          sessions_growth: activity.tutoring.sessions_growth || "+0%",
-        });
-      }
-
-      if (activity && activity.events) {
-        setEventStats({
-          events_this_month: activity.events.events_this_month || 0,
-          total_attendees: activity.events.total_attendees || 0,
-          attendance_rate: activity.events.attendance_rate || 0,
-          upcoming_events: activity.events.upcoming_events || 0,
-          avg_attendees: activity.events.avg_attendees || 0,
-          attendance_growth: activity.events.attendance_growth || "+0%",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to load analytics:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const stats = [
-    {
-      title: "Total Users",
-      value: activityData.total_users
-        ? activityData.total_users.toLocaleString()
-        : "0",
-      change: activityData.user_growth_percent || "+0%",
-      trend: activityData.user_growth_percent?.startsWith("+") ? "up" : "down",
-      icon: Users,
-      color: "text-blue-600",
-    },
-    {
-      title: "Active Users (30d)",
-      value: activityData.active_users
-        ? activityData.active_users.toLocaleString()
-        : "0",
-      change: activityData.active_users_percent || "+0%",
-      trend: activityData.active_users_percent?.startsWith("+") ? "up" : "down",
-      icon: Activity,
-      color: "text-green-600",
-    },
-    {
-      title: "Total Posts",
-      value: activityData.total_posts
-        ? activityData.total_posts.toLocaleString()
-        : "0",
-      change: activityData.posts_growth_percent || "+0%",
-      trend: activityData.posts_growth_percent?.startsWith("+") ? "up" : "down",
-      icon: MessageSquare,
-      color: "text-purple-600",
-    },
-    {
-      title: "Events Created",
-      value: activityData.total_events
-        ? activityData.total_events.toString()
-        : "0",
-      change: activityData.events_growth_percent || "+0%",
-      trend: activityData.events_growth_percent?.startsWith("-")
-        ? "down"
-        : "up",
-      icon: Calendar,
-      color: "text-orange-600",
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold custom-font">
-            Analytics & Reports
-          </h1>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-              </CardHeader>
-              <CardContent className="animate-pulse">
-                <div className="h-8 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold custom-font">Analytics & Reports</h1>
-        <div className="flex items-center space-x-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
+    <AdminPageLayout title="Analytics">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Users</span>
+          </TabsTrigger>
+          <TabsTrigger value="tutoring" className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            <span className="hidden sm:inline">Tutoring</span>
+          </TabsTrigger>
+          <TabsTrigger value="content" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Content</span>
+          </TabsTrigger>
+          <TabsTrigger value="community" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Community</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
+        {/* Overview Tab - 4 Key Metrics */}
+        <TabsContent value="overview" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Overview - Key Metrics
               </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <p className="text-sm text-muted-foreground mt-1">
+                Top 4 most important growth indicators
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center mt-2">
-                {stat.trend === "up" ? (
-                  <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-                )}
-                <span
-                  className={`text-xs ${
-                    stat.trend === "up" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {stat.change} from last month
-                </span>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Active Users Growth"
+                  dataKey="active_users"
+                  color="#3b82f6"
+                  fetchData={adminApi.getActiveUsersGrowth}
+                  icon={<Users className="h-5 w-5 text-blue-600" />}
+                />
+
+                <GrowthChart
+                  title="Tutoring Sessions (Completed)"
+                  dataKey="completed_sessions"
+                  color="#10b981"
+                  fetchData={adminApi.getTutoringCompletedGrowth}
+                  icon={<GraduationCap className="h-5 w-5 text-green-600" />}
+                />
+
+                <GrowthChart
+                  title="Public Posts"
+                  dataKey="public_posts"
+                  color="#8b5cf6"
+                  fetchData={adminApi.getPublicPostsGrowth}
+                  icon={<FileText className="h-5 w-5 text-purple-600" />}
+                />
+
+                <GrowthChart
+                  title="Active Public Communities"
+                  dataKey="active_public_communities"
+                  color="#6366f1"
+                  fetchData={adminApi.getCommunitiesGrowth}
+                  icon={<Building2 className="h-5 w-5 text-indigo-600" />}
+                />
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2" />
-              User Growth
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={userGrowthData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                User Analytics
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track user growth and engagement patterns
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Active Users Growth"
+                  dataKey="active_users"
+                  color="#3b82f6"
+                  fetchData={adminApi.getActiveUsersGrowth}
+                  icon={<Users className="h-5 w-5 text-blue-600" />}
                 />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                  }}
+
+                <DistributionChart
+                  title="Users by Department"
+                  dataKey="user_count"
+                  labelKey="department_name"
+                  color="#10b981"
+                  fetchData={adminApi.getUsersByDepartment}
+                  icon={<Building className="h-5 w-5 text-green-600" />}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  name="Total Users"
+
+                <DistributionChart
+                  title="Users by Level"
+                  dataKey="user_count"
+                  labelKey="level"
+                  color="#8b5cf6"
+                  fetchData={adminApi.getUsersByLevel}
+                  icon={<Layers className="h-5 w-5 text-purple-600" />}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="active"
-                  stroke="hsl(var(--chart-2))"
-                  strokeWidth={2}
-                  name="Active Users"
+
+                <GrowthChart
+                  title="Suspended Users"
+                  dataKey="suspended_users"
+                  color="#ef4444"
+                  fetchData={adminApi.getSuspendedUsersGrowth}
+                  icon={<ShieldBan className="h-5 w-5 text-red-600" />}
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <PieChart className="h-5 w-5 mr-2" />
-              Content Categories
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </RechartsPieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Engagement</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={engagementData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "6px",
-                }}
-              />
-              <Bar dataKey="posts" fill="hsl(var(--primary))" name="Posts" />
-              <Bar
-                dataKey="comments"
-                fill="hsl(var(--chart-2))"
-                name="Comments"
-              />
-              <Bar dataKey="shares" fill="hsl(var(--chart-3))" name="Shares" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Analytics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="groups" className="w-full">
-            <TabsList>
-              <TabsTrigger value="groups">Group Activity</TabsTrigger>
-              <TabsTrigger value="tutoring">Tutoring Stats</TabsTrigger>
-              <TabsTrigger value="events">Event Analytics</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="groups" className="mt-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Most Active Groups</h3>
-                <div className="space-y-3">
-                  {groupActivityData.map((group, index) => (
-                    <div
-                      key={group.name}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Badge variant="outline">#{index + 1}</Badge>
-                        <div>
-                          <div className="font-medium">{group.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {group.members} members • {group.posts} posts
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">{group.engagement}%</div>
-                        <div className="text-sm text-muted-foreground">
-                          engagement
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <TabsContent value="tutoring" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Active Tutors
-                    </CardTitle>
-                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {tutoringStats.active_tutors}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {tutoringStats.tutors_growth}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Sessions This Month
-                    </CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {tutoringStats.sessions_this_month}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {tutoringStats.sessions_growth}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Avg Rating
-                    </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {tutoringStats.average_rating.toFixed(1)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">⭐ out of 5</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+        {/* Tutoring Tab */}
+        <TabsContent value="tutoring" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Tutoring Analytics
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monitor tutoring session trends and completion rates
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Tutoring Sessions (Completed)"
+                  dataKey="completed_sessions"
+                  color="#10b981"
+                  fetchData={adminApi.getTutoringCompletedGrowth}
+                  icon={<GraduationCap className="h-5 w-5 text-green-600" />}
+                />
 
-            <TabsContent value="events" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Events This Month
-                    </CardTitle>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {eventStats.events_this_month}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {eventStats.upcoming_events} upcoming
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Attendees
-                    </CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {eventStats.total_attendees.toLocaleString()}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Avg {eventStats.avg_attendees} per event
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Attendance Rate
-                    </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {eventStats.attendance_rate}%
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {eventStats.attendance_growth}
-                    </p>
-                  </CardContent>
-                </Card>
+                <GrowthChart
+                  title="Tutoring Sessions (Ongoing)"
+                  dataKey="ongoing_sessions"
+                  color="#f59e0b"
+                  fetchData={adminApi.getTutoringOngoingGrowth}
+                  icon={<GraduationCap className="h-5 w-5 text-orange-600" />}
+                />
+
+                <GrowthChart
+                  title="Refund Requested Sessions"
+                  dataKey="refund_requested_sessions"
+                  color="#ef4444"
+                  fetchData={adminApi.getTutoringRefundRequestedGrowth}
+                  icon={<AlertCircle className="h-5 w-5 text-red-600" />}
+                />
+
+                <GrowthChart
+                  title="Pending Sessions"
+                  dataKey="pending_sessions"
+                  color="#6366f1"
+                  fetchData={adminApi.getTutoringPendingGrowth}
+                  icon={<Clock className="h-5 w-5 text-indigo-600" />}
+                />
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Content Tab */}
+        <TabsContent value="content" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Content Analytics
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track content creation and help request trends
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Public Posts"
+                  dataKey="public_posts"
+                  color="#8b5cf6"
+                  fetchData={adminApi.getPublicPostsGrowth}
+                  icon={<FileText className="h-5 w-5 text-purple-600" />}
+                />
+
+                <GrowthChart
+                  title="Help Requests"
+                  dataKey="help_requests"
+                  color="#ef4444"
+                  fetchData={adminApi.getHelpRequestsGrowth}
+                  icon={<HelpCircle className="h-5 w-5 text-red-600" />}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Community Tab */}
+        <TabsContent value="community" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Community Analytics
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monitor community engagement, groups, and events
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Active Public Groups"
+                  dataKey="active_public_groups"
+                  color="#06b6d4"
+                  fetchData={adminApi.getGroupsGrowth}
+                  icon={<MessageSquare className="h-5 w-5 text-cyan-600" />}
+                />
+
+                <GrowthChart
+                  title="Active Public Communities"
+                  dataKey="active_public_communities"
+                  color="#6366f1"
+                  fetchData={adminApi.getCommunitiesGrowth}
+                  icon={<Building2 className="h-5 w-5 text-indigo-600" />}
+                />
+
+                <GrowthChart
+                  title="Published Events"
+                  dataKey="published_events"
+                  color="#ec4899"
+                  fetchData={adminApi.getEventsGrowth}
+                  icon={<Calendar className="h-5 w-5 text-pink-600" />}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </AdminPageLayout>
   );
 }
+
+export default Analytics;

@@ -92,6 +92,13 @@ const Feed = () => {
     repostPost(postId);
   };
 
+  const handleQuote = (postId: string) => {
+    navigate('/compose', { state: { quotedPostId: postId } });
+  };
+
+  const handleViewInteractions = (postId: string) => {
+    navigate(`/post/${postId}/interactions`);
+  };
 
   const handleShare = (postId: string) => {
     const post = posts.find(p => p.id === postId);
@@ -115,7 +122,7 @@ const Feed = () => {
   return (
     <>
       <AppLayout onCreatePost={handleCreatePost}>
-        <div className="flex-1 border-x-0 xl:border-l-0 xl:border-r border-border">
+        <div className="flex-1 border-l xl:border-l-0 border-r border-border">
           <FeedHeader activeFilter={activeTab} onFilterChange={handleTabChange} />
 
           <div className='min-h-screen'>
@@ -186,6 +193,8 @@ const Feed = () => {
           }}
           post={postForRepost as any}
           onRepost={handleRepostConfirm}
+          onQuote={handleQuote}
+          onViewInteractions={handleViewInteractions}
           isReposted={postForRepost.is_reposted}
         />
       )}

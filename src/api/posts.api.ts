@@ -342,6 +342,7 @@ export interface UserRepost {
   bio?: string | null;
   verified: boolean;
   reposted_at?: string;
+  is_following?: boolean;
 }
 
 export const getPostRepostsPaginated = async (

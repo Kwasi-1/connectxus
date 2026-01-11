@@ -78,7 +78,13 @@ export default function HelpRequestDetails() {
 
     try {
       const response = await getOrCreateDirectConversation(helpRequest.owner_id);
-      navigate(`/messages/${response.conversation_id}`);
+      const ownerName = helpRequest.owner_name || helpRequest.owner_username || "there";
+      const helpRequestUrl = `${window.location.origin}/help/${helpRequest.id}`;
+      const prefillMessage = `Hey ${ownerName}, here to help you with "${helpRequest.title}" (${helpRequestUrl})`;
+
+      navigate(`/messages/${response.conversation_id}`, {
+        state: { prefillMessage }
+      });
     } catch (error: any) {
       console.error("Error creating conversation:", error);
       toast.error("Failed to start conversation");

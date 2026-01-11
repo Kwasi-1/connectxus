@@ -61,10 +61,10 @@ const navItems = [
     permission: "tutoring_management" as const,
   },
   {
-    name: "Analytics & Reports",
+    name: "Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
-    permission: "analytics" as const,
+    permission: null,
   },
   {
     name: "Reports",

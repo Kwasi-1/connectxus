@@ -265,7 +265,7 @@ export function ContentManagement() {
     if (!selectedItem || !reviewDecision || !("status" in selectedItem)) return;
 
     try {
-      await adminApi.resolveReport(
+      await adminApi.resolveContentReport(
         selectedItem.id,
         reviewDecision === "approve" ? "approved" : "rejected",
         reviewNotes
@@ -338,7 +338,7 @@ export function ContentManagement() {
         if (activeTab === "moderation") {
           await Promise.all(
             selectedItems.map((id) =>
-              adminApi.resolveReport(
+              adminApi.resolveContentReport(
                 id,
                 action === "approve" ? "approved" : "rejected",
                 `Bulk ${action}`

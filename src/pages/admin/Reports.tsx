@@ -77,7 +77,7 @@ export function Reports() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [reportTypeTab, setReportTypeTab] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50);
@@ -95,8 +95,9 @@ export function Reports() {
 
   const loadReports = useCallback(async () => {
     try {
-      setIsLoading(true);      const status = statusFilter === "all" ? undefined : statusFilter;
-      const contentType = typeFilter === "all" ? undefined : typeFilter;
+      setIsLoading(true);
+      const status = statusFilter === "all" ? undefined : statusFilter;
+      const contentType = reportTypeTab === "all" ? undefined : reportTypeTab;
       const offset = (currentPage - 1) * pageSize;
 
       const response = await adminApi.getContentReports(
@@ -117,7 +118,7 @@ export function Reports() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, typeFilter, currentPage, pageSize, selectedSpaceId, toast]);
+  }, [statusFilter, reportTypeTab, currentPage, pageSize, selectedSpaceId, toast]);
 
   useEffect(() => {
     loadReports();
@@ -136,15 +137,14 @@ export function Reports() {
         statusFilter === "all" || report.status === statusFilter;
       const matchesPriority =
         priorityFilter === "all" || report.priority === priorityFilter;
-      const matchesType = typeFilter === "all" || report.type === typeFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesType;
+      return matchesSearch && matchesStatus && matchesPriority;
     });
 
   const handleApproveReport = useCallback(
     async (reportId: string) => {
       try {
-        await adminApi.resolveReport(
+        await adminApi.resolveContentReport(
           reportId,
           "remove_content",
           "Content removed by admin"
@@ -170,7 +170,7 @@ export function Reports() {
   const handleRejectReport = useCallback(
     async (reportId: string) => {
       try {
-        await adminApi.resolveReport(
+        await adminApi.resolveContentReport(
           reportId,
           "no_action",
           "Report rejected by admin"
@@ -196,7 +196,7 @@ export function Reports() {
   const handleWarnUser = useCallback(
     async (reportId: string, message: string) => {
       try {
-        await adminApi.resolveReport(
+        await adminApi.resolveContentReport(
           reportId,
           "warn_user",
           `User warned: ${message}`
@@ -390,58 +390,63 @@ export function Reports() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Content Moderation Queue</CardTitle>
-            <div className="flex items-center space-x-2">
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search reports..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+      <Tabs value={reportTypeTab} onValueChange={setReportTypeTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all">All Reports</TabsTrigger>
+          <TabsTrigger value="post">Post Reports</TabsTrigger>
+          <TabsTrigger value="comment">Comment Reports</TabsTrigger>
+          <TabsTrigger value="message">Message Reports</TabsTrigger>
+          <TabsTrigger value="user">User Reports</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={reportTypeTab} className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  {reportTypeTab === "all" && "All Reports"}
+                  {reportTypeTab === "post" && "Post Reports"}
+                  {reportTypeTab === "comment" && "Comment Reports"}
+                  {reportTypeTab === "message" && "Message Reports"}
+                  {reportTypeTab === "user" && "User Reports"}
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search reports..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="post">Post</SelectItem>
-                  <SelectItem value="comment">Comment</SelectItem>
-                  <SelectItem value="group">Group</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+            </CardHeader>
+            <CardContent>
           <div className="block md:hidden space-y-4">
             {filteredReports.length > 0 &&
               filteredReports.map((report) => (
@@ -662,8 +667,10 @@ export function Reports() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showViewPostModal} onOpenChange={setShowViewPostModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

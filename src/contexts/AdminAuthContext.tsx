@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AdminUser, AdminAuthContextType, AdminPermission, AdminRole } from '@/types/admin';
-import { adminApi, AdminUser as ApiAdminUser } from '@/api/admin.api';
+import { adminApi, AdminUser as ApiAdminUser, Space } from '@/api/admin.api';
 import { toast } from 'sonner';
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -16,9 +16,13 @@ export const useAdminAuth = () => {
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSpaceId, setSelectedSpaceIdState] = useState<string | null>(() => {
+    const saved = localStorage.getItem('admin-current-space-id');
+    return saved || null;
+  });
 
   useEffect(() => {
-        const storedAdmin = localStorage.getItem('admin-user');
+    const storedAdmin = localStorage.getItem('admin-user');
     if (storedAdmin) {
       try {
         setAdmin(JSON.parse(storedAdmin));
@@ -28,6 +32,15 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     setIsLoading(false);
   }, []);
+
+  const setSelectedSpaceId = (spaceId: string | null) => {
+    setSelectedSpaceIdState(spaceId);
+    if (spaceId) {
+      localStorage.setItem('admin-current-space-id', spaceId);
+    } else {
+      localStorage.removeItem('admin-current-space-id');
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -84,6 +97,22 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       setAdmin(adminUser);
       localStorage.setItem('admin-user', JSON.stringify(adminUser));
+
+      try {
+        const { spaces } = await adminApi.getSpaces({ limit: 100 });
+        const spacesData = spaces.map((space: Space) => ({
+          id: space.id,
+          name: space.name,
+        }));
+
+        localStorage.setItem('admin-spaces', JSON.stringify(spacesData));
+
+        if (!selectedSpaceId && spacesData.length > 0) {
+          setSelectedSpaceId(spacesData[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch spaces:', error);
+      }
     } catch (error: any) {
       console.error('Admin sign in error:', error);
       throw new Error(error.message || 'Failed to sign in');
@@ -99,7 +128,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('Logout error:', error);
     } finally {
       setAdmin(null);
+      setSelectedSpaceId(null);
       localStorage.removeItem('admin-user');
+      localStorage.removeItem('admin-spaces');
+      localStorage.removeItem('admin-current-space-id');
     }
   };
 
@@ -120,6 +152,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     signOut,
     hasPermission,
     hasRole,
+    selectedSpaceId,
+    setSelectedSpaceId,
   };
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

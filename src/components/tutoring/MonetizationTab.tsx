@@ -31,7 +31,7 @@ export const MonetizationTab = () => {
     );
   }
 
-  if (services.length === 0) {
+  if (services && services.length === 0) {
     return (
       <div className="text-center py-12">
         <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -43,7 +43,7 @@ export const MonetizationTab = () => {
     );
   }
 
-  const allRequests = services.reduce((acc, service) => {
+  const allRequests = services && services.reduce((acc, service) => {
     if (service.paid_requests) {
       service.paid_requests.forEach(req => {
         acc.set(req.id, req);
@@ -52,7 +52,7 @@ export const MonetizationTab = () => {
     return acc;
   }, new Map());
 
-  const uniqueRequests = Array.from(allRequests.values());
+  const uniqueRequests = allRequests ? Array.from(allRequests.values()) : [];
 
   const overallEarnings = uniqueRequests.reduce((total, req) => {
     return total + parseFloat(req.amount || "0");
@@ -62,7 +62,7 @@ export const MonetizationTab = () => {
     .filter((req) => req.session_status === "completed")
     .reduce((total, req) => total + parseFloat(req.amount || "0"), 0);
 
-  const overallSessions = uniqueRequests.length;
+  const overallSessions =uniqueRequests ? uniqueRequests.length: 0
 
   return (
     <div className="space-y-6">
@@ -114,7 +114,7 @@ export const MonetizationTab = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {services.map((service) => {
+        {services && services.map((service) => {
           const totalEarnings = service.paid_requests
             ? service.paid_requests.reduce(
                 (sum, req) => sum + parseFloat(req.amount || "0"),

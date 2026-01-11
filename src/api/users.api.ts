@@ -28,10 +28,10 @@ export interface UserProfile {
   interests?: string[];
   followers_count?: number | null;
   following_count?: number | null;
-  is_following?: boolean | null; // Whether the current user follows this user
+  is_following?: boolean | null; 
   created_at?: string | null;
   updated_at?: string | null;
-  auth_provider?: string; // "email" or "google"
+  auth_provider?: string; 
 }
 
 export interface UpdateUserRequest {
@@ -44,7 +44,7 @@ export interface UpdateUserRequest {
 }
 
 export interface UpdatePasswordRequest {
-  old_password?: string; // Optional for Google OAuth users
+  old_password?: string; 
   new_password: string;
 }
 

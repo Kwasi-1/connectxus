@@ -56,7 +56,6 @@ export const verifyOTP = async (data: VerifyOTPRequest): Promise<VerifyOTPRespon
     data
   );
 
-  // Store tokens after successful verification
   const responseData = response.data.data;
   setAccessToken(responseData.access_token);
   setRefreshToken(responseData.refresh_token);

@@ -28,6 +28,35 @@ apiClient.interceptors.request.use(
       delete config.headers['Content-Type'];
     }
 
+    if (config.url && (config.url.includes('/admin') || config.url.includes('/analytics'))) {
+      const spaceId = localStorage.getItem('admin-current-space-id');
+      console.log('[DEBUG] Axios Interceptor - admin/analytics route detected');
+      console.log('[DEBUG] space_id from localStorage:', spaceId);
+      console.log('[DEBUG] URL:', config.url);
+      console.log('[DEBUG] Existing params:', config.params);
+
+      if (spaceId && spaceId !== 'all' && spaceId !== 'null' && config.url) {
+        const url = new URL(config.url, API_URL);
+
+        const hasSpaceIdInUrl = url.searchParams.has('space_id');
+        const hasSpaceIdInParams = config.params && 'space_id' in config.params;
+
+        if (!hasSpaceIdInUrl && !hasSpaceIdInParams) {
+          if (!config.params) {
+            config.params = {};
+          }
+          config.params.space_id = spaceId;
+          console.log('[DEBUG] Injected space_id:', spaceId);
+        } else {
+          console.log('[DEBUG] space_id already present, skipping injection');
+        }
+      } else {
+        console.log('[DEBUG] Skipping space_id injection - value is:', spaceId);
+      }
+
+      console.log('[DEBUG] Final params:', config.params);
+    }
+
     return config;
   },
   (error: AxiosError) => {
@@ -84,7 +113,7 @@ const handleApiError = (error: AxiosError<any>) => {
   const errorData = error.response.data;
   const url = error.config?.url || '';
 
-    if (url.includes('/my-application')) {
+  if (url.includes('/my-application') || url.includes('/my-services') || url.includes('/applications/check')) {
     return;
   }
 
