@@ -24,6 +24,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  avatar?: string | null;
   university?: string;
   department?: string;
   level?: string;
