@@ -19,13 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 
 const subjectTypes = [
   { value: "course", label: "Course (e.g., DCIT 101)" },
   { value: "general", label: "General (e.g., Mathematics)" },
 ];
-
-const levelOptions = ["100", "200", "300", "400", "Graduate", "All Levels"];
 
 const daysOfWeek = [
   "Monday",
@@ -48,6 +47,7 @@ export function TutorApplicationForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currencySymbol } = useCurrency();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const existingApplication = location.state?.application;
@@ -202,6 +202,26 @@ export function TutorApplicationForm() {
       toast({
         title: "Error",
         description: "Please select a subject type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!level) {
+      toast({
+        title: "Error",
+        description: "Please select a level.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const levelNum = parseInt(level);
+    const userLevelNum = user?.level ? parseInt(user.level) : 0;
+    if (levelNum !== 0 && userLevelNum !== 0 && levelNum > userLevelNum) {
+      toast({
+        title: "Error",
+        description: `You can only tutor at levels ≤ your level (${user?.level || "N/A"}).`,
         variant: "destructive",
       });
       return;
@@ -380,19 +400,29 @@ export function TutorApplicationForm() {
               </div>
 
               <div>
-                <Label htmlFor="level">Level (Optional)</Label>
-                <Select value={level} onValueChange={setLevel} disabled={isApproved}>
+                <Label htmlFor="level">Level *</Label>
+                <Select value={level} onValueChange={setLevel} disabled={isApproved} required>
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
-                    {levelOptions.map((lvl) => (
-                      <SelectItem key={lvl} value={lvl}>
-                        {lvl}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="0">All Levels</SelectItem>
+                    {[100, 200, 300, 400].map((lvl) => {
+                      const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                      if (userLevelNum === 0 || lvl <= userLevelNum) {
+                        return (
+                          <SelectItem key={lvl} value={lvl.toString()}>
+                            Level {lvl}
+                          </SelectItem>
+                        );
+                      }
+                      return null;
+                    })}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select the level you can tutor (must be ≤ your level: {user?.level || "N/A"})
+                </p>
               </div>
             </CardContent>
           </Card>

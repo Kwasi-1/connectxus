@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { PostActionsDropdown } from "./PostActionsDropdown";
 import { ReportPostDialog } from "./ReportPostDialog";
 import { LikesModal } from "./LikesModal";
-import { RepostsModal } from "./RepostsModal";
+import { RepostModal } from "./RepostModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,11 +73,11 @@ export function PostCard({
     setPost(initialPost);
   }, [initialPost]);
 
-  
+
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
-  const [showRepostsModal, setShowRepostsModal] = useState(false);
+  const [showRepostModal, setShowRepostModal] = useState(false);
 
   
   const isRepost = post.quoted_post_id && (!post.content || post.content.trim() === '');
@@ -293,7 +293,6 @@ export function PostCard({
   const deleteMutation = useMutation({
     mutationFn: deletePostApi,
     onMutate: async (postId) => {
-      
       await queryClient.cancelQueries({ queryKey: ['feed'] });
       await queryClient.cancelQueries({ queryKey: ['user-posts'] });
       await queryClient.cancelQueries({ queryKey: ['community-posts'] });
@@ -301,17 +300,26 @@ export function PostCard({
       await queryClient.cancelQueries({ queryKey: ['liked-posts'] });
       await queryClient.cancelQueries({ queryKey: ['trending-posts'] });
 
-      
+      const previousData = {
+        feed: queryClient.getQueriesData({ queryKey: ['feed'] }),
+        userPosts: queryClient.getQueriesData({ queryKey: ['user-posts'] }),
+        communityPosts: queryClient.getQueriesData({ queryKey: ['community-posts'] }),
+        groupPosts: queryClient.getQueriesData({ queryKey: ['group-posts'] }),
+        likedPosts: queryClient.getQueriesData({ queryKey: ['liked-posts'] }),
+        trendingPosts: queryClient.getQueriesData({ queryKey: ['trending-posts'] }),
+      };
+
       const removePost = (old: any) => {
         if (!old) return old;
 
-        
         if (old.pages) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              posts: page.posts?.filter((p: any) => p.id !== postId) || [],
+              posts: page.posts?.filter((p: any) =>
+                p.id !== postId && p.quoted_post_id !== postId
+              ) || [],
             })),
           };
         }
@@ -319,23 +327,53 @@ export function PostCard({
         return old;
       };
 
-      
       queryClient.setQueriesData({ queryKey: ['feed'] }, removePost);
       queryClient.setQueriesData({ queryKey: ['user-posts'] }, removePost);
       queryClient.setQueriesData({ queryKey: ['community-posts'] }, removePost);
       queryClient.setQueriesData({ queryKey: ['group-posts'] }, removePost);
       queryClient.setQueriesData({ queryKey: ['liked-posts'] }, removePost);
       queryClient.setQueriesData({ queryKey: ['trending-posts'] }, removePost);
-      queryClient.setQueriesData({ queryKey: ['posts'] }, removePost);
+
+      return { previousData };
     },
     onSuccess: () => {
       toast.success("Post deleted");
+      if (detailed) {
+        navigate(-1);
+      }
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.feed.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        context.previousData.userPosts.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        context.previousData.communityPosts.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        context.previousData.groupPosts.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        context.previousData.likedPosts.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+        context.previousData.trendingPosts.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       toast.error(error.message || "Failed to delete post");
     },
     onSettled: () => {
-      
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['group-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['trending-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['liked-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['post-quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['post-reposts'] });
     },
   });
 
@@ -379,7 +417,19 @@ export function PostCard({
   };
 
   const handleRepost = () => {
+    setShowRepostModal(true);
+  };
+
+  const handleRepostConfirm = () => {
     repostMutation.mutate(displayPost.id);
+  };
+
+  const handleQuote = (postId: string) => {
+    navigate('/compose', { state: { quotedPostId: postId } });
+  };
+
+  const handleViewInteractions = (postId: string) => {
+    navigate(`/post/${postId}/interactions`);
   };
 
   const handleShare = async () => {
@@ -506,6 +556,62 @@ export function PostCard({
     );
   };
 
+  const renderQuotedMedia = (quotedPost: any) => {
+    const media = quotedPost.media || quotedPost.images;
+    if (!media || media.length === 0) return null;
+
+    const hasVideo = media.some((url: string) =>
+      url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm")
+    );
+
+    if (hasVideo) {
+      return (
+        <div className="mt-2 relative aspect-video bg-black rounded-md overflow-hidden max-h-48">
+          <video
+            src={media[0]}
+            className="w-full h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <source src={media[0]} type="video/mp4" />
+          </video>
+        </div>
+      );
+    }
+
+    if (media.length === 1) {
+      return (
+        <div className="mt-2 rounded-md overflow-hidden max-h-48">
+          <img
+            src={media[0]}
+            alt="Quoted post media"
+            className="w-full object-cover"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-2 grid grid-cols-2 gap-1 rounded-md overflow-hidden max-h-48">
+        {media.slice(0, 2).map((url: string, index: number) => (
+          <div key={index} className="relative aspect-square">
+            <img
+              src={url}
+              alt={`Quoted media ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+            {index === 1 && media.length > 2 && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <span className="text-white text-sm font-semibold">
+                  +{media.length - 2}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const isOwnPost = currentUserId === post.author_id || currentUserId === post.author?.id;
   const isOwnOriginalPost = currentUserId === displayPost.author_id || currentUserId === displayPost.author?.id;
 
@@ -514,7 +620,7 @@ export function PostCard({
   return (
     <Card
       className={cn(
-        "rounded-none border-0 border-b transition-colors cursor-pointer",
+        "rounded-none border-0 border-b hover:bg-muted/5 transition-colors cursor-pointer",
         className
       )}
       onClick={handlePostClick}
@@ -572,17 +678,53 @@ export function PostCard({
               </span>
             </div>
 
-            
+
             <div className="mt-1">
               <p className="whitespace-pre-wrap break-words">
                 {displayPost.content}
               </p>
 
-              
+
               {renderMedia()}
+
+
+              {!isRepost && post.quoted_post_id && post.quoted_post && (
+                <Card className="mt-3 p-3 border border-border rounded-lg hover:bg-muted/5 cursor-pointer" onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/post/${post.quoted_post.id}`);
+                }}>
+                  <div className="flex gap-2">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      <AvatarImage src={post.quoted_post.author_avatar || post.quoted_post.author?.avatar} />
+                      <AvatarFallback>
+                        {(post.quoted_post.full_name || post.quoted_post.author?.full_name || post.quoted_post.username || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm truncate">
+                          {post.quoted_post.full_name || post.quoted_post.author?.full_name || post.quoted_post.username || 'Unknown'}
+                        </span>
+                        <span className="text-muted-foreground text-sm truncate">
+                          @{post.quoted_post.username || post.quoted_post.author?.username || 'unknown'}
+                        </span>
+                        {post.quoted_post.created_at && (
+                          <span className="text-muted-foreground text-sm">
+                            · {moment(post.quoted_post.created_at).fromNow()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm mt-1 text-foreground line-clamp-3 whitespace-pre-wrap break-words">
+                        {post.quoted_post.content}
+                      </p>
+                      {renderQuotedMedia(post.quoted_post)}
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
 
-            
+
             {likesCount > 0 && (
               <div className="mt-3 flex justify-end">
                 <button
@@ -631,7 +773,7 @@ export function PostCard({
                       onClick={(e) => {
                         e.stopPropagation();
                         if ((displayPost.reposts_count || 0) > 0) {
-                          setShowRepostsModal(true);
+                          navigate(`/post/${displayPost.id}/interactions`);
                         }
                       }}
                     >
@@ -713,18 +855,21 @@ export function PostCard({
         </AlertDialogContent>
       </AlertDialog>
 
-      
+
       <LikesModal
         isOpen={showLikesModal}
         onClose={() => setShowLikesModal(false)}
         postId={displayPost.id}
       />
 
-      
-      <RepostsModal
-        isOpen={showRepostsModal}
-        onClose={() => setShowRepostsModal(false)}
-        postId={displayPost.id}
+      <RepostModal
+        isOpen={showRepostModal}
+        onClose={() => setShowRepostModal(false)}
+        post={displayPost}
+        onRepost={handleRepostConfirm}
+        onQuote={handleQuote}
+        onViewInteractions={handleViewInteractions}
+        isReposted={displayPost.is_reposted}
       />
     </Card>
   );

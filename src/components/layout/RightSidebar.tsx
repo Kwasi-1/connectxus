@@ -232,7 +232,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
                 onClick={() => navigate("/explore")}
               >
                 Show more
@@ -283,7 +283,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
                 onClick={() => navigate("/announcements")}
               >
                 View all announcements
@@ -312,7 +312,10 @@ export function RightSidebar() {
                     key={user.id}
                     className="flex items-center justify-between"
                   >
-                    <div className="flex items-center space-x-3">
+                    <div
+                      className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => navigate(`/profile/${user.username}`)}
+                    >
                       <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
                         {user.avatar ? (
                           <img
@@ -367,7 +370,7 @@ export function RightSidebar() {
               )}
               <Button
                 variant="ghost"
-                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transistion duration-300"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
                 onClick={() => navigate("/people")}
               >
                 Show more

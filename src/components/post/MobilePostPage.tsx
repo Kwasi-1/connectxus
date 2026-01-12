@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import {
   ArrowLeft,
   ImageIcon,
@@ -21,23 +22,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import type { Post } from "@/types/global";
 
 interface MobilePostPageProps {
   onPost: (content: string, audience: string) => void;
+  quotedPost?: Post | null;
 }
 
-export function MobilePostPage({ onPost }: MobilePostPageProps) {
+export function MobilePostPage({ onPost, quotedPost }: MobilePostPageProps) {
   const navigate = useNavigate();
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState("everyone");
   const maxChars = 280;
 
   const handlePost = () => {
-    if (content.trim()) {
+    if (content.trim() || quotedPost) {
       onPost(content, audience);
       setContent("");
       setAudience("everyone");
-      navigate(-1);
     }
   };
 
@@ -45,7 +47,7 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
     navigate(-1);
   };
 
-  const isDisabled = !content.trim() || content.length > maxChars;
+  const isDisabled = (!content.trim() && !quotedPost) || content.length > maxChars;
 
   const audienceOptions = [
     { value: "everyone", label: "Everyone", icon: Globe },
@@ -115,12 +117,39 @@ export function MobilePostPage({ onPost }: MobilePostPageProps) {
             </Select>
 
             <Textarea
-              placeholder="What's happening?"
+              placeholder={quotedPost ? "Add your comment..." : "What's happening?"}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[200px] border-none resize-none text-xl placeholder:text-muted-foreground focus-visible:ring-0 p-0"
               autoFocus
             />
+
+            {/* Quoted Post Preview */}
+            {quotedPost && (
+              <Card className="p-4 border border-border rounded-lg mt-4">
+                <div className="flex gap-3">
+                  <Avatar className="w-10 h-10 flex-shrink-0">
+                    <AvatarImage src={quotedPost.author_avatar || quotedPost.author?.avatar} />
+                    <AvatarFallback>
+                      {(quotedPost.full_name || quotedPost.author?.full_name || quotedPost.username || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">
+                        {quotedPost.full_name || quotedPost.author?.full_name || quotedPost.username || 'Unknown'}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        @{quotedPost.username || quotedPost.author?.username || 'unknown'}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1 text-muted-foreground line-clamp-3">
+                      {quotedPost.content}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
         </div>
       </div>

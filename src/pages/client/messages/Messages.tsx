@@ -189,6 +189,11 @@ const Messages = () => {
 
         const messageHandler = (message: any) => {
           if (message.conversation_id) {
+            if (message.sender_id === user?.id) {
+              queryClient.invalidateQueries({ queryKey: ["conversations"] });
+              return;
+            }
+
             queryClient.setQueryData(
               ["conversation-messages", message.conversation_id],
               (old: any) => {
@@ -201,10 +206,7 @@ const Messages = () => {
 
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
-            if (
-              message.conversation_id !== selectedConversationId &&
-              message.sender_id !== user?.id
-            ) {
+            if (message.conversation_id !== selectedConversationId) {
               toast.info("New message received");
             }
           }
@@ -268,6 +270,13 @@ const Messages = () => {
       }, 100);
     }
   }, [selectedConversationId, loadingMessages, messages.length]);
+
+  useEffect(() => {
+    if (selectedConversationId && location.state?.prefillMessage) {
+      setNewMessage(location.state.prefillMessage);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [selectedConversationId]);
 
   useEffect(() => {
     if (!conversationId) {

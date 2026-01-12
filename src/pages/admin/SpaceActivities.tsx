@@ -141,7 +141,7 @@ const SpaceActivities = () => {
   } = useQuery({
     queryKey: ["space-stats", currentSpaceId],
     queryFn: () => adminApi.getSpaceStats(currentSpaceId),
-    enabled: !!currentSpaceId,
+    enabled: !!currentSpaceId && currentSpaceId !== "all",
     staleTime: 60000,
     keepPreviousData: true,
   });

@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LandingPage } from "@/LandingPage";
 import Feed from "./pages/client/feed/Feed";
 import PostView from "./pages/client/feed/PostView";
+import PostInteractions from "./pages/client/feed/PostInteractions";
 import Explore from "./pages/client/explore/Explore";
 import { People } from "./pages/client/people/People";
 import Notifications from "./pages/client/notifications/Notifications";
@@ -18,7 +19,7 @@ import Communities from "./pages/client/groups_and_communities/communities/Commu
 import CommunityDetail from "./pages/client/groups_and_communities/communities/CommunityDetail";
 import GroupsNew from "./pages/client/groups_and_communities/groups/GroupsNew";
 import GroupDetail from "./pages/client/groups_and_communities/groups/GroupDetail";
-import Tutoring from "./pages/client/tutoring/TutoringNew";
+import Tutoring from "./pages/client/tutoring/Tutoring";
 import MonetizationDetails from "./pages/client/tutoring/MonetizationDetails";
 import { TutorDetails } from "./pages/client/tutoring/TutorDetails";
 import HelpRequests from "./pages/client/help/HelpRequests";
@@ -51,12 +52,12 @@ import { UserManagement } from "@/pages/admin/UserManagement";
 import { ContentManagement } from "@/pages/admin/ContentManagement";
 import { AdminManagement } from "./pages/admin/AdminManagement";
 import { Reports } from "./pages/admin/Reports";
-import { Analytics } from "./pages/admin/Analytics";
 import { AdminTutoring } from "./pages/admin/AdminTutoring";
 import { CommunitiesGroups } from "./pages/admin/CommunitiesGroups";
 import { SystemSettings } from "./pages/admin/SystemSettings";
 import { Notifications as AdminNotifications } from "./pages/admin/Notifications";
 import SpaceActivities from "./pages/admin/SpaceActivities";
+import { Analytics } from "./pages/admin/Analytics";
 import { TutoringBusinessOverview } from "./pages/admin/tutoring-business/TutoringBusinessOverview";
 import { TutoringBusinessTransactions } from "./pages/admin/tutoring-business/TutoringBusinessTransactions";
 import { TutoringBusinessPayouts } from "./pages/admin/tutoring-business/TutoringBusinessPayouts";
@@ -65,7 +66,6 @@ import { TutoringBusinessDisputes } from "./pages/admin/tutoring-business/Tutori
 import { TutoringBusinessAnalytics } from "./pages/admin/tutoring-business/TutoringBusinessAnalytics";
 import { HeroUIProvider } from "@heroui/react";
 import { LandingPage as LandingPageV2 } from "@/LandingPageV2";
-import { ScrollToTop } from "@/components/shared/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -78,7 +78,6 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <ScrollToTop />
               <Routes>
                 {/* Public Routes */}
                 <Route
@@ -111,7 +110,10 @@ const App = () => (
                   path="auth/signin"
                   element={<AuthPage initialMode="signIn" />}
                 />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route
+                  path="/verify-email"
+                  element={<VerifyEmailPage />}
+                />
                 <Route
                   path="/auth/google-onboarding"
                   element={<GoogleOnboardingPage />}
@@ -147,6 +149,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <PostView />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/post/:postId/interactions"
+                  element={
+                    <ProtectedRoute>
+                      <PostInteractions />
                     </ProtectedRoute>
                   }
                 />
@@ -327,135 +337,131 @@ const App = () => (
                     <AdminSpaceProvider>
                       <ProtectedAdminRoute>
                         <AdminLayout>
-                          <Routes>
-                            <Route index element={<AdminDashboard />} />
-                            <Route
-                              path="users"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="user_management">
-                                  <UserManagement />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="content"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="content_management">
-                                  <ContentManagement />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="communities"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="community_management">
-                                  <CommunitiesGroups />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <AdminTutoring />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessOverview />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business/transactions"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessTransactions />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business/payouts"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessPayouts />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business/payout-schedule"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessPayoutSchedule />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business/disputes"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessDisputes />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="tutoring-business/analytics"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="tutoring_management">
-                                  <TutoringBusinessAnalytics />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="analytics"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="analytics">
-                                  <Analytics />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="activities"
-                              element={<SpaceActivities />}
-                            />
-                            <Route
-                              path="reports"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="reports">
-                                  <Reports />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="notifications"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="notifications">
-                                  <AdminNotifications />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="admins"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="admin_management">
-                                  <AdminManagement />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                            <Route
-                              path="settings"
-                              element={
-                                <ProtectedAdminRoute requiredPermission="system_settings">
-                                  <SystemSettings />
-                                </ProtectedAdminRoute>
-                              }
-                            />
-                          </Routes>
-                        </AdminLayout>
-                      </ProtectedAdminRoute>
+                        <Routes>
+                          <Route index element={<AdminDashboard />} />
+                          <Route
+                            path="users"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="user_management">
+                                <UserManagement />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="content"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="content_management">
+                                <ContentManagement />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="communities"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="community_management">
+                                <CommunitiesGroups />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <AdminTutoring />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessOverview />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/transactions"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessTransactions />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/payouts"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessPayouts />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/payout-schedule"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessPayoutSchedule />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/disputes"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessDisputes />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="tutoring-business/analytics"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="tutoring_management">
+                                <TutoringBusinessAnalytics />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="activities"
+                            element={<SpaceActivities />}
+                          />
+                          <Route
+                            path="analytics"
+                            element={<Analytics />}
+                          />
+                          <Route
+                            path="reports"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="reports">
+                                <Reports />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="notifications"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="notifications">
+                                <AdminNotifications />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="admins"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="admin_management">
+                                <AdminManagement />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                          <Route
+                            path="settings"
+                            element={
+                              <ProtectedAdminRoute requiredPermission="system_settings">
+                                <SystemSettings />
+                              </ProtectedAdminRoute>
+                            }
+                          />
+                        </Routes>
+                      </AdminLayout>
+                    </ProtectedAdminRoute>
                     </AdminSpaceProvider>
                   }
                 />

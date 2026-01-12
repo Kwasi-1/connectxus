@@ -19,6 +19,7 @@ import {
   createCommunity,
   CreateCommunityRequest,
 } from "@/api/communities.api";
+import { searchCommunities } from "@/api/search.api";
 import { getDepartmentsPaginated, Department } from "@/api/departments.api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -98,6 +99,7 @@ const Communities = () => {
   const [departmentsPage, setDepartmentsPage] = useState(1);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newCommunity, setNewCommunity] = useState<CreateCommunityRequest>({
@@ -106,6 +108,7 @@ const Communities = () => {
     category: "",
     is_public: true,
     cover_image: null,
+    level: 0, 
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -183,6 +186,16 @@ const Communities = () => {
 
   const recommendedCommunities = recommendedCommunitiesData?.pages.flatMap(page => page) ?? [];
 
+  const {
+    data: searchResults = [],
+    isLoading: loadingSearch,
+  } = useQuery({
+    queryKey: ["search-communities", debouncedSearchQuery],
+    queryFn: () => searchCommunities({ query: debouncedSearchQuery, page: 1, limit: 50 }),
+    enabled: debouncedSearchQuery.length > 0,
+    staleTime: 30000,
+  });
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastCommunityRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -200,7 +213,7 @@ const Communities = () => {
     [isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  const isLoading = loadingRecommended || loadingMy;
+  const isLoading = loadingRecommended || loadingMy || loadingSearch;
 
   const joinMutation = useMutation({
     mutationFn: (communityId: string) => joinCommunity(communityId),
@@ -246,25 +259,28 @@ const Communities = () => {
     },
   });
 
-  const filteredCommunities = (communitiesList: any[]) => {
-    return communitiesList.filter((community) => {
-      const matchesSearch =
-        community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (community.description &&
-          community.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()));
-      return matchesSearch;
-    });
+  const getDisplayList = () => {
+    if (activeTab === "my") {
+      return debouncedSearchQuery.length > 0 ? searchResults : myCommunities;
+    } else {
+      return debouncedSearchQuery.length > 0 ? searchResults : recommendedCommunities;
+    }
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+    }
   };
 
   const myCommunitiesIds = new Set(myCommunities.map((c) => c.id));
 
-  const myCommunitiesList = myCommunities;
+  const displayList = getDisplayList();
 
-  const exploreCommunitiesList = recommendedCommunities.filter(
-    (c) => !myCommunitiesIds.has(c.id)
-  );
+  const myCommunitiesList = activeTab === "my" ? displayList : myCommunities;
+
+  const exploreCommunitiesList = activeTab === "explore"
+    ? displayList.filter((c) => !myCommunitiesIds.has(c.id))
+    : recommendedCommunities.filter((c) => !myCommunitiesIds.has(c.id));
 
   const handleJoinCommunity = (communityId: string, isJoined: boolean) => {
     if (isJoined) {
@@ -526,26 +542,27 @@ const Communities = () => {
                   placeholder="Search your communities..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
                   className="pl-10 rounded-full"
                 />
               </div>
 
               {/* Communities Grid */}
               <div className="space-y-3">
-                {filteredCommunities(myCommunitiesList).length === 0 ? (
+                {myCommunitiesList.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
                       No communities found
                     </h3>
                     <p className="text-muted-foreground">
-                      {myCommunitiesList.length === 0
+                      {myCommunities.length === 0
                         ? "You haven't joined any communities yet"
                         : "Try adjusting your search"}
                     </p>
                   </div>
                 ) : (
-                  filteredCommunities(myCommunitiesList).map((community) => (
+                  myCommunitiesList.map((community) => (
                     <CommunityCard
                       key={community.id}
                       community={community}
@@ -567,6 +584,7 @@ const Communities = () => {
                     placeholder="Search communities..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleSearchKeyPress}
                     className="pl-10 rounded-full"
                   />
                 </div>
@@ -813,23 +831,23 @@ const Communities = () => {
 
               {/* Communities Grid */}
               <div className="space-y-3">
-                {filteredCommunities(exploreCommunitiesList).length === 0 ? (
+                {exploreCommunitiesList.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
                       No communities found
                     </h3>
                     <p className="text-muted-foreground">
-                      {exploreCommunitiesList.length === 0
+                      {recommendedCommunities.length === 0
                         ? "No communities available to explore"
                         : "Try adjusting your search or filters"}
                     </p>
                   </div>
                 ) : (
                   <>
-                    {filteredCommunities(exploreCommunitiesList).map(
+                    {exploreCommunitiesList.map(
                       (community, index) => {
-                        const isLastItem = index === filteredCommunities(exploreCommunitiesList).length - 1;
+                        const isLastItem = index === exploreCommunitiesList.length - 1;
                         return (
                           <div
                             key={community.id}
@@ -916,6 +934,39 @@ const Communities = () => {
                     <SelectItem value="Faculty">Faculty</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="level">Level *</Label>
+                <Select
+                  value={newCommunity.level?.toString() || "0"}
+                  onValueChange={(value) =>
+                    setNewCommunity((prev) => ({
+                      ...prev,
+                      level: parseInt(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">All Levels</SelectItem>
+                    {[100, 200, 300, 400].map((lvl) => {
+                      const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                      if (userLevelNum === 0 || lvl <= userLevelNum) {
+                        return (
+                          <SelectItem key={lvl} value={lvl.toString()}>
+                            Level {lvl}
+                          </SelectItem>
+                        );
+                      }
+                      return null;
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select the minimum level required to join this community
+                </p>
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">

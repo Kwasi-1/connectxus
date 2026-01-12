@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Community } from "@/types/communities";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateCommunityModalProps {
   open: boolean;
@@ -31,10 +32,12 @@ export function CreateCommunityModal({
   onOpenChange,
   onCreateCommunity,
 }: CreateCommunityModalProps) {
+  const { user } = useAuth();
   const [newCommunity, setNewCommunity] = useState({
     name: "",
     description: "",
     category: "" as Community["category"],
+    level: 0, 
     coverImage: null as File | null,
   });
 
@@ -47,6 +50,7 @@ export function CreateCommunityModal({
       name: newCommunity.name,
       description: newCommunity.description,
       category: newCommunity.category,
+      level: newCommunity.level,
       coverImage: coverImageUrl,
     };
 
@@ -56,6 +60,7 @@ export function CreateCommunityModal({
       name: "",
       description: "",
       category: "" as Community["category"],
+      level: 0,
       coverImage: null,
     });
   };
@@ -121,6 +126,39 @@ export function CreateCommunityModal({
                 <SelectItem value="Faculty">Faculty</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="level">Level *</Label>
+            <Select
+              value={newCommunity.level.toString()}
+              onValueChange={(value) =>
+                setNewCommunity((prev) => ({
+                  ...prev,
+                  level: parseInt(value),
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">All Levels</SelectItem>
+                {[100, 200, 300, 400].map((lvl) => {
+                  const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                  if (userLevelNum === 0 || lvl <= userLevelNum) {
+                    return (
+                      <SelectItem key={lvl} value={lvl.toString()}>
+                        Level {lvl}
+                      </SelectItem>
+                    );
+                  }
+                  return null;
+                })}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Select the minimum level required to join this community
+            </p>
           </div>
           <div>
             <Label htmlFor="coverImage">Cover Image</Label>

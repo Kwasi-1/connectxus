@@ -6,7 +6,10 @@ interface ApiResponse<T> {
 }
 
 export interface PaginationParams {
-  page?: number;        limit?: number;     }
+  page?: number;
+  limit?: number;
+  space_id?: string;
+}
 
 export interface Event {
   id: string;

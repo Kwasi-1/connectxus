@@ -1,13 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import moment from "moment";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -28,10 +37,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -42,352 +50,333 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Search,
-  MoreHorizontal,
-  UserX,
+  Users,
+  UserPlus,
   UserCheck,
-  Edit,
+  UserX,
   Shield,
-  Filter,
+  ShieldBan,
+  Search,
   Download,
-  Plus,
-  Activity,
+  MoreHorizontal,
+  Edit,
   Trash2,
-  Key,
   Ban,
-  UserMinus,
+  Key,
+  Activity,
+  Filter,
+  Building2,
 } from "lucide-react";
-import { User, UserRole } from "@/types/global";
-import { useToast } from "@/hooks/use-toast";
+import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { useToast } from "@/hooks/use-toast";
+import moment from "moment";
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string;
+  avatar?: string | null;
+  bio?: string | null;
+  role: string;
+  status: string;
+  department: string;
+  level?: string | null;
+  verified?: boolean;
+  created_at: string;
+}
 
 export function UserManagement() {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { selectedSpaceId } = useAdminSpace();
-  const [users, setUsers] = useState<User[]>([]);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
-  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
-  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
-  const [banModalOpen, setBanModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [actionUser, setActionUser] = useState<User | null>(null);
+  const [currentSpaceId, setCurrentSpaceId] = React.useState<string>(() => {
+    return localStorage.getItem("admin-current-space-id") || "";
+  });
 
-  const [suspendReason, setSuspendReason] = useState("");
-  const [banReason, setBanReason] = useState("");
-  const [newUser, setNewUser] = useState({
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      const newSpaceId = localStorage.getItem("admin-current-space-id") || "";
+      setCurrentSpaceId(newSpaceId);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize] = React.useState(20);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedRole, setSelectedRole] = React.useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
+  const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
+
+  const [addUserModalOpen, setAddUserModalOpen] = React.useState(false);
+  const [editUserModalOpen, setEditUserModalOpen] = React.useState(false);
+  const [suspendModalOpen, setSuspendModalOpen] = React.useState(false);
+  const [banModalOpen, setBanModalOpen] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = React.useState(false);
+
+  const [editingUser, setEditingUser] = React.useState<User | null>(null);
+  const [actionUser, setActionUser] = React.useState<User | null>(null);
+  const [suspendReason, setSuspendReason] = React.useState("");
+  const [banReason, setBanReason] = React.useState("");
+  const [resetPassword, setResetPassword] = React.useState("");
+
+  const [newUser, setNewUser] = React.useState({
     username: "",
-    displayName: "",
     email: "",
     password: "",
-    bio: "",
+    full_name: "",
     department: "",
-    level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
+    level: "" as string,
     role: "user" as string,
   });
-  const [resetPassword, setResetPassword] = useState("");
 
-  const loadUsers = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await adminApi.getUsers(currentPage, pageSize, selectedSpaceId);
-      setUsers(response.users as User[]);
-      setTotalUsers(response.total);
-    } catch (error) {
-      console.error("Error loading users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load users",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, pageSize, selectedSpaceId, toast]);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole =
-      selectedRole === "all" || user.role === selectedRole;
-
-    return matchesSearch && matchesRole;
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ["admin-users", currentPage, pageSize, currentSpaceId],
+    queryFn: () => adminApi.getUsers(currentPage, pageSize, currentSpaceId),
+    enabled: !!currentSpaceId && currentSpaceId !== "all",
+    staleTime: 30000,
   });
 
-  const handleCreateUser = async () => {
-    try {      await adminApi.createUser({
-        username: newUser.username,
-        email: newUser.email,
-        password: newUser.password,
-        full_name: newUser.username,
-        department: newUser.department,
-        level: newUser.level,
-        role: newUser.role,
-        status: "active",
-        verified: true,
-      });
+  const users = (usersData?.users || []) as User[];
+  const totalUsers = usersData?.total || 0;
 
+  const filteredUsers = React.useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.full_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesRole = selectedRole === "all" || user.role === selectedRole;
+      const matchesStatus =
+        selectedStatus === "all" || user.status === selectedStatus;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchQuery, selectedRole, selectedStatus]);
+
+  const userStats = React.useMemo(() => {
+    return {
+      total: users.length,
+      active: users.filter((u) => u.status === "active").length,
+      suspended: users.filter((u) => u.status === "suspended").length,
+      banned: users.filter((u) => u.status === "banned").length,
+      admins: users.filter(
+        (u) => u.role === "super_admin" || u.role === "admin"
+      ).length,
+      staff: users.filter(
+        (u) =>
+          u.role === "support_staff" ||
+          u.role === "content_moderator" ||
+          u.role === "finance_officer" ||
+          u.role === "operations_manager"
+      ).length,
+      developers: users.filter((u) => u.role === "developer_admin").length,
+      regularUsers: users.filter((u) => u.role === "user").length,
+    };
+  }, [users]);
+
+  const createUserMutation = useMutation({
+    mutationFn: (data: any) => adminApi.createUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({
         title: "User Created",
-        description: `${newUser.username} has been created successfully.`,
+        description: "User has been created successfully.",
       });
-
+      setAddUserModalOpen(false);
       setNewUser({
         username: "",
-        displayName: "",
         email: "",
         password: "",
-        bio: "",
+        full_name: "",
         department: "",
-        level: "undergraduate" as "undergraduate" | "graduate" | "faculty",
+        level: "",
         role: "user",
       });
-
-      setAddUserModalOpen(false);
-      await loadUsers();
-    } catch (error) {
-      console.error("Error creating user:", error);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to create user. Please try again.",
+        description: "Failed to create user.",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
-  const handleEditUser = async () => {
-    if (!editingUser) return;
-
-    try {
-      await adminApi.updateUser(editingUser.id, {
-        email: editingUser.email,
-        full_name: editingUser.username,
-        department: editingUser.department,
-        role: editingUser.role,
-        status: editingUser.isActive ? "active" : "inactive",
-      });
-
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      adminApi.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({
         title: "User Updated",
-        description: `${editingUser.username} has been updated successfully.`,
+        description: "User has been updated successfully.",
       });
-
       setEditUserModalOpen(false);
       setEditingUser(null);
-      await loadUsers();
-    } catch (error) {
-      console.error("Error updating user:", error);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update user. Please try again.",
+        description: "Failed to update user.",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
-  const handleSuspendUser = async (user: User) => {
-    try {
-      const adminUserId = localStorage.getItem("userId") || "";
-      await adminApi.suspendUser({
-        user_id: user.id,
-        suspended_by: adminUserId,
-        reason: suspendReason,
-        duration_days: 7,
-        is_permanent: false,
+  const suspendUserMutation = useMutation({
+    mutationFn: (data: any) => adminApi.suspendUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({
+        title: "User Suspended",
+        description: "User has been suspended.",
+        variant: "destructive",
       });
-      await loadUsers();
       setSuspendModalOpen(false);
       setSuspendReason("");
       setActionUser(null);
-
-      toast({
-        title: "User Suspended",
-        description: `${user.username} has been suspended.`,
-        variant: "destructive",
-      });
-    } catch (error) {
-      console.error("Error suspending user:", error);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to suspend user",
+        description: "Failed to suspend user.",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
-  const handleBanUser = async (user: User) => {
-    try {
-      await adminApi.banUser(user.id, banReason);
-      await loadUsers();
+  const banUserMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      adminApi.banUser(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({
+        title: "User Banned",
+        description: "User has been banned permanently.",
+        variant: "destructive",
+      });
       setBanModalOpen(false);
       setBanReason("");
       setActionUser(null);
-
-      toast({
-        title: "User Banned",
-        description: `${user.username} has been banned permanently.`,
-        variant: "destructive",
-      });
-    } catch (error) {
-      console.error("Error banning user:", error);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to ban user",
+        description: "Failed to ban user.",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
-  const handleDeleteUser = async (user: User) => {
-    try {
-      await adminApi.deleteUser(user.id);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      setDeleteModalOpen(false);
-      setActionUser(null);
-
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({
         title: "User Deleted",
-        description: `${user.username} has been deleted permanently.`,
+        description: "User has been deleted permanently.",
         variant: "destructive",
       });
-    } catch (error) {
-      console.error("Error deleting user:", error);
+      setDeleteModalOpen(false);
+      setActionUser(null);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: "Failed to delete user.",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
-  const handleResetPassword = async (user: User) => {
-    if (!resetPassword) {
-      toast({
-        title: "Error",
-        description: "Please enter a new password.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await adminApi.resetUserPassword(user.id, resetPassword);
-
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      adminApi.resetUserPassword(id, password),
+    onSuccess: () => {
       toast({
         title: "Password Reset",
-        description: `Password for ${user.username} has been reset successfully.`,
+        description: "Password has been reset successfully.",
       });
-
+      setResetPasswordModalOpen(false);
       setResetPassword("");
-    } catch (error) {
-      console.error("Error resetting password:", error);
+      setActionUser(null);
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to reset password. Please try again.",
+        description: "Failed to reset password.",
         variant: "destructive",
       });
-    }
+    },
+  });
+
+  const handleCreateUser = () => {
+    createUserMutation.mutate({
+      ...newUser,
+      status: "active",
+      verified: true,
+    });
   };
 
-  const handleBulkAction = async (
-    action: "suspend" | "activate" | "delete"
-  ) => {
-    try {
-      const adminUserId = localStorage.getItem("userId") || "";
-      const promises = selectedUsers.map((userId) => {
-        switch (action) {
-          case "suspend":
-            return adminApi.suspendUser({
-              user_id: userId,
-              suspended_by: adminUserId,
-              reason: "Bulk action",
-              duration_days: 7,
-              is_permanent: false,
-            });
-          case "delete":
-            return adminApi.deleteUser(userId);
-          case "activate":
-            return adminApi.unsuspendUser(userId);
-          default:
-            return Promise.resolve();
-        }
-      });
-
-      await Promise.all(promises);
-
-      if (action === "delete") {
-        setUsers((prev) => prev.filter((u) => !selectedUsers.includes(u.id)));
-      } else {
-        await loadUsers();
-      }
-
-      setSelectedUsers([]);
-
-      toast({
-        title: "Bulk Action Complete",
-        description: `${selectedUsers.length} users ${action}d successfully.`,
-      });
-    } catch (error) {
-      console.error("Error performing bulk action:", error);
-      toast({
-        title: "Error",
-        description: `Failed to ${action} users`,
-        variant: "destructive",
-      });
-    }
+  const handleEditUser = () => {
+    if (!editingUser) return;
+    updateUserMutation.mutate({
+      id: editingUser.id,
+      data: {
+        email: editingUser.email,
+        full_name: editingUser.full_name,
+        department: editingUser.department,
+        role: editingUser.role,
+        status: editingUser.status,
+      },
+    });
   };
 
-  const handleExportUsers = async () => {
-    try {
-      const blob = await adminApi.exportData("csv", "users");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "users-export.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+  const handleSuspendUser = () => {
+    if (!actionUser) return;
+    const adminUserId = localStorage.getItem("userId") || "";
+    suspendUserMutation.mutate({
+      user_id: actionUser.id,
+      suspended_by: adminUserId,
+      reason: suspendReason,
+      duration_days: 7,
+      is_permanent: false,
+    });
+  };
 
-      toast({
-        title: "Export Complete",
-        description: "Users data exported successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to export users",
-        variant: "destructive",
-      });
-    }
+  const handleBanUser = () => {
+    if (!actionUser) return;
+    banUserMutation.mutate({
+      id: actionUser.id,
+      reason: banReason,
+    });
+  };
+
+  const handleDeleteUser = () => {
+    if (!actionUser) return;
+    deleteUserMutation.mutate(actionUser.id);
+  };
+
+  const handleResetPassword = () => {
+    if (!actionUser || !resetPassword) return;
+    resetPasswordMutation.mutate({
+      id: actionUser.id,
+      password: resetPassword,
+    });
   };
 
   const handleSelectUser = (userId: string) => {
@@ -406,323 +395,311 @@ export function UserManagement() {
     );
   };
 
-  const getStatusBadge = (user: User) => {
+  const handleExportUsers = async () => {
+    try {
+      const blob = await adminApi.exportData("csv", "users");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `users-export-${moment().format("YYYY-MM-DD")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: "Users data exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export users.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkAction = async (action: "suspend" | "activate" | "delete") => {
+    if (selectedUsers.length === 0) return;
+
+    try {
+      const adminUserId = localStorage.getItem("userId") || "";
+      const promises = selectedUsers.map((userId) => {
+        switch (action) {
+          case "suspend":
+            return adminApi.suspendUser({
+              user_id: userId,
+              suspended_by: adminUserId,
+              reason: "Bulk action",
+              duration_days: 7,
+              is_permanent: false,
+            });
+          case "activate":
+            return adminApi.unsuspendUser(userId);
+          case "delete":
+            return adminApi.deleteUser(userId);
+          default:
+            return Promise.resolve();
+        }
+      });
+
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setSelectedUsers([]);
+
+      toast({
+        title: "Bulk Action Complete",
+        description: `${selectedUsers.length} users ${action}d successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${action} users.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
     const roleColors: Record<string, string> = {
-      'super_admin': 'bg-red-600 text-white',
-      'admin': 'bg-campus-purple text-white',
-      'support_staff': 'bg-blue-600 text-white',
-      'content_moderator': 'bg-green-600 text-white',
-      'finance_officer': 'bg-yellow-600 text-white',
-      'operations_manager': 'bg-indigo-600 text-white',
-      'developer_admin': 'bg-gray-700 text-white',
-      'user': 'bg-gray-400 text-white'
+      super_admin: "bg-red-600 text-white",
+      admin: "bg-purple-600 text-white",
+      support_staff: "bg-blue-600 text-white",
+      content_moderator: "bg-green-600 text-white",
+      finance_officer: "bg-yellow-600 text-white",
+      operations_manager: "bg-indigo-600 text-white",
+      developer_admin: "bg-gray-700 text-white",
+      user: "bg-gray-400 text-white",
     };
 
     const roleLabels: Record<string, string> = {
-      'super_admin': 'Super Admin',
-      'admin': 'Admin',
-      'support_staff': 'Support Staff',
-      'content_moderator': 'Content Moderator',
-      'finance_officer': 'Finance Officer',
-      'operations_manager': 'Operations Manager',
-      'developer_admin': 'Developer Admin',
-      'user': 'User'
+      super_admin: "Super Admin",
+      admin: "Admin",
+      support_staff: "Support Staff",
+      content_moderator: "Content Moderator",
+      finance_officer: "Finance Officer",
+      operations_manager: "Operations Manager",
+      developer_admin: "Developer Admin",
+      user: "User",
     };
 
-    const roleClass = roleColors[user.role] || 'bg-gray-400 text-white';
-    const roleLabel = roleLabels[user.role] || user.role;
+    const roleClass = roleColors[role] || "bg-gray-400 text-white";
+    const roleLabel = roleLabels[role] || role;
 
     return <Badge className={roleClass}>{roleLabel}</Badge>;
   };
 
-  const userStats = {
-    total: users.length,
-    admins: users.filter((u) => u.role === 'super_admin' || u.role === 'admin').length,
-    staff: users.filter((u) => u.role === 'support_staff' || u.role === 'content_moderator' || u.role === 'finance_officer' || u.role === 'operations_manager').length,
-    developers: users.filter((u) => u.role === 'developer_admin').length,
-    regularUsers: users.filter((u) => u.role === 'user').length,
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return (
+          <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800">
+            Active
+          </Badge>
+        );
+      case "suspended":
+        return (
+          <Badge className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800">
+            Suspended
+          </Badge>
+        );
+      case "banned":
+        return (
+          <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800">
+            Banned
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
-  if (isLoading) {
+  if (!currentSpaceId || currentSpaceId === "all") {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold custom-font">User Management</h1>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-              </CardHeader>
-              <CardContent className="animate-pulse">
-                <div className="h-8 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <AdminPageLayout title="User Management">
+        <Card className="border-2 border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Select a Space</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Please select a specific space from the space switcher to manage
+              users.
+            </p>
+          </CardContent>
+        </Card>
+      </AdminPageLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold custom-font">User Management</h1>
-        <div className="flex items-center space-x-2">
-          {selectedUsers.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">
-                {selectedUsers.length} selected
-              </span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Bulk Actions
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleBulkAction("suspend")}>
-                    <UserX className="mr-2 h-4 w-4" />
-                    Suspend Selected
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleBulkAction("activate")}
-                  >
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    Activate Selected
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => handleBulkAction("delete")}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-          <Button variant="outline" size="sm" onClick={handleExportUsers}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Dialog open={addUserModalOpen} onOpenChange={setAddUserModalOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
-                <DialogDescription>
-                  Create a new user account for the platform.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={newUser.username}
-                      onChange={(e) =>
-                        setNewUser((prev) => ({
-                          ...prev,
-                          username: e.target.value,
-                        }))
-                      }
-                      placeholder="john_doe"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="displayName">Display Name</Label>
-                    <Input
-                      id="displayName"
-                      value={newUser.username}
-                      onChange={(e) =>
-                        setNewUser((prev) => ({
-                          ...prev,
-                          displayName: e.target.value,
-                        }))
-                      }
-                      placeholder="John Doe"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                    placeholder="john@university.edu"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({
-                        ...prev,
-                        password: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={newUser.bio}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({ ...prev, bio: e.target.value }))
-                    }
-                    placeholder="Student bio..."
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      value={newUser.department}
-                      onChange={(e) =>
-                        setNewUser((prev) => ({
-                          ...prev,
-                          department: e.target.value,
-                        }))
-                      }
-                      placeholder="Computer Science"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="level">Level</Label>
-                    <Select
-                      value={newUser.level}
-                      onValueChange={(
-                        value: "undergraduate" | "graduate" | "faculty"
-                      ) => setNewUser((prev) => ({ ...prev, level: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="undergraduate">
-                          Undergraduate
-                        </SelectItem>
-                        <SelectItem value="graduate">Graduate</SelectItem>
-                        <SelectItem value="faculty">Faculty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select
-                    value={newUser.role}
-                    onValueChange={(value) =>
-                      setNewUser((prev) => ({ ...prev, role: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="support_staff">Support Staff</SelectItem>
-                      <SelectItem value="content_moderator">Content Moderator</SelectItem>
-                      <SelectItem value="finance_officer">Finance Officer</SelectItem>
-                      <SelectItem value="operations_manager">Operations Manager</SelectItem>
-                      <SelectItem value="developer_admin">Developer Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+    <AdminPageLayout title="User Management">
+      <div className="space-y-6">
+        {/* Statistics Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Users
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+                <Users className="h-4 w-4 text-blue-600" />
               </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setAddUserModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateUser}>Create User</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{userStats.total}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Across all roles
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Active Users
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                <UserCheck className="h-4 w-4 text-green-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{userStats.active}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Currently active
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Suspended
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950">
+                <UserX className="h-4 w-4 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{userStats.suspended}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Temporarily suspended
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Admins & Staff
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950">
+                <Shield className="h-4 w-4 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {userStats.admins + userStats.staff}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Privileged accounts
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Filters and Actions */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Students</CardTitle>
-            <Badge variant="secondary">{userStats.students}</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.students}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tutors</CardTitle>
-            <Badge className="bg-primary">{userStats.tutors}</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.tutors}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faculty</CardTitle>
-            <Badge className="bg-campus-purple text-white">
-              {userStats.faculty}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.faculty}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Users</CardTitle>
-            <div className="flex items-center space-x-2">
-              <div className="relative w-64">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Users
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {selectedUsers.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedUsers.length} selected
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Bulk Actions
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => handleBulkAction("suspend")}
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Suspend Selected
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleBulkAction("activate")}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          Activate Selected
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleBulkAction("delete")}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Selected
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+                <Button variant="outline" size="sm" onClick={handleExportUsers}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button size="sm" onClick={() => setAddUserModalOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add User
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search users..."
+                  placeholder="Search users by name, email, or username..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Role" />
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
@@ -730,147 +707,357 @@ export function UserManagement() {
                   <SelectItem value="super_admin">Super Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="support_staff">Support Staff</SelectItem>
-                  <SelectItem value="content_moderator">Content Moderator</SelectItem>
+                  <SelectItem value="content_moderator">
+                    Content Moderator
+                  </SelectItem>
+                  <SelectItem value="finance_officer">
+                    Finance Officer
+                  </SelectItem>
+                  <SelectItem value="operations_manager">
+                    Operations Manager
+                  </SelectItem>
+                  <SelectItem value="developer_admin">
+                    Developer Admin
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="banned">Banned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-64" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No users found</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  {searchQuery || selectedRole !== "all" || selectedStatus !== "all"
+                    ? "Try adjusting your filters or search query."
+                    : "No users are registered in this space yet."}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={
+                          selectedUsers.length === filteredUsers.length &&
+                          filteredUsers.length > 0
+                        }
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={() => handleSelectUser(user.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.avatar || undefined} />
+                            <AvatarFallback>
+                              {user.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium">{user.username}</div>
+                              {user.verified && (
+                                <Shield className="h-3 w-3 text-blue-600" />
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {user.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        <span className="text-sm">{user.department || "—"}</span>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {moment(user.created_at).format("MMM D, YYYY")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingUser(user);
+                                setEditUserModalOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setActionUser(user);
+                                setResetPasswordModalOpen(true);
+                              }}
+                            >
+                              <Key className="mr-2 h-4 w-4" />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Activity className="mr-2 h-4 w-4" />
+                              View Activity
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {user.status !== "suspended" && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setActionUser(user);
+                                  setSuspendModalOpen(true);
+                                }}
+                              >
+                                <UserX className="mr-2 h-4 w-4" />
+                                Suspend User
+                              </DropdownMenuItem>
+                            )}
+                            {user.status !== "banned" && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setActionUser(user);
+                                  setBanModalOpen(true);
+                                }}
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setActionUser(user);
+                                setDeleteModalOpen(true);
+                              }}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {totalUsers > pageSize && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} users
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="text-sm">
+                Page {currentPage} of {Math.ceil(totalUsers / pageSize)}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage >= Math.ceil(totalUsers / pageSize)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add User Modal */}
+      <Dialog open={addUserModalOpen} onOpenChange={setAddUserModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account for this space.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, username: e.target.value }))
+                  }
+                  placeholder="john_doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={newUser.full_name}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, full_name: e.target.value }))
+                  }
+                  placeholder="John Doe"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, email: e.target.value }))
+                }
+                placeholder="john@university.edu"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, password: e.target.value }))
+                }
+                placeholder="Enter password"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  value={newUser.department}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, department: e.target.value }))
+                  }
+                  placeholder="Computer Science"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="level">Level</Label>
+                <Select
+                  value={newUser.level}
+                  onValueChange={(value) =>
+                    setNewUser((prev) => ({ ...prev, level: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="undergraduate">Undergraduate</SelectItem>
+                    <SelectItem value="graduate">Graduate</SelectItem>
+                    <SelectItem value="faculty">Faculty</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={newUser.role}
+                onValueChange={(value) =>
+                  setNewUser((prev) => ({ ...prev, role: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="support_staff">Support Staff</SelectItem>
+                  <SelectItem value="content_moderator">
+                    Content Moderator
+                  </SelectItem>
                   <SelectItem value="finance_officer">Finance Officer</SelectItem>
-                  <SelectItem value="operations_manager">Operations Manager</SelectItem>
+                  <SelectItem value="operations_manager">
+                    Operations Manager
+                  </SelectItem>
                   <SelectItem value="developer_admin">Developer Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={
-                      selectedUsers.length === filteredUsers.length &&
-                      filteredUsers.length > 0
-                    }
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedUsers.includes(user.id)}
-                      onCheckedChange={() => handleSelectUser(user.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.username} />
-                        <AvatarFallback>
-                          {user.username.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <div className="font-medium">{user.username}</div>
-                          {user.verified && (
-                            <Shield className="h-3 w-3 text-primary" />
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(user)}</TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-600"
-                    >
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {moment(user.createdAt).format("Do MMMM")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingUser(user);
-                            setEditUserModalOpen(true);
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleResetPassword(user)}
-                        >
-                          <Key className="mr-2 h-4 w-4" />
-                          Reset Password
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Activity className="mr-2 h-4 w-4" />
-                          View Activity
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setActionUser(user);
-                            setSuspendModalOpen(true);
-                          }}
-                        >
-                          <UserX className="mr-2 h-4 w-4" />
-                          Suspend User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setActionUser(user);
-                            setBanModalOpen(true);
-                          }}
-                        >
-                          <Ban className="mr-2 h-4 w-4" />
-                          Ban User
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setActionUser(user);
-                            setDeleteModalOpen(true);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddUserModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending}
+            >
+              {createUserMutation.isPending ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
+      {/* Edit User Modal */}
       <Dialog open={editUserModalOpen} onOpenChange={setEditUserModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -887,21 +1074,18 @@ export function UserManagement() {
                   <Input
                     id="edit-username"
                     value={editingUser.username}
-                    onChange={(e) =>
-                      setEditingUser((prev) =>
-                        prev ? { ...prev, username: e.target.value } : null
-                      )
-                    }
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-displayName">Display Name</Label>
+                  <Label htmlFor="edit-full_name">Full Name</Label>
                   <Input
-                    id="edit-displayName"
-                    value={editingUser.username}
+                    id="edit-full_name"
+                    value={editingUser.full_name}
                     onChange={(e) =>
                       setEditingUser((prev) =>
-                        prev ? { ...prev, displayName: e.target.value } : null
+                        prev ? { ...prev, full_name: e.target.value } : null
                       )
                     }
                   />
@@ -921,28 +1105,71 @@ export function UserManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-bio">Bio</Label>
-                <Textarea
-                  id="edit-bio"
-                  value={editingUser.bio || ""}
+                <Label htmlFor="edit-department">Department</Label>
+                <Input
+                  id="edit-department"
+                  value={editingUser.department || ""}
                   onChange={(e) =>
                     setEditingUser((prev) =>
-                      prev ? { ...prev, bio: e.target.value } : null
+                      prev ? { ...prev, department: e.target.value } : null
                     )
                   }
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-verified"
-                  checked={editingUser.verified}
-                  onCheckedChange={(checked) =>
-                    setEditingUser((prev) =>
-                      prev ? { ...prev, verified: checked as boolean } : null
-                    )
-                  }
-                />
-                <Label htmlFor="edit-verified">Verified Account</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select
+                    value={editingUser.role}
+                    onValueChange={(value) =>
+                      setEditingUser((prev) =>
+                        prev ? { ...prev, role: value } : null
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="support_staff">Support Staff</SelectItem>
+                      <SelectItem value="content_moderator">
+                        Content Moderator
+                      </SelectItem>
+                      <SelectItem value="finance_officer">
+                        Finance Officer
+                      </SelectItem>
+                      <SelectItem value="operations_manager">
+                        Operations Manager
+                      </SelectItem>
+                      <SelectItem value="developer_admin">
+                        Developer Admin
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editingUser.status}
+                    onValueChange={(value) =>
+                      setEditingUser((prev) =>
+                        prev ? { ...prev, status: value } : null
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="banned">Banned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
@@ -953,18 +1180,23 @@ export function UserManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleEditUser}>Save Changes</Button>
+            <Button
+              onClick={handleEditUser}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Suspend User Modal */}
       <Dialog open={suspendModalOpen} onOpenChange={setSuspendModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Suspend User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to suspend {actionUser?.displayName}? Please
-              provide a reason.
+              Suspend {actionUser?.username} for 7 days. Please provide a reason.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -975,6 +1207,7 @@ export function UserManagement() {
                 value={suspendReason}
                 onChange={(e) => setSuspendReason(e.target.value)}
                 placeholder="Enter reason for suspension..."
+                rows={4}
               />
             </div>
           </div>
@@ -987,21 +1220,23 @@ export function UserManagement() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => actionUser && handleSuspendUser(actionUser)}
+              onClick={handleSuspendUser}
+              disabled={suspendUserMutation.isPending || !suspendReason}
             >
-              Suspend User
+              {suspendUserMutation.isPending ? "Suspending..." : "Suspend User"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Ban User Modal */}
       <Dialog open={banModalOpen} onOpenChange={setBanModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ban User</DialogTitle>
+            <DialogTitle>Ban User Permanently</DialogTitle>
             <DialogDescription>
-              Are you sure you want to ban {actionUser?.displayName}? This
-              action is more severe than suspension.
+              Permanently ban {actionUser?.username}. This action is more severe
+              than suspension.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1012,6 +1247,7 @@ export function UserManagement() {
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
                 placeholder="Enter reason for ban..."
+                rows={4}
               />
             </div>
           </div>
@@ -1021,35 +1257,82 @@ export function UserManagement() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => actionUser && handleBanUser(actionUser)}
+              onClick={handleBanUser}
+              disabled={banUserMutation.isPending || !banReason}
             >
-              Ban User
+              {banUserMutation.isPending ? "Banning..." : "Ban User"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Delete User Modal */}
       <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {actionUser?.displayName}? This
-              action cannot be undone. All user data will be permanently
-              removed.
+              Are you sure you want to delete {actionUser?.username}? This action
+              cannot be undone. All user data will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => actionUser && handleDeleteUser(actionUser)}
+              onClick={handleDeleteUser}
               className="bg-red-600 hover:bg-red-700"
+              disabled={deleteUserMutation.isPending}
             >
-              Delete User
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+
+      {/* Reset Password Modal */}
+      <Dialog
+        open={resetPasswordModalOpen}
+        onOpenChange={setResetPasswordModalOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {actionUser?.username}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-password">New Password</Label>
+              <Input
+                id="reset-password"
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="Enter new password..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResetPasswordModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={resetPasswordMutation.isPending || !resetPassword}
+            >
+              {resetPasswordMutation.isPending
+                ? "Resetting..."
+                : "Reset Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminPageLayout>
   );
 }
+
+export default UserManagement;

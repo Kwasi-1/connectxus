@@ -92,6 +92,13 @@ const Feed = () => {
     repostPost(postId);
   };
 
+  const handleQuote = (postId: string) => {
+    navigate('/compose', { state: { quotedPostId: postId } });
+  };
+
+  const handleViewInteractions = (postId: string) => {
+    navigate(`/post/${postId}/interactions`);
+  };
 
   const handleShare = (postId: string) => {
     const post = posts.find(p => p.id === postId);
@@ -186,6 +193,8 @@ const Feed = () => {
           }}
           post={postForRepost as any}
           onRepost={handleRepostConfirm}
+          onQuote={handleQuote}
+          onViewInteractions={handleViewInteractions}
           isReposted={postForRepost.is_reposted}
         />
       )}

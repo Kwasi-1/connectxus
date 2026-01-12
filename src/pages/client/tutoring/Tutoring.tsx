@@ -38,12 +38,13 @@ import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   TutorProfile as ApiTutorProfile,
   TutoringRequest,
   getRecommendedTutors,
   getMyTutorApplication,
+  checkTutorApplicationExists,
   getUserTutoringRequests,
   getTutorSessionRequests,
   createTutoringRequest,
@@ -66,11 +67,13 @@ import {
 } from "@/api/users.api";
 import { toast as sonnerToast } from "sonner";
 
+
 interface ExtendedTutorProfile extends ApiTutorProfile {
   full_name?: string;
   username?: string;
   avatar?: string;
 }
+
 
 interface TutorFilters {
   subjectType: string;
@@ -85,8 +88,8 @@ interface TutorFilters {
 }
 
 const ITEMS_PER_PAGE = 20;
-const MAX_SESSION_RATE = 10000;
-const MAX_SEMESTER_RATE = 100000;
+const MAX_SESSION_RATE = 10000; 
+const MAX_SEMESTER_RATE = 100000; 
 
 const TutoringContent = () => {
   const navigate = useNavigate();
@@ -94,9 +97,11 @@ const TutoringContent = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
+  
   const [pendingFilters, setPendingFilters] = useState<TutorFilters>({
     subjectType: "all",
     minSessionRate: 0,
@@ -109,6 +114,7 @@ const TutoringContent = () => {
     hasDiscount: false,
   });
 
+  
   const [appliedFilters, setAppliedFilters] = useState<TutorFilters>({
     subjectType: "all",
     minSessionRate: 0,
@@ -121,6 +127,7 @@ const TutoringContent = () => {
     hasDiscount: false,
   });
 
+  
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,11 +135,13 @@ const TutoringContent = () => {
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  
   const [tutors, setTutors] = useState<ExtendedTutorProfile[]>([]);
   const [followingStatus, setFollowingStatus] = useState<
     Record<string, boolean>
   >({});
 
+  
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<ApiTutorProfile | null>(
     null
@@ -143,35 +152,77 @@ const TutoringContent = () => {
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("available");
+
 
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
+
+  const { data: applicationStatus, isLoading: loadingApplicationStatus } =
+    useQuery({
+      queryKey: ["tutor-application-status"],
+      queryFn: () => checkTutorApplicationExists(),
+      staleTime: 60000,
+      retry: false,
+    });
+
 
   const { data: myTutorApplication, isLoading: loadingMyApplication } =
     useQuery({
       queryKey: ["my-tutor-application"],
       queryFn: getMyTutorApplication,
+      enabled: (activeTab === "services" || activeTab === "application") && !!applicationStatus,
+      staleTime: 60000,
+      retry: false,
     });
+
+  const {
+    data: userServicesData,
+    isLoading: loadingUserServices,
+    isFetchingNextPage: isFetchingNextUserServices,
+    hasNextPage: hasNextUserServicesPage,
+    fetchNextPage: fetchNextUserServicesPage,
+  } = useInfiniteQuery({
+    queryKey: ["user-tutoring-requests-infinite"],
+    queryFn: ({ pageParam = 1 }) => getUserTutoringRequests(pageParam, ITEMS_PER_PAGE),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === ITEMS_PER_PAGE ? allPages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
+    enabled: (activeTab === "services" || activeTab === "application") && !!user,
+    staleTime: 60000,
+  });
+
+  const userServices = userServicesData?.pages.flatMap(page => page) || [];
+
+  const { loadMoreRef: loadMoreUserServicesRef } = useInfiniteScroll({
+    loading: isFetchingNextUserServices,
+    hasMore: hasNextUserServicesPage || false,
+    onLoadMore: fetchNextUserServicesPage,
+  });
 
   const { data: sentRequests = [], isLoading: loadingSentRequests } = useQuery({
     queryKey: ["user-tutoring-requests"],
     queryFn: () => getUserTutoringRequests(1, 20),
-    enabled: !!user,
+    enabled: activeTab === "my-requests" && !!user,
+    staleTime: 60000,
   });
 
   const { data: receivedRequests = [], isLoading: loadingReceivedRequests } =
     useQuery({
       queryKey: ["tutor-session-requests"],
       queryFn: () => getTutorSessionRequests(1, 20),
-      enabled: !!myTutorApplication && myTutorApplication.status === "approved",
+      enabled: activeTab === "requests" && applicationStatus?.status === "approved",
+      staleTime: 60000,
     });
 
   const requestsLoading = loadingSentRequests || loadingReceivedRequests;
 
-  const hasApplication = !!myTutorApplication;
-  const isApprovedTutor = myTutorApplication?.status === "approved";
-  const isPendingTutor = myTutorApplication?.status === "pending";
-  const isRejectedTutor = myTutorApplication?.status === "rejected";
+  const hasApplication = !!applicationStatus;
+  const isApprovedTutor = applicationStatus?.status === "approved";
+  const isPendingTutor = applicationStatus?.status === "pending";
+  const isRejectedTutor = applicationStatus?.status === "rejected";
 
+  
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -181,6 +232,7 @@ const TutoringContent = () => {
     return shuffled;
   };
 
+  
   const filterTutors = useCallback(
     (tutorsList: ExtendedTutorProfile[]): ExtendedTutorProfile[] => {
       const filtered = tutorsList.filter((tutor) => {
@@ -189,8 +241,7 @@ const TutoringContent = () => {
         }
 
         const searchLower = debouncedSearchQuery.toLowerCase();
-        const userName =
-          tutor.full_name || tutor.username || tutor.user?.name || "";
+        const userName = tutor.full_name || tutor.username || tutor.user?.name || "";
         const tutorSubject = tutor.subject || "";
         const tutorBio = tutor.bio || "";
         const tutorExperience = tutor.experience || "";
@@ -211,13 +262,16 @@ const TutoringContent = () => {
     [debouncedSearchQuery, user, isApprovedTutor]
   );
 
+  
   const loadTutors = async (page: number = 1, append: boolean = false) => {
     if (!user) return;
 
+    
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
+    
     abortControllerRef.current = new AbortController();
 
     try {
@@ -229,24 +283,21 @@ const TutoringContent = () => {
         setCurrentPage(1);
       }
 
+      
+      
       const params: any = {
         limit: ITEMS_PER_PAGE * 2,
       };
 
+      
       if (appliedFilters.subjectType !== "all") {
         params.subject_type = appliedFilters.subjectType;
       }
-      if (
-        appliedFilters.minSessionRate !== 0 ||
-        appliedFilters.maxSessionRate !== MAX_SESSION_RATE
-      ) {
+      if (appliedFilters.minSessionRate !== 0 || appliedFilters.maxSessionRate !== MAX_SESSION_RATE) {
         params.min_session_rate = appliedFilters.minSessionRate;
         params.max_session_rate = appliedFilters.maxSessionRate;
       }
-      if (
-        appliedFilters.minSemesterRate !== 0 ||
-        appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE
-      ) {
+      if (appliedFilters.minSemesterRate !== 0 || appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE) {
         params.min_semester_rate = appliedFilters.minSemesterRate;
         params.max_semester_rate = appliedFilters.maxSemesterRate;
       }
@@ -263,22 +314,30 @@ const TutoringContent = () => {
         params.has_discount = true;
       }
 
+      
       let newTutors = await getRecommendedTutors(params);
 
+
+      
       newTutors = shuffleArray(newTutors);
 
+      
       if (append) {
-        const uniqueNewTutors = newTutors.filter((t) => !seenIds.has(t.id));
+        const uniqueNewTutors = newTutors.filter(t => !seenIds.has(t.id));
         setTutors((prev) => [...prev, ...uniqueNewTutors]);
 
+        
         const newIds = uniqueNewTutors.map((t) => t.id);
         setSeenIds((prev) => new Set([...prev, ...newIds]));
       } else {
+        
         setTutors(newTutors);
         const newIds = newTutors.map((t) => t.id);
         setSeenIds(new Set(newIds));
       }
 
+
+      
       setHasMore(newTutors.length >= ITEMS_PER_PAGE);
     } catch (error: any) {
       if (error.name !== "AbortError" && error.name !== "CanceledError") {
@@ -298,6 +357,7 @@ const TutoringContent = () => {
     }
   }, [currentPage, loadingMore, hasMore]);
 
+  
   const { loadMoreRef } = useInfiniteScroll({
     loading: loadingMore,
     hasMore,
@@ -307,16 +367,19 @@ const TutoringContent = () => {
   const userApplications = myTutorApplication ? [myTutorApplication] : [];
   const userRequests = receivedRequests || [];
 
+  
   const filteredTutors = useMemo(() => {
     const filtered = filterTutors(tutors);
     return filtered;
   }, [tutors, filterTutors]);
 
+  
   const applyFilters = () => {
     setAppliedFilters(pendingFilters);
     setShowFilters(false);
   };
 
+  
   const resetFilters = () => {
     const defaultFilters = {
       subjectType: "all",
@@ -334,6 +397,7 @@ const TutoringContent = () => {
     setSearchQuery("");
   };
 
+  
   const hasActiveFilters =
     appliedFilters.subjectType !== "all" ||
     appliedFilters.level !== "all" ||
@@ -345,10 +409,12 @@ const TutoringContent = () => {
     appliedFilters.hasDiscount ||
     searchQuery !== "";
 
+  
   useEffect(() => {
     loadTutors();
   }, [debouncedSearchQuery, appliedFilters]);
 
+  
   useEffect(() => {
     if (user) {
       loadTutors();
@@ -670,7 +736,11 @@ const TutoringContent = () => {
   }) => {
     if (!selectedTutor?.id) return;
 
+    
+    
     const schedulesISO = data.schedules.map((schedule) => {
+      
+      
       return schedule;
     });
 
@@ -722,11 +792,7 @@ const TutoringContent = () => {
   const handleDeleteApplication = async () => {
     if (!myTutorApplication) return;
 
-    if (
-      !confirm(
-        "Are you sure you want to delete your tutor application? This action cannot be undone."
-      )
-    ) {
+    if (!confirm("Are you sure you want to delete your tutor application? This action cannot be undone.")) {
       return;
     }
 
@@ -738,10 +804,7 @@ const TutoringContent = () => {
     } catch (error: any) {
       console.error("Error deleting application:", error);
       sonnerToast.error("Failed to delete application", {
-        description:
-          error.response?.data?.error?.message ||
-          error.message ||
-          "Please try again later.",
+        description: error.response?.data?.error?.message || error.message || "Please try again later.",
       });
     }
   };
@@ -754,6 +817,7 @@ const TutoringContent = () => {
     declineRequestMutation.mutate({ requestId, message });
   };
 
+  
   const handleMessageStudent = (request: TutoringRequest) => {
     if (!request.requester_id) {
       sonnerToast.error("Unable to message this student");
@@ -762,14 +826,17 @@ const TutoringContent = () => {
     messageTutorMutation.mutate(request.requester_id);
   };
 
+  
   const handleCallStudent = (request: TutoringRequest) => {
     sonnerToast.info("Call functionality coming soon");
   };
 
+  
   const handleCancelSession = (requestId: string, reason: string) => {
     cancelSessionMutation.mutate({ requestId, reason });
   };
 
+  
   const handleProceedToPayment = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setPaymentModalOpen(true);
@@ -794,6 +861,7 @@ const TutoringContent = () => {
     });
   };
 
+  
   const handleMessageTutor = (request: TutoringRequest) => {
     if (!request.tutor_id) {
       sonnerToast.error("Unable to message this tutor");
@@ -802,6 +870,7 @@ const TutoringContent = () => {
     messageTutorMutation.mutate(request.tutor_id);
   };
 
+  
   const handleMarkComplete = (request: TutoringRequest) => {
     markCompleteMutation.mutate(request.id);
   };
@@ -824,6 +893,7 @@ const TutoringContent = () => {
     setSelectedRequest(null);
   };
 
+  
   const handleRequestRefund = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setRefundModalOpen(true);
@@ -839,23 +909,27 @@ const TutoringContent = () => {
     });
   };
 
+  
   const handleCancelRequest = (requestId: string, reason: string) => {
     cancelRequestMutation.mutate({ requestId, reason });
   };
 
+  
   const handlePay = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setPaymentModalOpen(true);
   };
 
+  
   const handleRequestAgain = (request: TutoringRequest) => {
+    
     if (!request.tutor_id || !request.tutor_id) {
       sonnerToast.error("Unable to create request. Missing tutor information.");
       return;
     }
 
     const tutorFromRequest: ApiTutorProfile = {
-      id: request.tutor_id,
+      id: request.tutor_id, 
       user_id: request.tutor_id,
       subject: request.subject || "",
       session_rate: request.session_rate
@@ -874,18 +948,15 @@ const TutoringContent = () => {
     setRequestModalOpen(true);
   };
 
+  
   const handleRate = (request: TutoringRequest) => {
     setSelectedRequest(request);
     setReviewModalOpen(true);
   };
 
+  
   const handleSubmitReview = (rating: number, reviewText: string) => {
-    if (
-      !selectedRequest ||
-      !selectedRequest.tutor_id ||
-      !selectedRequest.tutor_user_id
-    )
-      return;
+    if (!selectedRequest || !selectedRequest.tutor_id || !selectedRequest.tutor_user_id) return;
 
     createReviewMutation.mutate({
       sessionId: selectedRequest.id,
@@ -899,6 +970,7 @@ const TutoringContent = () => {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 space-y-6 custom-fonts">
+        
         <div className="flex justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Tutoring</h1>
@@ -909,8 +981,7 @@ const TutoringContent = () => {
           {isPendingTutor ? (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-sm">
-                <span className="hidden md:block mr-1">Application</span>{" "}
-                Pending
+                Application Pending
               </Badge>
             </div>
           ) : isRejectedTutor ? (
@@ -929,7 +1000,7 @@ const TutoringContent = () => {
         </div>
 
         {isApprovedTutor ? (
-          <Tabs defaultValue="available" className="w-full">
+          <Tabs defaultValue="available" className="w-full" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="available">Available Tutors</TabsTrigger>
               <TabsTrigger value="services">My Services</TabsTrigger>
@@ -940,6 +1011,7 @@ const TutoringContent = () => {
             </TabsList>
 
             <TabsContent value="available" className="space-y-4">
+              
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -961,14 +1033,14 @@ const TutoringContent = () => {
                   )}
                 </div>
 
+                
                 <Button
                   variant="outline"
                   className="relative"
                   onClick={() => setShowFilters(true)}
                 >
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden md:block ml-2"> Filter </span>
-
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
                   {hasActiveFilters && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
                       !
@@ -977,6 +1049,7 @@ const TutoringContent = () => {
                 </Button>
               </div>
 
+              
               {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2">
                   {searchQuery && (
@@ -994,10 +1067,7 @@ const TutoringContent = () => {
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
-                          setAppliedFilters((prev) => ({
-                            ...prev,
-                            subjectType: "all",
-                          }))
+                          setAppliedFilters((prev) => ({ ...prev, subjectType: "all" }))
                         }
                       />
                     </Badge>
@@ -1008,10 +1078,7 @@ const TutoringContent = () => {
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
-                          setAppliedFilters((prev) => ({
-                            ...prev,
-                            level: "all",
-                          }))
+                          setAppliedFilters((prev) => ({ ...prev, level: "all" }))
                         }
                       />
                     </Badge>
@@ -1022,10 +1089,7 @@ const TutoringContent = () => {
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
-                          setAppliedFilters((prev) => ({
-                            ...prev,
-                            minRating: 0,
-                          }))
+                          setAppliedFilters((prev) => ({ ...prev, minRating: 0 }))
                         }
                       />
                     </Badge>
@@ -1033,8 +1097,7 @@ const TutoringContent = () => {
                   {(appliedFilters.minSessionRate !== 0 ||
                     appliedFilters.maxSessionRate !== MAX_SESSION_RATE) && (
                     <Badge variant="secondary" className="gap-1">
-                      Session: GHS {appliedFilters.minSessionRate} - GHS{" "}
-                      {appliedFilters.maxSessionRate}/hr
+                      Session: GHS {appliedFilters.minSessionRate} - GHS {appliedFilters.maxSessionRate}/hr
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
@@ -1050,8 +1113,7 @@ const TutoringContent = () => {
                   {(appliedFilters.minSemesterRate !== 0 ||
                     appliedFilters.maxSemesterRate !== MAX_SEMESTER_RATE) && (
                     <Badge variant="secondary" className="gap-1">
-                      Semester: GHS {appliedFilters.minSemesterRate} - GHS{" "}
-                      {appliedFilters.maxSemesterRate}
+                      Semester: GHS {appliedFilters.minSemesterRate} - GHS {appliedFilters.maxSemesterRate}
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
@@ -1070,10 +1132,7 @@ const TutoringContent = () => {
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() =>
-                          setAppliedFilters((prev) => ({
-                            ...prev,
-                            hasDiscount: false,
-                          }))
+                          setAppliedFilters((prev) => ({ ...prev, hasDiscount: false }))
                         }
                       />
                     </Badge>
@@ -1081,12 +1140,15 @@ const TutoringContent = () => {
                 </div>
               )}
 
+              
               {loading ? (
                 <LoadingSpinner size="md" />
               ) : filteredTutors.length === 0 ? (
                 <div className="text-center py-12">
                   <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No tutors found</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    No tutors found
+                  </h3>
                   <p className="text-muted-foreground mb-4">
                     {hasActiveFilters
                       ? "Try adjusting your search or filters"
@@ -1100,6 +1162,7 @@ const TutoringContent = () => {
                 </div>
               ) : (
                 <>
+                  
                   <div className="space-y-4">
                     {filteredTutors.map((tutor) => {
                       const isFollowing = followingStatus[tutor.user_id || ""];
@@ -1122,6 +1185,7 @@ const TutoringContent = () => {
                     })}
                   </div>
 
+                  
                   {hasMore && (
                     <div ref={loadMoreRef} className="py-4 text-center">
                       {loadingMore && <LoadingSpinner size="sm" />}
@@ -1138,12 +1202,55 @@ const TutoringContent = () => {
             </TabsContent>
 
             <TabsContent value="services" className="space-y-4">
+              {/* Display tutor application */}
               {myTutorApplication && (
                 <TutorApplicationCard
                   application={myTutorApplication}
                   onEdit={handleEditApplication}
                   onDelete={handleDeleteApplication}
                 />
+              )}
+
+              {/* Display user tutoring requests/services */}
+              {loadingUserServices ? (
+                <LoadingSpinner size="md" />
+              ) : (
+                <>
+                  {userServices.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold mt-6">My Tutoring Requests</h3>
+                      {userServices.map((request) => (
+                        <TutoringRequestCard
+                          key={request.id}
+                          request={request}
+                          onPay={handleProceedToPayment}
+                          onMessage={handleMessageTutor}
+                          onComplete={handleMarkComplete}
+                          onRequestRefund={handleRequestRefund}
+                          showActions={true}
+                          viewMode="student"
+                        />
+                      ))}
+
+                      {/* Infinite Scroll Trigger */}
+                      {hasNextUserServicesPage && (
+                        <div ref={loadMoreUserServicesRef} className="flex justify-center py-8">
+                          {isFetchingNextUserServices && <LoadingSpinner size="md" />}
+                        </div>
+                      )}
+                    </div>
+                  ) : myTutorApplication ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        No tutoring requests yet
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Your tutoring requests will appear here
+                      </p>
+                    </div>
+                  ) : null}
+                </>
               )}
             </TabsContent>
 
@@ -1189,13 +1296,14 @@ const TutoringContent = () => {
             </TabsContent>
           </Tabs>
         ) : hasApplication ? (
-          <Tabs defaultValue="available" className="w-full">
+          <Tabs defaultValue="available" className="w-full" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="available">Available Tutors</TabsTrigger>
-              <TabsTrigger value="application">My Application</TabsTrigger>
+              <TabsTrigger value="services">My Services</TabsTrigger>
             </TabsList>
 
             <TabsContent value="available" className="space-y-4">
+              
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -1221,8 +1329,8 @@ const TutoringContent = () => {
                   className="relative"
                   onClick={() => setShowFilters(true)}
                 >
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden md:block ml-2"> Filter </span>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
                   {hasActiveFilters && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
                       !
@@ -1236,10 +1344,7 @@ const TutoringContent = () => {
                   {searchQuery && (
                     <Badge variant="secondary" className="gap-1">
                       Search: {searchQuery}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => setSearchQuery("")}
-                      />
+                      <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
                     </Badge>
                   )}
                 </div>
@@ -1257,9 +1362,7 @@ const TutoringContent = () => {
                       : "Check back later for new tutors"}
                   </p>
                   {hasActiveFilters && (
-                    <Button variant="outline" onClick={resetFilters}>
-                      Clear Filters
-                    </Button>
+                    <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
                   )}
                 </div>
               ) : (
@@ -1278,8 +1381,7 @@ const TutoringContent = () => {
                           showRequestButton={true}
                           isContactLoading={messageTutorMutation.isPending}
                           isFollowLoading={
-                            followMutation.isPending ||
-                            unfollowMutation.isPending
+                            followMutation.isPending || unfollowMutation.isPending
                           }
                         />
                       );
@@ -1301,7 +1403,8 @@ const TutoringContent = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="application" className="space-y-4">
+            <TabsContent value="services" className="space-y-4">
+              {/* Display application status */}
               {myTutorApplication && (
                 <TutorApplicationCard
                   application={myTutorApplication}
@@ -1309,10 +1412,52 @@ const TutoringContent = () => {
                   onDelete={handleDeleteApplication}
                 />
               )}
+
+              {/* Display user tutoring requests/services */}
+              {loadingUserServices ? (
+                <LoadingSpinner size="md" />
+              ) : (
+                <>
+                  {userServices.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">My Tutoring Requests</h3>
+                      {userServices.map((request) => (
+                        <TutoringRequestCard
+                          key={request.id}
+                          request={request}
+                          onPay={handleProceedToPayment}
+                          onMessage={handleMessageTutor}
+                          onComplete={handleMarkComplete}
+                          onRequestRefund={handleRequestRefund}
+                          showActions={true}
+                          viewMode="student"
+                        />
+                      ))}
+
+                      {/* Infinite Scroll Trigger */}
+                      {hasNextUserServicesPage && (
+                        <div ref={loadMoreUserServicesRef} className="flex justify-center py-8">
+                          {isFetchingNextUserServices && <LoadingSpinner size="md" />}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        No tutoring requests yet
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Your tutoring requests will appear here
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </TabsContent>
           </Tabs>
         ) : sentRequests.length > 0 ? (
-          <Tabs defaultValue="tutors" className="w-full">
+          <Tabs defaultValue="tutors" className="w-full" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="tutors">Find Tutors</TabsTrigger>
               <TabsTrigger value="my-requests">
@@ -1346,8 +1491,8 @@ const TutoringContent = () => {
                   className="relative"
                   onClick={() => setShowFilters(true)}
                 >
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden md:block ml-2"> Filter </span>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
                   {hasActiveFilters && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
                       !
@@ -1361,10 +1506,7 @@ const TutoringContent = () => {
                   {searchQuery && (
                     <Badge variant="secondary" className="gap-1">
                       Search: {searchQuery}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => setSearchQuery("")}
-                      />
+                      <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
                     </Badge>
                   )}
                 </div>
@@ -1382,9 +1524,7 @@ const TutoringContent = () => {
                       : "Check back later for new tutors"}
                   </p>
                   {hasActiveFilters && (
-                    <Button variant="outline" onClick={resetFilters}>
-                      Clear Filters
-                    </Button>
+                    <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
                   )}
                 </div>
               ) : (
@@ -1482,8 +1622,8 @@ const TutoringContent = () => {
                 className="relative"
                 onClick={() => setShowFilters(true)}
               >
-                <Filter className="h-4 w-4" />
-                  <span className="hidden md:block ml-2"> Filter </span>
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
                 {hasActiveFilters && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-primary-foreground">
                     !
@@ -1497,10 +1637,7 @@ const TutoringContent = () => {
                 {searchQuery && (
                   <Badge variant="secondary" className="gap-1">
                     Search: {searchQuery}
-                    <X
-                      className="h-3 w-3 cursor-pointer"
-                      onClick={() => setSearchQuery("")}
-                    />
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
                   </Badge>
                 )}
               </div>
@@ -1518,9 +1655,7 @@ const TutoringContent = () => {
                     : "Check back later for new tutors"}
                 </p>
                 {hasActiveFilters && (
-                  <Button variant="outline" onClick={resetFilters}>
-                    Clear Filters
-                  </Button>
+                  <Button variant="outline" onClick={resetFilters}>Clear Filters</Button>
                 )}
               </div>
             ) : (
@@ -1555,6 +1690,7 @@ const TutoringContent = () => {
         )}
       </div>
 
+      
       <Sheet open={showFilters} onOpenChange={setShowFilters}>
         <SheetContent>
           <SheetHeader>
@@ -1565,6 +1701,7 @@ const TutoringContent = () => {
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
+            
             <div className="space-y-2">
               <Label>Subject / Course</Label>
               <Select
@@ -1583,6 +1720,7 @@ const TutoringContent = () => {
                 </SelectContent>
               </Select>
             </div>
+
 
             <div className="space-y-2">
               <Label>Level</Label>
@@ -1636,10 +1774,7 @@ const TutoringContent = () => {
               <Select
                 value={pendingFilters.minRating.toString()}
                 onValueChange={(value) =>
-                  setPendingFilters((prev) => ({
-                    ...prev,
-                    minRating: parseInt(value),
-                  }))
+                  setPendingFilters((prev) => ({ ...prev, minRating: parseInt(value) }))
                 }
               >
                 <SelectTrigger>
@@ -1656,19 +1791,16 @@ const TutoringContent = () => {
               </Select>
             </div>
 
+
             <div className="space-y-3">
               <Label>
-                Session Rate (GHS {pendingFilters.minSessionRate} - GHS{" "}
-                {pendingFilters.maxSessionRate}/hr)
+                Session Rate (GHS {pendingFilters.minSessionRate} - GHS {pendingFilters.maxSessionRate}/hr)
               </Label>
               <Slider
                 min={0}
                 max={MAX_SESSION_RATE}
                 step={5}
-                value={[
-                  pendingFilters.minSessionRate,
-                  pendingFilters.maxSessionRate,
-                ]}
+                value={[pendingFilters.minSessionRate, pendingFilters.maxSessionRate]}
                 onValueChange={([min, max]) =>
                   setPendingFilters((prev) => ({
                     ...prev,
@@ -1680,19 +1812,16 @@ const TutoringContent = () => {
               />
             </div>
 
+            
             <div className="space-y-3">
               <Label>
-                Semester Rate (GHS {pendingFilters.minSemesterRate} - GHS{" "}
-                {pendingFilters.maxSemesterRate})
+                Semester Rate (GHS {pendingFilters.minSemesterRate} - GHS {pendingFilters.maxSemesterRate})
               </Label>
               <Slider
                 min={0}
                 max={MAX_SEMESTER_RATE}
                 step={50}
-                value={[
-                  pendingFilters.minSemesterRate,
-                  pendingFilters.maxSemesterRate,
-                ]}
+                value={[pendingFilters.minSemesterRate, pendingFilters.maxSemesterRate]}
                 onValueChange={([min, max]) =>
                   setPendingFilters((prev) => ({
                     ...prev,
@@ -1704,6 +1833,7 @@ const TutoringContent = () => {
               />
             </div>
 
+            
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -1722,6 +1852,7 @@ const TutoringContent = () => {
               </Label>
             </div>
 
+            
             <div className="flex gap-2 pt-4">
               <Button
                 variant="outline"
@@ -1730,7 +1861,10 @@ const TutoringContent = () => {
               >
                 Reset
               </Button>
-              <Button onClick={applyFilters} className="flex-1">
+              <Button
+                onClick={applyFilters}
+                className="flex-1"
+              >
                 Apply
               </Button>
             </div>
@@ -1738,6 +1872,7 @@ const TutoringContent = () => {
         </SheetContent>
       </Sheet>
 
+      
       {selectedTutor && (
         <RequestTutoringModal
           open={requestModalOpen}

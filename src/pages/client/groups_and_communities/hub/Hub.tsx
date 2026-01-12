@@ -20,6 +20,8 @@ import {
   Clock,
   Plus,
   Loader2,
+  Filter,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
@@ -35,26 +37,31 @@ import {
   getRecommendedCommunities,
   Community,
 } from "@/api/communities.api";
-import {
-  getRecommendedEvents,
-  getUserRegisteredEvents,
-  Event,
-} from "@/api/events.api";
+import { getRecommendedEvents, getUserRegisteredEvents, Event } from "@/api/events.api";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
 import { EventDetailModal } from "@/components/events/EventDetailModal";
 import { useInView } from "react-intersection-observer";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { HubTab } from "@/types/communities";
 
 const Hub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("communities");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventFilter, setEventFilter] = useState<
-    "registered" | "not-registered"
-  >("not-registered");
+  const [eventFilter, setEventFilter] = useState<"registered" | "not-registered">("not-registered");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [showMySpaceEventsOnly, setShowMySpaceEventsOnly] = useState(false);
+  const [pendingShowMySpaceEventsOnly, setPendingShowMySpaceEventsOnly] = useState(false);
 
   const navigate = useNavigate();
   const { ref: infiniteScrollRef, inView } = useInView();
@@ -95,14 +102,12 @@ const Hub = () => {
       staleTime: 60000,
     });
 
-  const {
-    data: recommendedCommunities = [],
-    isLoading: loadingRecommendedCommunities,
-  } = useQuery({
-    queryKey: ["recommended-communities"],
-    queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
-    staleTime: 60000,
-  });
+  const { data: recommendedCommunities = [], isLoading: loadingRecommendedCommunities } =
+    useQuery({
+      queryKey: ["recommended-communities"],
+      queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
+      staleTime: 60000,
+    });
 
   const {
     data: eventsData,
@@ -111,12 +116,31 @@ const Hub = () => {
     isFetchingNextPage,
     isLoading: loadingEvents,
   } = useInfiniteQuery({
-    queryKey: ["hub-events", eventFilter],
+    queryKey: ["hub-events", eventFilter, showMySpaceEventsOnly],
     queryFn: ({ pageParam = 1 }) => {
+      const params: any = {
+        page: pageParam,
+        limit: 20,
+      };
+
+      if (showMySpaceEventsOnly) {
+        const storedUser = localStorage.getItem("auth-user");
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            if (user.space_id) {
+              params.space_id = user.space_id;
+            }
+          } catch (error) {
+            console.error("Failed to parse user from localStorage:", error);
+          }
+        }
+      }
+
       if (eventFilter === "registered") {
-        return getUserRegisteredEvents({ page: pageParam, limit: 20 });
+        return getUserRegisteredEvents(params);
       } else {
-        return getRecommendedEvents({ page: pageParam, limit: 20 });
+        return getRecommendedEvents(params);
       }
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -145,15 +169,33 @@ const Hub = () => {
   const myCommunities = userCommunities;
   const myGroups = userGroups;
 
-  const joinedCommunityIds = new Set(userCommunities.map((c) => c.id));
+  const joinedCommunityIds = new Set(userCommunities.map(c => c.id));
   const exploreCommunities = recommendedCommunities
-    .filter((c) => !joinedCommunityIds.has(c.id))
+    .filter(c => !joinedCommunityIds.has(c.id))
     .slice(0, 3);
 
-  const joinedGroupIds = new Set(userGroups.map((g) => g.id));
+  const joinedGroupIds = new Set(userGroups.map(g => g.id));
   const exploreGroups = recommendedGroups
-    .filter((g) => !joinedGroupIds.has(g.id))
+    .filter(g => !joinedGroupIds.has(g.id))
     .slice(0, 3);
+
+  const handleApplyFilters = () => {
+    setShowMySpaceEventsOnly(pendingShowMySpaceEventsOnly);
+    setFilterSheetOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setPendingShowMySpaceEventsOnly(false);
+  };
+
+  const handleClearAllFilters = () => {
+    setPendingShowMySpaceEventsOnly(false);
+    setShowMySpaceEventsOnly(false);
+  };
+
+  const getActiveFilterCount = () => {
+    return showMySpaceEventsOnly ? 1 : 0;
+  };
 
   if (isLoading) {
     return (
@@ -307,7 +349,7 @@ const Hub = () => {
               {myCommunities.length > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-base font-medium">Your Communities</h2>
+                    <h2 className="text-lg font-semibold">Your Communities</h2>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -339,7 +381,7 @@ const Hub = () => {
               {/* Discover Communities */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-base font-medium">
+                  <h2 className="text-lg font-semibold">
                     Discover Communities
                   </h2>
                   <Button
@@ -427,25 +469,66 @@ const Hub = () => {
           </TabsContent>
 
           <TabsContent value="events" className="p-4 space-y-4 mt-0">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search events..."
-                value={eventSearchQuery}
-                onChange={(e) => setEventSearchQuery(e.target.value)}
-                className="pl-10 rounded-full"
-              />
+            {/* Search Bar and Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search events..."
+                  value={eventSearchQuery}
+                  onChange={(e) => setEventSearchQuery(e.target.value)}
+                  className="pl-10 rounded-full"
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                className="hover:bg-app-hover px-3.5 text-app-text-main transition-colors border border-app-border rounded-full relative"
+                onClick={() => setFilterSheetOpen(true)}
+                title="Filter events"
+              >
+                <Filter className="h-5 w-5" />
+                {getActiveFilterCount() > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
+              </Button>
             </div>
 
+            {/* Active Filters */}
+            {getActiveFilterCount() > 0 && (
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-muted-foreground">Filters:</span>
+                {showMySpaceEventsOnly && (
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-secondary/80"
+                    onClick={handleClearAllFilters}
+                  >
+                    All events in my space
+                    <X className="h-3 w-3 ml-1" />
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAllFilters}
+                  className="h-6 text-xs"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+
             {/* Filter Tabs */}
-            <div className="flex gap-2 bg-muted rounded-full p-[3px]">
+            <div className="flex gap-2 bg-muted rounded-full px-[2px] py-[1.5px] h-10 text-muted-foreground">
               <Button
                 size="sm"
                 variant={eventFilter === "not-registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("not-registered")}
-                className={`flex-1 rounded-full  ${
-                  eventFilter === "not-registered" && "hover:bg-background"
+                className={`flex-1 rounded-full h-full  ${
+                  eventFilter === "not-registered" && "hover:bg-background text-foreground"
                 }`}
               >
                 Recommended
@@ -454,8 +537,8 @@ const Hub = () => {
                 size="sm"
                 variant={eventFilter === "registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("registered")}
-                className={`flex-1 rounded-full  ${
-                  eventFilter === "registered" && "hover:bg-background"
+                className={`flex-1 rounded-full h-full ${
+                  eventFilter === "registered" && "hover:bg-background text-foreground"
                 }`}
               >
                 Registered
@@ -493,9 +576,7 @@ const Hub = () => {
                             if (event.group_id) {
                               navigate(`/groups/${event.group_id}?tab=events`);
                             } else if (event.community_id) {
-                              navigate(
-                                `/communities/${event.community_id}?tab=events`
-                              );
+                              navigate(`/communities/${event.community_id}?tab=events`);
                             } else {
                               setSelectedEvent(event);
                             }
@@ -505,10 +586,7 @@ const Hub = () => {
                       ))}
 
                     {hasNextPage && (
-                      <div
-                        ref={infiniteScrollRef}
-                        className="flex justify-center py-4"
-                      >
+                      <div ref={infiniteScrollRef} className="flex justify-center py-4">
                         {isFetchingNextPage && (
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         )}
@@ -519,9 +597,7 @@ const Hub = () => {
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {eventFilter === "registered"
-                        ? "No Registered Events"
-                        : "No Events Available"}
+                      {eventFilter === "registered" ? "No Registered Events" : "No Events Available"}
                     </h3>
                     <p className="text-muted-foreground">
                       {eventFilter === "registered"
@@ -535,6 +611,43 @@ const Hub = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Filter Sheet */}
+      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Filter Events</SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-6 py-6">
+            {/* Space Filter */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="my-space-events"
+                checked={pendingShowMySpaceEventsOnly}
+                onCheckedChange={(checked) =>
+                  setPendingShowMySpaceEventsOnly(checked === true)
+                }
+              />
+              <label
+                htmlFor="my-space-events"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                All events in my space
+              </label>
+            </div>
+          </div>
+
+          <SheetFooter className="gap-2">
+            <Button variant="outline" onClick={handleResetFilters} className="flex-1">
+              Reset
+            </Button>
+            <Button onClick={handleApplyFilters} className="flex-1">
+              Apply Filters
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Event Detail Modal */}
       {selectedEvent && (

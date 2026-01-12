@@ -146,10 +146,23 @@ export const adminApi = {
     }
   },
 
-  getSpaces: async (): Promise<Space[]> => {
-    const response = await apiClient.get("/spaces");
+  getSpaces: async (params?: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ spaces: Space[]; total: number }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.offset) queryParams.append("offset", params.offset.toString());
+
+    const url = `/spaces${queryParams.toString() ? `?${queryParams}` : ''}`;
+    const response = await apiClient.get(url);
     const paginatedData = response.data.data;
-    return paginatedData?.spaces || [];
+    return {
+      spaces: paginatedData?.spaces || [],
+      total: paginatedData?.total || 0,
+    };
   },
 
   getSpace: async (spaceId: string): Promise<Space> => {
@@ -185,23 +198,17 @@ export const adminApi = {
       params.append("activity_type", activityType);
     }
 
-    const response = await apiClient.get(
-      `/admin/spaces/${spaceId}/activities?${params}`
-    );
+    const response = await apiClient.get(`/admin/activities?${params}`);
     return response.data.data;
   },
 
   getSpaceStats: async (spaceId: string): Promise<SpaceStats> => {
-    const response = await apiClient.get(
-      `/analytics/metrics/space?space_id=${spaceId}`
-    );
+    const response = await apiClient.get(`/analytics/metrics/space`);
     return response.data.data;
   },
 
   getDashboardStats: async (spaceId: string): Promise<DashboardStats> => {
-    const response = await apiClient.get(
-      `/admin/dashboard/stats?space_id=${spaceId}`
-    );
+    const response = await apiClient.get(`/admin/dashboard/stats`);
     return response.data.data;
   },
 
@@ -225,7 +232,6 @@ export const adminApi = {
     offset: number = 0
   ): Promise<ContentReport[]> => {
     const params = new URLSearchParams({
-      space_id: spaceId,
       limit: limit.toString(),
       offset: offset.toString(),
     });
@@ -238,7 +244,7 @@ export const adminApi = {
       params.append("content_type", contentType);
     }
 
-    const response = await apiClient.get(`/admin/reports?${params}`);
+    const response = await apiClient.get(`/admin/content-reports?${params}`);
     return response.data.data;
   },
 
@@ -248,7 +254,7 @@ export const adminApi = {
     moderationNotes?: string,
     actionsTaken?: any
   ): Promise<ContentReport> => {
-    const response = await apiClient.put(`/admin/reports/${reportId}`, {
+    const response = await apiClient.put(`/admin/content-reports/${reportId}`, {
       status,
       moderation_notes: moderationNotes,
       actions_taken: actionsTaken,
@@ -256,19 +262,19 @@ export const adminApi = {
     return response.data.data;
   },
 
-  resolveReport: async (
+  resolveContentReport: async (
     reportId: string,
     action: string,
     notes?: string
   ): Promise<void> => {
-    await apiClient.put(`/admin/reports/${reportId}/resolve`, {
+    await apiClient.put(`/admin/content-reports/${reportId}/resolve`, {
       action,
       notes,
     });
   },
 
-  escalateReport: async (reportId: string): Promise<void> => {
-    await apiClient.put(`/admin/reports/${reportId}/escalate`);
+  escalateContentReport: async (reportId: string): Promise<void> => {
+    await apiClient.put(`/admin/content-reports/${reportId}/escalate`);
   },
 
   getUsers: async (
@@ -277,11 +283,6 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ users: any[]; total: number }> => {
     const params: any = { page, limit };
-    if (spaceId === null) {
-      params.space_id = "all";
-    } else if (spaceId) {
-      params.space_id = spaceId;
-    }
     const response = await apiClient.get(`/admin/users`, { params });
     return response.data.data;
   },
@@ -297,11 +298,6 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ applications: any[]; page: number; limit: number }> => {
     const params: any = { status, page, limit };
-    if (spaceId === null) {
-      params.space_id = "all";
-    } else if (spaceId) {
-      params.space_id = spaceId;
-    }
     const response = await apiClient.get(`/admin/applications/tutors`, {
       params,
     });
@@ -333,11 +329,6 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ groups: any[]; total: number; page: number; limit: number }> => {
     const params: any = { status, page, limit };
-    if (spaceId === null) {
-      params.space_id = "all";
-    } else if (spaceId) {
-      params.space_id = spaceId;
-    }
     const response = await apiClient.get(`/admin/groups`, { params });
     return response.data.data;
   },
@@ -383,7 +374,7 @@ export const adminApi = {
   },
 
   getUserGrowth: async (spaceId: string, since?: Date): Promise<any[]> => {
-    const params = new URLSearchParams({ space_id: spaceId });
+    const params = new URLSearchParams();
     if (since) {
       params.append("since", since.toISOString());
     }
@@ -394,7 +385,7 @@ export const adminApi = {
   },
 
   getEngagementMetrics: async (spaceId: string, since?: Date): Promise<any> => {
-    const params = new URLSearchParams({ space_id: spaceId });
+    const params = new URLSearchParams();
     if (since) {
       params.append("since", since.toISOString());
     }
@@ -405,7 +396,7 @@ export const adminApi = {
   },
 
   getActivityAnalytics: async (spaceId: string, since?: Date): Promise<any> => {
-    const params = new URLSearchParams({ space_id: spaceId });
+    const params = new URLSearchParams();
     if (since) {
       params.append("since", since.toISOString());
     }
@@ -447,11 +438,6 @@ export const adminApi = {
       page,
       limit,
     };
-    if (spaceId === null) {
-      params.space_id = "all";
-    } else if (spaceId) {
-      params.space_id = spaceId;
-    }
     const response = await apiClient.get(`/admin/notifications`, { params });
     return response.data.data;
   },
@@ -476,11 +462,6 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ communities: any[]; page: number; limit: number }> => {
     const params: any = { category, status, page, limit };
-    if (spaceId === null) {
-      params.space_id = "all";
-    } else if (spaceId) {
-      params.space_id = spaceId;
-    }
     const response = await apiClient.get(`/admin/communities`, { params });
     return response.data.data;
   },
@@ -549,7 +530,7 @@ export const adminApi = {
     limit: number = 20
   ): Promise<{ announcements: any[]; page: number; limit: number }> => {
     const response = await apiClient.get(`/admin/announcements`, {
-      params: { space_id: spaceId, status, priority, page, limit },
+      params: { status, priority, page, limit },
     });
     return response.data.data;
   },
@@ -613,7 +594,7 @@ export const adminApi = {
     limit: number = 20
   ): Promise<{ events: any[]; page: number; limit: number }> => {
     const response = await apiClient.get(`/admin/events`, {
-      params: { space_id: spaceId, status, category, page, limit },
+      params: { status, category, page, limit },
     });
     return response.data.data;
   },
@@ -732,10 +713,8 @@ export const adminApi = {
     total_tutors: number;
     total_students: number;
   }> => {
-    const params = spaceId ? { space_id: spaceId } : {};
     const response = await apiClient.get(
-      "/admin/tutoring-business/overview/stats",
-      { params }
+      "/admin/tutoring-business/overview/stats"
     );
     return response.data.data;
   },
@@ -753,7 +732,6 @@ export const adminApi = {
     }>
   > => {
     const params: any = {};
-    if (spaceId) params.space_id = spaceId;
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
 
@@ -782,7 +760,6 @@ export const adminApi = {
     }>
   > => {
     const params: any = { limit };
-    if (spaceId) params.space_id = spaceId;
 
     const response = await apiClient.get(
       "/admin/tutoring-business/overview/top-tutors",
@@ -853,10 +830,8 @@ export const adminApi = {
       oldest_request_date?: string;
     }>
   > => {
-    const params = spaceId ? { space_id: spaceId } : {};
     const response = await apiClient.get(
-      "/admin/tutoring-business/payouts/pending",
-      { params }
+      "/admin/tutoring-business/payouts/pending"
     );
     return response.data.data;
   },
@@ -1000,10 +975,8 @@ export const adminApi = {
       total_revenue: string;
     }>
   > => {
-    const params = spaceId ? { space_id: spaceId } : {};
     const response = await apiClient.get(
-      "/admin/tutoring-business/analytics/revenue-by-subject",
-      { params }
+      "/admin/tutoring-business/analytics/revenue-by-subject"
     );
     return response.data.data;
   },
@@ -1020,7 +993,6 @@ export const adminApi = {
     }>
   > => {
     const params: any = {};
-    if (spaceId) params.space_id = spaceId;
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
 
@@ -1028,6 +1000,93 @@ export const adminApi = {
       "/admin/tutoring-business/analytics/sessions-by-date",
       { params }
     );
+    return response.data.data;
+  },
+
+  getActiveUsersGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/active-users", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getUsersByDepartment: async (): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/users-by-department");
+    return response.data.data;
+  },
+
+  getUsersByLevel: async (): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/users-by-level");
+    return response.data.data;
+  },
+
+  getSuspendedUsersGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/suspended-users", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getTutoringCompletedGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/tutoring-completed", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getTutoringOngoingGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/tutoring-ongoing", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getTutoringRefundRequestedGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/tutoring-refund-requested", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getTutoringPendingGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/tutoring-pending", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getPublicPostsGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/public-posts", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getHelpRequestsGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/help-requests", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getGroupsGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/groups", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getCommunitiesGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/communities", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getEventsGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/events", {
+      params: { period },
+    });
     return response.data.data;
   },
 };

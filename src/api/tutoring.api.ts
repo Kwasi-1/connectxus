@@ -6,6 +6,7 @@ interface ApiResponse<T> {
 }
 
 export interface TutorProfile {
+
   id: string;
   user_id: string;
   subject: string;
@@ -22,6 +23,7 @@ export interface TutorProfile {
   payout_requested?: boolean;
   verified?: boolean;
   created_at: string;
+  applicant_id?: string;
   user?: any;
 }
 
@@ -267,7 +269,7 @@ export const getMyTutorApplication =
   async (): Promise<TutorApplication | null> => {
     try {
       const response = await apiClient.get<ApiResponse<TutorApplication>>(
-        "/tutoring/tutors/applications/my-application"
+        "/tutoring/tutors/applications/my-services"
       );
       return response.data.data;
     } catch (error: any) {
@@ -401,7 +403,6 @@ export interface PaymentDetails {
 
 export interface TutoringRequest {
   id: string;
-  tutor_id: string;
   requester_id: string;
   requester_username?: string;
   requester_full_name?: string;
@@ -416,7 +417,8 @@ export interface TutoringRequest {
   tutor_full_name?: string;
   tutor_phone?: string;
   subject?: string;
-  rate?: string;
+  session_rate?: string;
+  semester_rate?: string;
   availability?: string[];
   session_status:
     | "pending"

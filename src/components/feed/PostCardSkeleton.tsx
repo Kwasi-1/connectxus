@@ -24,15 +24,15 @@ export function PostCardSkeleton() {
 
           {/* Image placeholder (sometimes) */}
           {Math.random() > 0.5 && (
-            <Skeleton className="h-64 w-full rounded-xl mt-3" />
+            <Skeleton className="h-64 w-full rounded-2xl mt-3" />
           )}
 
           {/* Engagement buttons */}
-          <div className="flex items-center gap-12 mt-4">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-16" />
+          <div className="flex items-center gap-6 md:gap-12 mt-4">
+            <Skeleton className="h-8 w-10 md:w-16" />
+            <Skeleton className="h-8 w-10 md:w-16" />
+            <Skeleton className="h-8 w-10 md:w-16" />
+            <Skeleton className="h-8 w-10 md:w-16" />
           </div>
         </div>
       </div>
