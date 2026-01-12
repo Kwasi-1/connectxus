@@ -78,11 +78,12 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
                 key={item.id}
                 to={item.path}
                 className={cn(
-                  "w-fit xl:w-full justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
-                  "hover:bg-muted font-[300]",
+                  "group w-fit xl:w-full justify-start text-left xl:ml-0 xl:my-0 text-xl font-medium rounded-full flex items-center transition-colors duration-300",
+                  "font-[300]",
                   isActive && "font-bold"
                 )}
               >
+                <div className="w-fit xl:w-fit justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 xl:pr-6 py-3 text-xl rounded-full flex items-center transition-color group-hover:bg-muted/50 duration-300">
                 <Icon
                   className={cn(
                     "h-6 w-6 text-3xl xl:h-[22px] xl:w-[22px] transtion duration-300",
@@ -90,6 +91,7 @@ export function Sidebar({ onCreatePost }: SidebarProps) {
                   )}
                 />
                 <span className="ml-4 hidden xl:block">{item.label}</span>
+                </div>
               </Link>
             );
           })}
