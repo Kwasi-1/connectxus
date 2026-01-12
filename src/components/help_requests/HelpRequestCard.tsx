@@ -165,7 +165,7 @@ export function HelpRequestCard({
 
           {/* Action Buttons */}
           {showActions === "help" && onHelp && (
-            <div className="pt-2 border-t">
+            <div className="pt-2">
               <Button
                 onClick={() => onHelp(helpRequest.id)}
                 className="w-full bg-foreground hover:bg-foreground/90 text-background"
