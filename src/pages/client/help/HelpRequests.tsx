@@ -190,7 +190,7 @@ export default function HelpRequests() {
 
   return (
     <AppLayout showRightSidebar={false}>
-      <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto">
+      <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto custom-fonts">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
