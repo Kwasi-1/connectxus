@@ -279,7 +279,8 @@ export function RightSidebar() {
               </div>
 
               <Button
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full font-semibold"
+                variant="ghost"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
                 onClick={() => navigate("/campus-highlights")}
               >
                 View Campus Stories
