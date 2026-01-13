@@ -42,7 +42,7 @@ const HighlightStories = () => {
   return (
     <>
       <AppLayout>
-        <div className="border-x min-h-screen lg:border-x-0">
+        <div className="border-x min-h-screen lg:border-l-0">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background border-b">
             <div className="flex items-center gap-4 p-4">
