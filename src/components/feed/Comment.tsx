@@ -61,7 +61,7 @@ export function Comment({ comment, onLike, onReply, isReplyMode = false }: Comme
   };
 
   return (
-    <div className="border-b border-border p-4 hover:bg-muted/5 transition-colors">
+    <div className="border-b border-border/80 p-4 hover:bg-muted/5 transition-colors">
       <div className="flex space-x-3">
         <Avatar className="w-10 h-10">
           <AvatarImage src={authorAvatar} />

@@ -10,6 +10,7 @@ import { RepostModal } from "@/components/feed/RepostModal";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { StoriesList } from "@/components/story/StoriesList";
 import { StoryViewer } from "@/components/story/StoryViewer";
+import { AddStoryModal } from "@/components/story/AddStoryModal";
 import { useFeed } from "@/hooks/useFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import type { FeedTab, FeedPost } from "@/types/feed";
 import { mockStories } from "@/data/mockStories";
 import type { StoryGroup } from "@/types/story";
+import { addUserStory, getUserStoryGroup } from "@/utils/storyStorage";
 
 const Feed = () => {
   const navigate = useNavigate();
@@ -34,6 +36,8 @@ const Feed = () => {
     null
   );
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  const [isAddStoryModalOpen, setIsAddStoryModalOpen] = useState(false);
+  const [allStories, setAllStories] = useState<StoryGroup[]>(mockStories);
 
   const {
     posts,
@@ -136,8 +140,66 @@ const Feed = () => {
   };
 
   const handleAddStory = () => {
-    toast.info("Story creation coming soon!");
+    setIsAddStoryModalOpen(true);
   };
+
+  const handleStoryCreated = (
+    mediaUrl: string,
+    mediaType: "image" | "video"
+  ) => {
+    if (!user) return;
+
+    // Add the new story
+    const newStory = addUserStory(
+      user.id,
+      user.name,
+      user.avatar || "",
+      mediaUrl,
+      mediaType
+    );
+
+    // Update the stories list
+    const userStoryGroup = getUserStoryGroup(
+      user.id,
+      user.name,
+      user.avatar || ""
+    );
+
+    if (userStoryGroup) {
+      // Update existing user story group
+      setAllStories((prev) => {
+        const withoutUser = prev.filter((sg) => sg.user_id !== user.id);
+        return [userStoryGroup, ...withoutUser];
+      });
+    } else {
+      // This shouldn't happen, but just in case
+      const newGroup: StoryGroup = {
+        user_id: user.id,
+        username: user.name,
+        avatar: user.avatar || "",
+        stories: [newStory],
+        has_unseen: false,
+      };
+      setAllStories((prev) => [newGroup, ...prev]);
+    }
+  };
+
+  // Load user stories on mount
+  useEffect(() => {
+    if (user) {
+      const userStoryGroup = getUserStoryGroup(
+        user.id,
+        user.name,
+        user.avatar || ""
+      );
+      if (userStoryGroup) {
+        setAllStories((prev) => {
+          const withoutUser = prev.filter((sg) => sg.user_id !== user.id);
+          return [userStoryGroup, ...withoutUser];
+        });
+      }
+    }
+  }, [user]);
 
   return (
     <>
@@ -150,7 +212,7 @@ const Feed = () => {
 
           {/* Stories Section */}
           <StoriesList
-            stories={mockStories}
+            stories={allStories}
             onStoryClick={handleStoryClick}
             onAddStory={handleAddStory}
           />
@@ -238,10 +300,17 @@ const Feed = () => {
             setIsStoryViewerOpen(false);
             setSelectedStoryIndex(null);
           }}
-          storyGroups={mockStories}
+          storyGroups={allStories}
           initialGroupIndex={selectedStoryIndex}
         />
       )}
+
+      {/* Add Story Modal */}
+      <AddStoryModal
+        isOpen={isAddStoryModalOpen}
+        onClose={() => setIsAddStoryModalOpen(false)}
+        onStoryCreated={handleStoryCreated}
+      />
     </>
   );
 };
