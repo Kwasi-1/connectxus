@@ -1,31 +1,39 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { PostCard } from '@/components/feed/PostCard';
-import { PostComposer } from '@/components/feed/PostComposer';
-import { FeedHeader } from '@/components/feed/FeedHeader';
-import { FeedLoadingSkeleton } from '@/components/feed/PostCardSkeleton';
-import { FullScreenPostModal } from '@/components/feed/FullScreenPostModal';
-import { RepostModal } from '@/components/feed/RepostModal';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
-import { useFeed } from '@/hooks/useFeed';
-import { useAuth } from '@/contexts/AuthContext';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { createPost } from '@/api/posts.api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import type { FeedTab, FeedPost } from '@/types/feed';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { PostCard } from "@/components/feed/PostCard";
+import { PostComposer } from "@/components/feed/PostComposer";
+import { FeedHeader } from "@/components/feed/FeedHeader";
+import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
+import { FullScreenPostModal } from "@/components/feed/FullScreenPostModal";
+import { RepostModal } from "@/components/feed/RepostModal";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
+import { StoriesList } from "@/components/story/StoriesList";
+import { StoryViewer } from "@/components/story/StoryViewer";
+import { useFeed } from "@/hooks/useFeed";
+import { useAuth } from "@/contexts/AuthContext";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { createPost } from "@/api/posts.api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { FeedTab, FeedPost } from "@/types/feed";
+import { mockStories } from "@/data/mockStories";
+import type { StoryGroup } from "@/types/story";
 
 const Feed = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<FeedTab>('following');
+  const [activeTab, setActiveTab] = useState<FeedTab>("following");
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [isRepostModalOpen, setIsRepostModalOpen] = useState(false);
   const [postForRepost, setPostForRepost] = useState<FeedPost | null>(null);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(
+    null
+  );
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
 
   const {
     posts,
@@ -39,7 +47,7 @@ const Feed = () => {
     deletePost,
     sharePost,
   } = useFeed({
-    type: 'home',
+    type: "home",
     tab: activeTab,
   });
 
@@ -50,17 +58,21 @@ const Feed = () => {
   });
 
   const createPostMutation = useMutation({
-    mutationFn: (data: { content: string; media?: string[] | null; visibility?: string; quoted_post_id?: string }) =>
-      createPost(data),
+    mutationFn: (data: {
+      content: string;
+      media?: string[] | null;
+      visibility?: string;
+      quoted_post_id?: string;
+    }) => createPost(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['feed', activeTab],
-        refetchType: 'active' 
+        queryKey: ["feed", activeTab],
+        refetchType: "active",
       });
-      toast.success('Post created successfully!');
+      toast.success("Post created successfully!");
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Failed to create post');
+      toast.error(error.message || "Failed to create post");
     },
   });
 
@@ -68,7 +80,7 @@ const Feed = () => {
     createPostMutation.mutate({
       content,
       media: mediaUrls && mediaUrls.length > 0 ? mediaUrls : null,
-      visibility: 'public',
+      visibility: "public",
     });
   };
 
@@ -81,7 +93,7 @@ const Feed = () => {
   };
 
   const handleRepost = (postId: string) => {
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p) => p.id === postId);
     if (post) {
       setPostForRepost(post);
       setIsRepostModalOpen(true);
@@ -93,7 +105,7 @@ const Feed = () => {
   };
 
   const handleQuote = (postId: string) => {
-    navigate('/compose', { state: { quotedPostId: postId } });
+    navigate("/compose", { state: { quotedPostId: postId } });
   };
 
   const handleViewInteractions = (postId: string) => {
@@ -101,7 +113,7 @@ const Feed = () => {
   };
 
   const handleShare = (postId: string) => {
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p) => p.id === postId);
     sharePost(postId, post?.content);
   };
 
@@ -111,21 +123,39 @@ const Feed = () => {
   };
 
   const handleMobilePostClick = () => {
-    navigate('/compose');
+    navigate("/compose");
   };
 
-  const handleTabChange = (tab: 'following' | 'university') => {
+  const handleTabChange = (tab: "following" | "university") => {
     setActiveTab(tab);
   };
 
+  const handleStoryClick = (storyGroup: StoryGroup, index: number) => {
+    setSelectedStoryIndex(index);
+    setIsStoryViewerOpen(true);
+  };
+
+  const handleAddStory = () => {
+    toast.info("Story creation coming soon!");
+  };
 
   return (
     <>
       <AppLayout onCreatePost={handleCreatePost}>
         <div className="flex-1 border-x-0 xl:border-l-0 xl:border-r border-border">
-          <FeedHeader activeFilter={activeTab} onFilterChange={handleTabChange} />
+          <FeedHeader
+            activeFilter={activeTab}
+            onFilterChange={handleTabChange}
+          />
 
-          <div className='min-h-screen'>
+          {/* Stories Section */}
+          <StoriesList
+            stories={mockStories}
+            onStoryClick={handleStoryClick}
+            onAddStory={handleAddStory}
+          />
+
+          <div className="min-h-screen">
             <PostComposer onPost={handleCreatePost} />
 
             {isLoading ? (
@@ -144,7 +174,8 @@ const Feed = () => {
                   {posts.length === 0 && (
                     <div className="p-8 text-center">
                       <p className="text-muted-foreground">
-                        No posts found. Start following people or create your first post!
+                        No posts found. Start following people or create your
+                        first post!
                       </p>
                     </div>
                   )}
@@ -199,9 +230,20 @@ const Feed = () => {
         />
       )}
 
+      {/* Story Viewer */}
+      {selectedStoryIndex !== null && (
+        <StoryViewer
+          isOpen={isStoryViewerOpen}
+          onClose={() => {
+            setIsStoryViewerOpen(false);
+            setSelectedStoryIndex(null);
+          }}
+          storyGroups={mockStories}
+          initialGroupIndex={selectedStoryIndex}
+        />
+      )}
     </>
   );
 };
-
 
 export default Feed;
