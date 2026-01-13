@@ -523,7 +523,7 @@ const Messages = () => {
       <div
         className={`p-4 rounded-md cursor-pointer transition-colors mb-[2px] ${
           isSelected
-            ? "bg-muted/50 border border-muted/60"
+            ? "bg-muted/50 border border-muted/50"
             : "hover:bg-muted/40"
         }`}
         onClick={() => handleConversationSelect(conversation.id)}

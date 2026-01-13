@@ -473,7 +473,7 @@ const PostView = () => {
             </div>
           </div>
 
-          <div className="border-b border-border">
+          <div className="borderb border-border">
             <PostCard
               post={post}
               currentUserId={authUser?.id}
@@ -492,7 +492,7 @@ const PostView = () => {
                     .join("") || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 flex ">
                 <textarea
                   placeholder="Post your reply"
                   className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
@@ -501,7 +501,7 @@ const PostView = () => {
                   onChange={(e) => setNewComment(e.target.value)}
                   disabled={isSubmittingComment}
                 />
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-end items-end mt-2">
                   <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || isSubmittingComment}
