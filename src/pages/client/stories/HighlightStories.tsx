@@ -38,7 +38,7 @@ const HighlightStories = () => {
 
   return (
     <>
-      <AppLayout>
+      <AppLayout showRightSidebar={false}>
         <div className="border-x min-h-screen lg:border-l-0">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b">
