@@ -1019,7 +1019,7 @@ const TutoringContent = () => {
                     placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 rounded-full"
                   />
                   {searchQuery && (
                     <Button
@@ -1311,7 +1311,7 @@ const TutoringContent = () => {
                     placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 rounded-full"
                   />
                   {searchQuery && (
                     <Button
@@ -1473,7 +1473,7 @@ const TutoringContent = () => {
                     placeholder="Search by name, subject, bio, experience..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 rounded-full"
                   />
                   {searchQuery && (
                     <Button
@@ -1604,7 +1604,7 @@ const TutoringContent = () => {
                   placeholder="Search by name, subject, bio, experience..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 rounded-full"
                 />
                 {searchQuery && (
                   <Button

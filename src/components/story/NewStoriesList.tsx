@@ -1,21 +1,21 @@
 import { useRef } from "react";
 import { StoryCircle } from "./StoryCircle";
-import { StoryGroup } from "@/types/story";
+import { StoryData } from "@/types/storyTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface StoriesListProps {
-  stories: StoryGroup[];
-  onStoryClick: (storyGroup: StoryGroup, index: number) => void;
+interface NewStoriesListProps {
+  stories: StoryData[];
+  onStoryClick: (story: StoryData, index: number) => void;
   onAddStory?: () => void;
 }
 
-export const StoriesList = ({
+export const NewStoriesList = ({
   stories,
   onStoryClick,
   onAddStory,
-}: StoriesListProps) => {
+}: NewStoriesListProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -28,6 +28,22 @@ export const StoriesList = ({
       });
     }
   };
+
+  // Group stories by user
+  const groupedStories = stories.reduce((acc, story) => {
+    if (!acc[story.userId]) {
+      acc[story.userId] = {
+        userId: story.userId,
+        username: story.username,
+        avatar: story.userAvatar,
+        stories: [],
+      };
+    }
+    acc[story.userId].stories.push(story);
+    return acc;
+  }, {} as Record<string, { userId: string; username: string; avatar?: string; stories: StoryData[] }>);
+
+  const userGroups = Object.values(groupedStories);
 
   return (
     <div className="relative border-b border-border bg-background">
@@ -57,15 +73,23 @@ export const StoriesList = ({
           />
 
           {/* User stories */}
-          {stories.map((storyGroup, index) => (
-            <StoryCircle
-              key={storyGroup.user_id}
-              username={storyGroup.username}
-              avatar={storyGroup.avatar}
-              hasUnseen={storyGroup.has_unseen}
-              onClick={() => onStoryClick(storyGroup, index)}
-            />
-          ))}
+          {userGroups.map((group) => {
+            const firstStoryIndex = stories.findIndex(
+              (s) => s.userId === group.userId
+            );
+            return (
+              <StoryCircle
+                key={group.userId}
+                username={group.username}
+                avatar={group.avatar || ""}
+                hasUnseen={group.userId !== user?.id} // Mark as unseen if not current user
+                onClick={() => {
+                  const story = group.stories[0];
+                  onStoryClick(story, firstStoryIndex);
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Right scroll button */}

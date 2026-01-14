@@ -1,40 +1,46 @@
 import { useEffect, useState, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Story, StoryGroup } from "@/types/story";
-import { getTimeAgo } from "@/data/mockStories";
+import { StoryData } from "@/types/storyTypes";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
-interface StoryViewerProps {
+interface NewStoryViewerProps {
   isOpen: boolean;
   onClose: () => void;
-  storyGroups: StoryGroup[];
-  initialGroupIndex: number;
+  stories: StoryData[];
+  initialStoryIndex: number;
 }
 
-export const StoryViewer = ({
+export const NewStoryViewer = ({
   isOpen,
   onClose,
-  storyGroups,
-  initialGroupIndex,
-}: StoryViewerProps) => {
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(initialGroupIndex);
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  stories,
+  initialStoryIndex,
+}: NewStoryViewerProps) => {
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(initialStoryIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
-  const currentGroup = storyGroups[currentGroupIndex];
-  const currentStory = currentGroup?.stories[currentStoryIndex];
-  const totalStories = currentGroup?.stories.length || 0;
+  const currentStory = stories[currentStoryIndex];
+  const totalStories = stories.length;
 
   // Auto-advance story
   useEffect(() => {
     if (!isOpen || isPaused) return;
 
     const duration = 5000; // 5 seconds per story
-    const interval = 50; // Update every 50ms
+    const interval = 50;
     const increment = (interval / duration) * 100;
 
     const timer = setInterval(() => {
@@ -48,38 +54,23 @@ export const StoryViewer = ({
     }, interval);
 
     return () => clearInterval(timer);
-  }, [isOpen, currentGroupIndex, currentStoryIndex, isPaused]);
+  }, [isOpen, currentStoryIndex, isPaused]);
 
   const handleNext = useCallback(() => {
     if (currentStoryIndex < totalStories - 1) {
       setCurrentStoryIndex((prev) => prev + 1);
       setProgress(0);
-    } else if (currentGroupIndex < storyGroups.length - 1) {
-      setCurrentGroupIndex((prev) => prev + 1);
-      setCurrentStoryIndex(0);
-      setProgress(0);
     } else {
       onClose();
     }
-  }, [
-    currentStoryIndex,
-    totalStories,
-    currentGroupIndex,
-    storyGroups.length,
-    onClose,
-  ]);
+  }, [currentStoryIndex, totalStories, onClose]);
 
   const handlePrevious = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex((prev) => prev - 1);
       setProgress(0);
-    } else if (currentGroupIndex > 0) {
-      setCurrentGroupIndex((prev) => prev - 1);
-      const prevGroup = storyGroups[currentGroupIndex - 1];
-      setCurrentStoryIndex(prevGroup.stories.length - 1);
-      setProgress(0);
     }
-  }, [currentStoryIndex, currentGroupIndex, storyGroups]);
+  }, [currentStoryIndex]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -98,20 +89,26 @@ export const StoryViewer = ({
   }, [handleKeyDown]);
 
   useEffect(() => {
-    setCurrentGroupIndex(initialGroupIndex);
-    setCurrentStoryIndex(0);
+    setCurrentStoryIndex(initialStoryIndex);
     setProgress(0);
-  }, [initialGroupIndex]);
+  }, [initialStoryIndex]);
 
   if (!isOpen || !currentStory) return null;
 
+  const getTimeAgo = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return "Recently";
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/98 backdrop-blur-md flex items-center justify-center">
-      {/* Story container */}
       <div className="relative w-full max-w-md h-full md:h-[90vh] bg-gradient-to-br from-black via-gray-900 to-black md:rounded-2xl overflow-hidden shadow-2xl">
         {/* Progress bars */}
         <div className="absolute top-0 left-0 right-0 z-20 flex gap-1.5 p-3">
-          {currentGroup.stories.map((_, index) => (
+          {stories.map((_, index) => (
             <div
               key={index}
               className="flex-1 h-0.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm"
@@ -132,23 +129,23 @@ export const StoryViewer = ({
         </div>
 
         {/* Header */}
-        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-gradient-to-b from-black/60 to-transparent pb-6">
+        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-transparent pb-6">
           <div className="flex items-center gap-3">
             <Avatar className="w-11 h-11 ring-2 ring-primary/60 shadow-lg">
               <AvatarImage
-                src={currentGroup.avatar}
-                alt={currentGroup.username}
+                src={currentStory.userAvatar}
+                alt={currentStory.username}
               />
               <AvatarFallback className="bg-primary/20">
-                {currentGroup.username.substring(0, 2)}
+                {currentStory.username.substring(0, 2)}
               </AvatarFallback>
             </Avatar>
             <div className="text-white">
               <p className="font-bold text-sm drop-shadow-lg">
-                @{currentGroup.username}
+                @{currentStory.username}
               </p>
               <p className="text-xs text-white/90 drop-shadow-md">
-                {getTimeAgo(currentStory.created_at)}
+                {getTimeAgo(currentStory.createdAt)}
               </p>
             </div>
           </div>
@@ -182,11 +179,83 @@ export const StoryViewer = ({
           onTouchStart={() => setIsPaused(true)}
           onTouchEnd={() => setIsPaused(false)}
         >
-          <img
-            src={currentStory.media_url}
-            alt="Story"
-            className="max-w-full max-h-full object-contain"
-          />
+          {/* Text Story */}
+          {currentStory.type === "text" && (
+            <div
+              className="w-full h-full flex items-center justify-center p-8"
+              style={{
+                background:
+                  currentStory.backgroundColor || currentStory.gradient,
+              }}
+            >
+              <p
+                className="text-white text-4xl md:text-5xl font-bold text-center leading-tight break-words max-w-md"
+                style={{
+                  textShadow: "0 2px 20px rgba(0,0,0,0.5)",
+                }}
+              >
+                {currentStory.caption}
+              </p>
+            </div>
+          )}
+
+          {/* Image Story */}
+          {currentStory.type === "image" && currentStory.mediaUrl && (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={currentStory.mediaUrl}
+                alt="Story"
+                className={cn(
+                  "max-w-full max-h-full object-contain",
+                  currentStory.filter?.cssClass
+                )}
+              />
+              {currentStory.caption && (
+                <div className="absolute bottom-24 left-0 right-0 px-6">
+                  <p className="text-white text-xl font-semibold text-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] bg-black/30 backdrop-blur-sm px-4 py-3 rounded-lg">
+                    {currentStory.caption}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Video Story */}
+          {currentStory.type === "video" && currentStory.mediaUrl && (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <video
+                src={currentStory.mediaUrl}
+                className={cn(
+                  "max-w-full max-h-full object-contain",
+                  currentStory.filter?.cssClass
+                )}
+                autoPlay
+                loop
+                muted={isMuted}
+                playsInline
+              />
+              {currentStory.caption && (
+                <div className="absolute bottom-24 left-0 right-0 px-6">
+                  <p className="text-white text-xl font-semibold text-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] bg-black/30 backdrop-blur-sm px-4 py-3 rounded-lg">
+                    {currentStory.caption}
+                  </p>
+                </div>
+              )}
+              {/* Mute/Unmute Button for Video */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMuted(!isMuted)}
+                className="absolute top-24 right-4 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md border border-white/20 z-20"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Navigation areas */}
           <button
@@ -207,7 +276,7 @@ export const StoryViewer = ({
         <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent pt-8">
           <div className="flex items-center gap-2">
             <Input
-              placeholder={`Reply to @${currentGroup.username}...`}
+              placeholder={`Reply to @${currentStory.username}...`}
               className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-primary/50 backdrop-blur-md rounded-full"
             />
             <Button
@@ -235,7 +304,7 @@ export const StoryViewer = ({
         <button
           onClick={handlePrevious}
           className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full p-3 transition-all hover:scale-110 disabled:opacity-50 border border-white/20"
-          disabled={currentGroupIndex === 0 && currentStoryIndex === 0}
+          disabled={currentStoryIndex === 0}
         >
           <ChevronLeft className="w-6 h-6 text-white" />
         </button>

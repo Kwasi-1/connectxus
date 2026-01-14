@@ -8,9 +8,9 @@ import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
 import { FullScreenPostModal } from "@/components/feed/FullScreenPostModal";
 import { RepostModal } from "@/components/feed/RepostModal";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
-import { StoriesList } from "@/components/story/StoriesList";
-import { StoryViewer } from "@/components/story/StoryViewer";
-import { AddStoryModal } from "@/components/story/AddStoryModal";
+import { NewStoriesList } from "@/components/story/NewStoriesList";
+import { NewStoryViewer } from "@/components/story/NewStoryViewer";
+import { NewStoryModal } from "@/components/story/NewStoryModal";
 import { useFeed } from "@/hooks/useFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -18,9 +18,8 @@ import { createPost } from "@/api/posts.api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { FeedTab, FeedPost } from "@/types/feed";
-import { mockStories } from "@/data/mockStories";
-import type { StoryGroup } from "@/types/story";
-import { addUserStory, getUserStoryGroup } from "@/utils/storyStorage";
+import { getStoriesFromStorage } from "@/utils/newStoryStorage";
+import type { StoryData } from "@/types/storyTypes";
 
 const Feed = () => {
   const navigate = useNavigate();
@@ -37,7 +36,7 @@ const Feed = () => {
   );
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isAddStoryModalOpen, setIsAddStoryModalOpen] = useState(false);
-  const [allStories, setAllStories] = useState<StoryGroup[]>(mockStories);
+  const [allStories, setAllStories] = useState<StoryData[]>([]);
 
   const {
     posts,
@@ -134,7 +133,7 @@ const Feed = () => {
     setActiveTab(tab);
   };
 
-  const handleStoryClick = (storyGroup: StoryGroup, index: number) => {
+  const handleStoryClick = (story: StoryData, index: number) => {
     setSelectedStoryIndex(index);
     setIsStoryViewerOpen(true);
   };
@@ -143,63 +142,17 @@ const Feed = () => {
     setIsAddStoryModalOpen(true);
   };
 
-  const handleStoryCreated = (
-    mediaUrl: string,
-    mediaType: "image" | "video"
-  ) => {
-    if (!user) return;
-
-    // Add the new story
-    const newStory = addUserStory(
-      user.id,
-      user.name,
-      user.avatar || "",
-      mediaUrl,
-      mediaType
-    );
-
-    // Update the stories list
-    const userStoryGroup = getUserStoryGroup(
-      user.id,
-      user.name,
-      user.avatar || ""
-    );
-
-    if (userStoryGroup) {
-      // Update existing user story group
-      setAllStories((prev) => {
-        const withoutUser = prev.filter((sg) => sg.user_id !== user.id);
-        return [userStoryGroup, ...withoutUser];
-      });
-    } else {
-      // This shouldn't happen, but just in case
-      const newGroup: StoryGroup = {
-        user_id: user.id,
-        username: user.name,
-        avatar: user.avatar || "",
-        stories: [newStory],
-        has_unseen: false,
-      };
-      setAllStories((prev) => [newGroup, ...prev]);
-    }
+  const handleStoryCreated = () => {
+    // Refresh stories from localStorage
+    const stories = getStoriesFromStorage();
+    setAllStories(stories);
   };
 
-  // Load user stories on mount
+  // Load stories on mount
   useEffect(() => {
-    if (user) {
-      const userStoryGroup = getUserStoryGroup(
-        user.id,
-        user.name,
-        user.avatar || ""
-      );
-      if (userStoryGroup) {
-        setAllStories((prev) => {
-          const withoutUser = prev.filter((sg) => sg.user_id !== user.id);
-          return [userStoryGroup, ...withoutUser];
-        });
-      }
-    }
-  }, [user]);
+    const stories = getStoriesFromStorage();
+    setAllStories(stories);
+  }, []);
 
   return (
     <>
@@ -211,7 +164,7 @@ const Feed = () => {
           />
 
           {/* Stories Section */}
-          <StoriesList
+          <NewStoriesList
             stories={allStories}
             onStoryClick={handleStoryClick}
             onAddStory={handleAddStory}
@@ -294,19 +247,19 @@ const Feed = () => {
 
       {/* Story Viewer */}
       {selectedStoryIndex !== null && (
-        <StoryViewer
+        <NewStoryViewer
           isOpen={isStoryViewerOpen}
           onClose={() => {
             setIsStoryViewerOpen(false);
             setSelectedStoryIndex(null);
           }}
-          storyGroups={allStories}
-          initialGroupIndex={selectedStoryIndex}
+          stories={allStories}
+          initialStoryIndex={selectedStoryIndex}
         />
       )}
 
       {/* Add Story Modal */}
-      <AddStoryModal
+      <NewStoryModal
         isOpen={isAddStoryModalOpen}
         onClose={() => setIsAddStoryModalOpen(false)}
         onStoryCreated={handleStoryCreated}

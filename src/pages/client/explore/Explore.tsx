@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search as SearchIcon, ArrowLeft } from "lucide-react";
+import { Search as SearchIcon, ArrowLeft, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -160,6 +160,11 @@ const Explore = () => {
     navigate(`/profile/${username}`);
   };
 
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchParams({});
+  };
+
   const processedPosts = searchResults?.posts
     ? (() => {
         let posts = [...searchResults.posts];
@@ -205,8 +210,17 @@ const Explore = () => {
                   placeholder="Search"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="pl-10 py-3 border rounded-full text-base bg-muted/50 border-transparent focus:bg-background focus:border-border"
+                  className="pl-10 pr-10 py-3 border rounded-full text-base bg-muted/50 border-transparent focus:bg-background focus:border-border"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -315,14 +329,14 @@ const Explore = () => {
                       searchResults.users.map((user: any) => (
                         <div
                           key={user.id}
-                          onClick={() => handleUserClick(user.id)}
+                          onClick={() => handleUserClick(user.username)}
                           className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-start gap-3">
                             <img
                               src={user.avatar || "/placeholder.svg"}
-                              alt={user.username}
-                              className="w-12 h-12 rounded-full object-cover"
+                              alt={user.username.split("@")[0]}
+                              className="w-12 h-12 rounded-full object-cover overflow-hidden"
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">

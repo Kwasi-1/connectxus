@@ -50,7 +50,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={`w-full justify-start p-3 h-auto hover:bg-muted -ml-3 ${
+          className={`w-full justify-start p-3 h-auto hover:bg-muted/50 rounded-full -ml-3 ${
             collapsed ? "px-2" : "px-3"
           }`}
         >
