@@ -78,59 +78,62 @@ const HighlightStories = () => {
           </div>
 
           {/* Content */}
-          <div className="p-4 space-y-3">
-            {mockCampusHighlightStories.map((story, index) => (
-              <div
-                key={story.id}
-                className="relative rounded-2xl overflow-hidden cursor-pointer group bg-muted/20 hover:bg-muted/40 transition-all duration-300"
-                onClick={() => setSelectedStoryIndex(index)}
-              >
-                <div className="flex gap-3 p-4">
-                  {/* User Info */}
-                  <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
-                    <AvatarImage src={story.avatar} alt={story.username} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {story.username.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+          <div className="p-4">
+            {/* Story Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {mockCampusHighlightStories.map((story, index) => (
+                <div
+                  key={story.id}
+                  className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-[9/16] border border-border"
+                  onClick={() => setSelectedStoryIndex(index)}
+                >
+                  {/* Story Background Image */}
+                  <img
+                    src={story.media_url}
+                    alt={story.username}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground truncate">
-                        {story.username}
-                      </h3>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span>{getTimeAgo(story.created_at)}</span>
-                      </div>
+                  {/* Gradient Overlays */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+
+                  {/* User Avatar - Top */}
+                  <div className="absolute top-3 left-3">
+                    <Avatar className="h-10 w-10 ring-2 ring-white/50">
+                      <AvatarImage src={story.avatar} alt={story.username} />
+                      <AvatarFallback className="bg-primary/80 text-white font-semibold text-xs">
+                        {story.username.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  {/* Time Badge - Top Right */}
+                  <div className="absolute top-3 right-3">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm">
+                      <Clock className="w-3 h-3 text-white" />
+                      <span className="text-xs text-white font-medium">
+                        {getTimeAgo(story.created_at)}
+                      </span>
                     </div>
+                  </div>
+
+                  {/* User Info - Bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                    <h3 className="font-semibold text-sm mb-0.5 truncate">
+                      {story.username}
+                    </h3>
                     {story.title && (
-                      <p className="text-sm text-foreground mb-1 line-clamp-1">
+                      <p className="text-xs text-white/90 line-clamp-2">
                         {story.title}
                       </p>
                     )}
-                    {story.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {story.description}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Story Preview Thumbnail */}
-                  <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-border">
-                    <img
-                      src={story.media_url}
-                      alt={story.title || "Story"}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  </div>
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300 pointer-events-none" />
                 </div>
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
-              </div>
-            ))}
+              ))}
+            </div>
 
             {/* Empty state */}
             {mockCampusHighlightStories.length === 0 && (

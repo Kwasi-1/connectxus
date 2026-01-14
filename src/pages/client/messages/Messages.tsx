@@ -39,6 +39,7 @@ import {
   Music,
   FileText,
   Download,
+  Mic,
 } from "lucide-react";
 import { NewChatModal } from "@/components/messages/NewChatModal";
 import {
@@ -107,7 +108,7 @@ const Messages = () => {
       conversationId: string;
       content: string;
       file_ids?: string[];
-      message_type?: 'text' | 'image' | 'file' | 'audio' | 'video';
+      message_type?: "text" | "image" | "file" | "audio" | "video";
     }) =>
       sendMessage(conversationId, {
         content,
@@ -212,8 +213,7 @@ const Messages = () => {
           }
         };
 
-        const typingHandler = (data: any) => {
-        };
+        const typingHandler = (data: any) => {};
 
         wsClient.current.on("message.created", messageHandler);
         wsClient.current.on("typing.started", typingHandler);
@@ -388,11 +388,15 @@ const Messages = () => {
   };
 
   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && selectedFiles.length === 0) || !selectedConversationId) return;
+    if (
+      (!newMessage.trim() && selectedFiles.length === 0) ||
+      !selectedConversationId
+    )
+      return;
 
     try {
       let file_ids: string[] = [];
-      let messageType: 'text' | 'image' | 'file' | 'audio' | 'video' = 'text';
+      let messageType: "text" | "image" | "file" | "audio" | "video" = "text";
 
       if (selectedFiles.length > 0) {
         setIsUploadingFiles(true);
@@ -409,15 +413,17 @@ const Messages = () => {
         file_ids = uploadedFiles.map((file) => file.file_id);
 
         const firstFileCategory = getFileCategory(selectedFiles[0].type);
-        if (firstFileCategory === 'image') messageType = 'image';
-        else if (firstFileCategory === 'video') messageType = 'video';
-        else if (firstFileCategory === 'audio') messageType = 'audio';
-        else messageType = 'file';
+        if (firstFileCategory === "image") messageType = "image";
+        else if (firstFileCategory === "video") messageType = "video";
+        else if (firstFileCategory === "audio") messageType = "audio";
+        else messageType = "file";
       }
 
       sendMessageMutation.mutate({
         conversationId: selectedConversationId,
-        content: newMessage.trim() || (selectedFiles.length > 0 ? `(${messageType})` : ""),
+        content:
+          newMessage.trim() ||
+          (selectedFiles.length > 0 ? `(${messageType})` : ""),
         file_ids: file_ids.length > 0 ? file_ids : undefined,
         message_type: messageType,
       });
@@ -730,77 +736,118 @@ const Messages = () => {
                                   : "bg-muted text-foreground"
                               }`}
                             >
-                              {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
-                                <div className={`mb-2 grid gap-2 ${
-                                  message.attachments.length === 1 ? "grid-cols-1" :
-                                  message.attachments.length === 2 ? "grid-cols-2" :
-                                  "grid-cols-2"
-                                }`}>
-                                  {message.attachments.map((attachment: any, idx: number) => {
-                                    const fileType = attachment.type || 'other';
+                              {message.attachments &&
+                                Array.isArray(message.attachments) &&
+                                message.attachments.length > 0 && (
+                                  <div
+                                    className={`mb-2 grid gap-2 ${
+                                      message.attachments.length === 1
+                                        ? "grid-cols-1"
+                                        : message.attachments.length === 2
+                                        ? "grid-cols-2"
+                                        : "grid-cols-2"
+                                    }`}
+                                  >
+                                    {message.attachments.map(
+                                      (attachment: any, idx: number) => {
+                                        const fileType =
+                                          attachment.type || "other";
 
-                                    if (fileType === 'image') {
-                                      return (
-                                        <img
-                                          key={idx}
-                                          src={attachment.url}
-                                          alt={attachment.filename || `Image ${idx + 1}`}
-                                          className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
-                                          onClick={() => window.open(attachment.url, "_blank")}
-                                        />
-                                      );
-                                    } else if (fileType === 'video') {
-                                      return (
-                                        <video
-                                          key={idx}
-                                          src={attachment.url}
-                                          controls
-                                          className="rounded-md w-full max-w-xs"
-                                        />
-                                      );
-                                    } else if (fileType === 'audio') {
-                                      return (
-                                        <div key={idx} className="flex items-center gap-2 p-3 rounded-md bg-background/10">
-                                          <Music className="h-6 w-6 flex-shrink-0" />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm truncate">{attachment.filename || 'Audio'}</p>
-                                            {attachment.size && (
-                                              <p className="text-xs opacity-70">{formatFileSize(attachment.size)}</p>
-                                            )}
-                                          </div>
-                                          <audio src={attachment.url} controls className="w-full mt-2" />
-                                        </div>
-                                      );
-                                    } else {
-                                      return (
-                                        <a
-                                          key={idx}
-                                          href={attachment.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-2 p-3 rounded-md bg-background/10 hover:bg-background/20 transition-colors"
-                                        >
-                                          {fileType === 'document' ? (
-                                            <FileText className="h-6 w-6 flex-shrink-0" />
-                                          ) : (
-                                            <FileIcon className="h-6 w-6 flex-shrink-0" />
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm truncate">{attachment.filename || 'File'}</p>
-                                            {attachment.size && (
-                                              <p className="text-xs opacity-70">{formatFileSize(attachment.size)}</p>
-                                            )}
-                                          </div>
-                                          <Download className="h-4 w-4 flex-shrink-0" />
-                                        </a>
-                                      );
-                                    }
-                                  })}
-                                </div>
-                              )}
-                              {message.content && !message.content.match(/^\((image|video|audio|file)\)$/) && (
-                                <p className="text-sm">{message.content}</p>
-                              )}
+                                        if (fileType === "image") {
+                                          return (
+                                            <img
+                                              key={idx}
+                                              src={attachment.url}
+                                              alt={
+                                                attachment.filename ||
+                                                `Image ${idx + 1}`
+                                              }
+                                              className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                              onClick={() =>
+                                                window.open(
+                                                  attachment.url,
+                                                  "_blank"
+                                                )
+                                              }
+                                            />
+                                          );
+                                        } else if (fileType === "video") {
+                                          return (
+                                            <video
+                                              key={idx}
+                                              src={attachment.url}
+                                              controls
+                                              className="rounded-md w-full max-w-xs"
+                                            />
+                                          );
+                                        } else if (fileType === "audio") {
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="flex items-center gap-2 p-3 rounded-md bg-background/10"
+                                            >
+                                              <Music className="h-6 w-6 flex-shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm truncate">
+                                                  {attachment.filename ||
+                                                    "Audio"}
+                                                </p>
+                                                {attachment.size && (
+                                                  <p className="text-xs opacity-70">
+                                                    {formatFileSize(
+                                                      attachment.size
+                                                    )}
+                                                  </p>
+                                                )}
+                                              </div>
+                                              <audio
+                                                src={attachment.url}
+                                                controls
+                                                className="w-full mt-2"
+                                              />
+                                            </div>
+                                          );
+                                        } else {
+                                          return (
+                                            <a
+                                              key={idx}
+                                              href={attachment.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-2 p-3 rounded-md bg-background/10 hover:bg-background/20 transition-colors"
+                                            >
+                                              {fileType === "document" ? (
+                                                <FileText className="h-6 w-6 flex-shrink-0" />
+                                              ) : (
+                                                <FileIcon className="h-6 w-6 flex-shrink-0" />
+                                              )}
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm truncate">
+                                                  {attachment.filename ||
+                                                    "File"}
+                                                </p>
+                                                {attachment.size && (
+                                                  <p className="text-xs opacity-70">
+                                                    {formatFileSize(
+                                                      attachment.size
+                                                    )}
+                                                  </p>
+                                                )}
+                                              </div>
+                                              <Download className="h-4 w-4 flex-shrink-0" />
+                                            </a>
+                                          );
+                                        }
+                                      }
+                                    )}
+                                  </div>
+                                )}
+                              {message.content &&
+                                !message.content.match(
+                                  /^\((image|video|audio|file)\)$/
+                                ) && (
+                                  <p className="text-sm">{message.content}</p>
+                                )}
                               <p
                                 className={`text-xs mt-1 ${
                                   isOwnMessage
@@ -844,29 +891,41 @@ const Messages = () => {
                 )}
               </ScrollArea>
 
-              <div className="p-4 border-t border-border flex-shrink-0">
+              <div className="p-3 border-t border-border flex-shrink-0 bg-background">
                 {filePreviews.length > 0 && (
-                  <div className="mb-3 flex gap-2 flex-wrap">
+                  <div className="mb-3 flex gap-2 flex-wrap pb-2">
                     {filePreviews.map((preview, index) => {
                       const file = selectedFiles[index];
                       const category = getFileCategory(file.type);
 
                       return (
                         <div key={index} className="relative group">
-                          {category === 'image' ? (
+                          {category === "image" ? (
                             <img
                               src={preview}
                               alt={file.name}
-                              className="h-20 w-20 object-cover rounded-lg border border-border"
+                              className="h-20 w-20 object-cover rounded-xl border border-border"
                             />
                           ) : (
-                            <div className="h-20 w-32 flex flex-col items-center justify-center rounded-lg border border-border bg-muted p-2">
-                              {category === 'video' && <Video className="h-6 w-6 mb-1 text-muted-foreground" />}
-                              {category === 'audio' && <Music className="h-6 w-6 mb-1 text-muted-foreground" />}
-                              {category === 'document' && <FileText className="h-6 w-6 mb-1 text-muted-foreground" />}
-                              {category === 'other' && <FileIcon className="h-6 w-6 mb-1 text-muted-foreground" />}
-                              <p className="text-xs truncate w-full text-center">{file.name}</p>
-                              <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                            <div className="h-20 w-32 flex flex-col items-center justify-center rounded-xl border border-border bg-muted p-2">
+                              {category === "video" && (
+                                <Video className="h-6 w-6 mb-1 text-muted-foreground" />
+                              )}
+                              {category === "audio" && (
+                                <Music className="h-6 w-6 mb-1 text-muted-foreground" />
+                              )}
+                              {category === "document" && (
+                                <FileText className="h-6 w-6 mb-1 text-muted-foreground" />
+                              )}
+                              {category === "other" && (
+                                <FileIcon className="h-6 w-6 mb-1 text-muted-foreground" />
+                              )}
+                              <p className="text-xs truncate w-full text-center">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(file.size)}
+                              </p>
                             </div>
                           )}
                           <button
@@ -880,28 +939,44 @@ const Messages = () => {
                     })}
                   </div>
                 )}
-                <div className="flex items-center space-x-2">
+
+                {/* Telegram-style message input */}
+                <div className="flex items-end gap-2">
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept={ALLOWED_MIME_TYPES.join(',')}
+                    accept={ALLOWED_MIME_TYPES.join(",")}
                     multiple
                     onChange={handleFileSelect}
                     className="hidden"
                   />
+
+                  {/* Attach button */}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingFiles || selectedFiles.length >= 5}
-                    title="Attach files (images, videos, audio, documents)"
+                    title="Attach files"
+                    className="h-10 w-10 rounded-full hover:bg-muted flex-shrink-0"
                   >
-                    <Paperclip className="h-5 w-5" />
+                    <Paperclip className="h-5 w-5 text-muted-foreground" />
                   </Button>
-                  <div className="flex-1 relative">
+
+                  {/* Message input field with emoji button */}
+                  <div className="flex-1 relative bg-muted rounded-[22px] flex items-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full hover:bg-muted-foreground/10 flex-shrink-0 ml-1"
+                      title="Emoji"
+                    >
+                      <Smile className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+
                     <Input
                       ref={messageInputRef}
-                      placeholder="Type a message..."
+                      placeholder="Message"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
@@ -910,32 +985,37 @@ const Messages = () => {
                           handleSendMessage();
                         }
                       }}
-                      className="pr-10 rounded-full"
+                      className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-2 text-[15px] placeholder:text-muted-foreground"
                       disabled={isUploadingFiles}
                     />
+                  </div>
+
+                  {/* Send button (or mic when empty) */}
+                  {newMessage.trim() || selectedFiles.length > 0 ? (
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={
+                        sendMessageMutation.isPending || isUploadingFiles
+                      }
+                      size="icon"
+                      className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90 flex-shrink-0"
+                    >
+                      {isUploadingFiles ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
+                    </Button>
+                  ) : (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                      className="h-10 w-10 rounded-full hover:bg-muted flex-shrink-0"
+                      title="Voice message"
                     >
-                      <Smile className="h-4 w-4" />
+                      <Mic className="h-5 w-5 text-muted-foreground" />
                     </Button>
-                  </div>
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={
-                      (!newMessage.trim() && selectedFiles.length === 0) ||
-                      sendMessageMutation.isPending ||
-                      isUploadingFiles
-                    }
-                    className="rounded-full px-3"
-                  >
-                    {isUploadingFiles ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
+                  )}
                 </div>
               </div>
             </>
