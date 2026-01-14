@@ -129,7 +129,7 @@ export const NewStoryViewer = ({
         </div>
 
         {/* Header */}
-        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-gradient-to-b from-black/60 to-transparent pb-6">
+        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-transparent pb-6">
           <div className="flex items-center gap-3">
             <Avatar className="w-11 h-11 ring-2 ring-primary/60 shadow-lg">
               <AvatarImage

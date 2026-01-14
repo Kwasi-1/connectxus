@@ -288,7 +288,7 @@ export const NewStoryModal = ({
             </div>
 
             {/* Right Side Toolbar */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
+            <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
               <Button
                 variant="ghost"
                 size="icon"
@@ -296,10 +296,10 @@ export const NewStoryModal = ({
                   setActivePanel(activePanel === "caption" ? null : "caption")
                 }
                 className={cn(
-                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  "w-16 h-16 rounded-full text-black flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
                   activePanel === "caption"
-                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
-                    : "border-white/20"
+                    ? "bg-white hover:bg-white/90 border-white shadow-lg scale-110"
+                    : "bg-white/10 hover:bg-white/20 text-white border-white/20"
                 )}
               >
                 <MessageSquare className="w-6 h-6" />
@@ -313,10 +313,10 @@ export const NewStoryModal = ({
                   setActivePanel(activePanel === "filters" ? null : "filters")
                 }
                 className={cn(
-                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  "w-16 h-16 rounded-full text-black flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
                   activePanel === "filters"
-                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
-                    : "border-white/20"
+                    ? "bg-white hover:bg-white/90 border-white shadow-lg scale-110"
+                    : "bg-white/10 hover:bg-white/20 text-white border-white/20"
                 )}
               >
                 <Wand2 className="w-6 h-6" />
@@ -373,7 +373,7 @@ export const NewStoryModal = ({
             <Button
               onClick={handlePost}
               disabled={isUploading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6 font-bold shadow-lg shadow-primary/40 transition-all hover:scale-105"
+              className="w-full bg-white hover:bg-white/90 text-black rounded-full py-6 font-bold shadow-lg transition-all hover:scale-105 disabled:hover:scale-100 disabled:opacity-50"
             >
               {isUploading ? (
                 <>
