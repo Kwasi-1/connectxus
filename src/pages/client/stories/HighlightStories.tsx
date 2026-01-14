@@ -2,20 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, Clock } from "lucide-react";
 import { mockCampusHighlightStories } from "@/data/mockStories";
-import { Story } from "@/types/story";
 import { StoryViewer } from "@/components/story/StoryViewer";
 import { StoryGroup } from "@/types/story";
-import { cn } from "@/lib/utils";
-
-const categoryColors = {
-  EVENT: "bg-blue-500",
-  ACADEMIA: "bg-green-500",
-  SCIENCE: "bg-purple-500",
-  SPORTS: "bg-orange-500",
-  CLUBS: "bg-pink-500",
-};
 
 const HighlightStories = () => {
   const navigate = useNavigate();
@@ -24,7 +15,7 @@ const HighlightStories = () => {
   );
   const [activeFilter, setActiveFilter] = useState<string>("All");
 
-  const filters = ["All", "Events", "Clubs", "Academics"];
+  const filters = ["All", "Communities", "Following", "Others"];
 
   // Convert stories to story groups for the viewer
   const storyGroups: StoryGroup[] = mockCampusHighlightStories.map((story) => ({
@@ -35,26 +26,39 @@ const HighlightStories = () => {
     stories: [story],
   }));
 
-  // Featured story (first one)
-  const featuredStory = mockCampusHighlightStories[0];
-  const recentStories = mockCampusHighlightStories.slice(1);
+  const getTimeAgo = (createdAt: string) => {
+    const now = Date.now();
+    const timestamp = new Date(createdAt).getTime();
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  };
 
   return (
     <>
       <AppLayout>
         <div className="border-x min-h-screen lg:border-l-0">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-background border-b">
-            <div className="flex items-center gap-4 p-4">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b">
+            <div className="flex items-center gap-3 p-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(-1)}
-                className="rounded-full"
+                className="rounded-full hover:bg-muted"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <h1 className="text-xl font-bold">Campus Highlights</h1>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  Campus Stories
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Stories from your community
+                </p>
+              </div>
             </div>
 
             {/* Filter tabs */}
@@ -62,9 +66,9 @@ const HighlightStories = () => {
               {filters.map((filter) => (
                 <Button
                   key={filter}
-                  variant={activeFilter === filter ? "default" : "secondary"}
+                  variant={activeFilter === filter ? "default" : "ghost"}
                   size="sm"
-                  className="rounded-full whitespace-nowrap"
+                  className="rounded-full whitespace-nowrap text-sm"
                   onClick={() => setActiveFilter(filter)}
                 >
                   {filter}
@@ -74,96 +78,75 @@ const HighlightStories = () => {
           </div>
 
           {/* Content */}
-          <div className="p-4">
-            {/* Featured Stories Section */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold">Featured Stories</h2>
-                <Button variant="link" className="text-primary p-0 h-auto">
-                  View all
-                </Button>
-              </div>
-
-              {/* Featured story card */}
+          <div className="p-4 space-y-3">
+            {mockCampusHighlightStories.map((story, index) => (
               <div
-                className="relative rounded-3xl overflow-hidden cursor-pointer h-64 group"
-                onClick={() => setSelectedStoryIndex(0)}
+                key={story.id}
+                className="relative rounded-2xl overflow-hidden cursor-pointer group bg-muted/20 hover:bg-muted/40 transition-all duration-300"
+                onClick={() => setSelectedStoryIndex(index)}
               >
-                <img
-                  src={featuredStory.media_url}
-                  alt={featuredStory.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="flex gap-3 p-4">
+                  {/* User Info */}
+                  <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                    <AvatarImage src={story.avatar} alt={story.username} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {story.username.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                {featuredStory.category && (
-                  <div className="absolute top-4 left-4">
-                    <span
-                      className={cn(
-                        "px-3 py-1 rounded-full text-white text-xs font-semibold uppercase",
-                        categoryColors[featuredStory.category]
-                      )}
-                    >
-                      {featuredStory.category}
-                    </span>
-                  </div>
-                )}
-
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <h3 className="text-2xl font-bold mb-2">
-                    {featuredStory.title}
-                  </h3>
-                  <p className="text-sm text-white/90">
-                    {featuredStory.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Updates Section */}
-            <div>
-              <h2 className="text-lg font-bold mb-3">Recent Updates</h2>
-
-              {/* Grid layout */}
-              <div className="grid grid-cols-2 gap-3">
-                {recentStories.map((story, index) => (
-                  <div
-                    key={story.id}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer aspect-[3/4] group"
-                    onClick={() => setSelectedStoryIndex(index + 1)}
-                  >
-                    <img
-                      src={story.media_url}
-                      alt={story.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                    {story.category && (
-                      <div className="absolute top-3 left-3">
-                        <span
-                          className={cn(
-                            "px-2 py-1 rounded-full text-white text-[10px] font-semibold uppercase",
-                            categoryColors[story.category]
-                          )}
-                        >
-                          {story.category}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                      <h3 className="text-sm font-bold mb-1 line-clamp-2">
-                        {story.title}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground truncate">
+                        {story.username}
                       </h3>
-                      <p className="text-xs text-white/80 line-clamp-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>{getTimeAgo(story.created_at)}</span>
+                      </div>
+                    </div>
+                    {story.title && (
+                      <p className="text-sm text-foreground mb-1 line-clamp-1">
+                        {story.title}
+                      </p>
+                    )}
+                    {story.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
                         {story.description}
                       </p>
-                    </div>
+                    )}
                   </div>
-                ))}
+
+                  {/* Story Preview Thumbnail */}
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-border">
+                    <img
+                      src={story.media_url}
+                      alt={story.title || "Story"}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                </div>
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
               </div>
-            </div>
+            ))}
+
+            {/* Empty state */}
+            {mockCampusHighlightStories.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Clock className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No stories yet
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Stories from your communities, people you follow, and others
+                  will appear here
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </AppLayout>

@@ -208,23 +208,23 @@ export const StoryViewer = ({
           <div className="flex items-center gap-2">
             <Input
               placeholder={`Reply to @${currentGroup.username}...`}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-primary/50 backdrop-blur-md"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-primary/50 backdrop-blur-md rounded-full"
             />
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl backdrop-blur-md"
             >
               ❤️
             </Button>
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl backdrop-blur-md"
             >
               😂
             </Button>
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl backdrop-blur-md"
             >
               👍
             </Button>
