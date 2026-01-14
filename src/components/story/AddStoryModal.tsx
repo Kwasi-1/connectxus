@@ -297,14 +297,14 @@ export const AddStoryModal = ({
         </div>
       ) : (
         /* Story Editor Screen */
-        <div className="relative w-full h-full max-w-md mx-auto flex flex-col">
+        <div className="relative w-full h-full max-w-md mx-auto flex flex-col bg-gradient-to-br from-black via-gray-900 to-black">
           {/* Top Bar */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4">
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleClose}
-              className="bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
               disabled={isUploading}
             >
               <X className="w-5 h-5" />
@@ -312,16 +312,16 @@ export const AddStoryModal = ({
             <Button
               variant="ghost"
               size="icon"
-              className="bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
             >
               <Settings className="w-5 h-5" />
             </Button>
           </div>
 
           {/* Main Story Preview Area */}
-          <div className="relative flex-1 flex items-center justify-center">
+          <div className="relative flex-1 flex items-center justify-center p-4">
             {/* Background media */}
-            <div className="relative w-full h-full max-h-[85vh] bg-black/20 backdrop-blur-sm rounded-3xl overflow-hidden border-2 border-dashed border-white/30 mx-4">
+            <div className="relative w-full h-full max-h-[80vh] bg-gradient-to-br from-gray-800/30 to-gray-900/30 backdrop-blur-sm rounded-2xl overflow-hidden border-2 border-dashed border-primary/40 shadow-2xl">
               {mediaType === "image" ? (
                 <img
                   src={previewUrl}
@@ -354,20 +354,23 @@ export const AddStoryModal = ({
               {textOverlays.map((textOverlay) => (
                 <div
                   key={textOverlay.id}
-                  className="absolute cursor-move"
+                  className="absolute cursor-move transition-transform hover:scale-105"
                   style={{
                     left: `${textOverlay.x}%`,
                     top: `${textOverlay.y}%`,
                     transform: "translate(-50%, -50%)",
                   }}
                   onClick={() => removeTextOverlay(textOverlay.id)}
+                  title="Click to remove"
                 >
                   <p
-                    className="font-bold drop-shadow-lg px-3 py-1 rounded"
+                    className="font-extrabold drop-shadow-2xl px-4 py-2 rounded-lg backdrop-blur-sm"
                     style={{
                       color: textOverlay.color,
                       fontSize: `${textOverlay.fontSize}px`,
-                      textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
+                      textShadow:
+                        "0 0 20px rgba(0,0,0,0.9), 2px 2px 8px rgba(0,0,0,0.8)",
+                      backgroundColor: "rgba(0,0,0,0.2)",
                     }}
                   >
                     {textOverlay.text}
@@ -379,17 +382,18 @@ export const AddStoryModal = ({
               {stickerOverlays.map((sticker) => (
                 <div
                   key={sticker.id}
-                  className="absolute cursor-move"
+                  className="absolute cursor-move transition-all hover:scale-110 active:scale-95"
                   style={{
                     left: `${sticker.x}%`,
                     top: `${sticker.y}%`,
                     transform: "translate(-50%, -50%)",
                   }}
                   onClick={() => removeStickerOverlay(sticker.id)}
+                  title="Click to remove"
                 >
                   <span
                     style={{ fontSize: `${sticker.size}px` }}
-                    className="drop-shadow-lg"
+                    className="drop-shadow-2xl filter brightness-110"
                   >
                     {sticker.emoji}
                   </span>
@@ -399,18 +403,26 @@ export const AddStoryModal = ({
               {/* Center Text for empty state */}
               {textOverlays.length === 0 && stickerOverlays.length === 0 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="text-center text-white/80">
-                    <p className="font-semibold text-lg mb-2">
+                  <div className="text-center px-6">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-primary" />
+                    </div>
+                    <p className="font-bold text-xl mb-2 text-white drop-shadow-lg">
                       Create New Story
                     </p>
-                    <p className="text-sm">Share your campus moments</p>
+                    <p className="text-sm text-white/70 drop-shadow-md">
+                      Share your campus moments
+                    </p>
+                    <p className="text-xs text-white/50 mt-2">
+                      Tap icons to add text, stickers & more
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Right Side Toolbar */}
-            <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
               <Button
                 variant="ghost"
                 size="icon"
@@ -418,12 +430,14 @@ export const AddStoryModal = ({
                   setActivePanel(activePanel === "text" ? null : "text")
                 }
                 className={cn(
-                  "w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 text-white flex flex-col gap-1 py-2",
-                  activePanel === "text" && "bg-primary hover:bg-primary/90"
+                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  activePanel === "text"
+                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
+                    : "border-white/20 hover:border-white/40"
                 )}
               >
                 <Type className="w-6 h-6" />
-                <span className="text-[10px]">Text</span>
+                <span className="text-[9px] font-medium">Text</span>
               </Button>
 
               <Button
@@ -433,21 +447,24 @@ export const AddStoryModal = ({
                   setActivePanel(activePanel === "stickers" ? null : "stickers")
                 }
                 className={cn(
-                  "w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 text-white flex flex-col gap-1 py-2",
-                  activePanel === "stickers" && "bg-primary hover:bg-primary/90"
+                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  activePanel === "stickers"
+                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
+                    : "border-white/20 hover:border-white/40"
                 )}
               >
                 <Smile className="w-6 h-6" />
-                <span className="text-[10px]">Stickers</span>
+                <span className="text-[9px] font-medium">Stickers</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 text-white flex flex-col gap-1 py-2"
+                onClick={() => toast.info("Draw feature coming soon!")}
+                className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border border-white/20 hover:border-white/40 transition-all"
               >
                 <Pencil className="w-6 h-6" />
-                <span className="text-[10px]">Draw</span>
+                <span className="text-[9px] font-medium">Draw</span>
               </Button>
 
               <Button
@@ -457,12 +474,14 @@ export const AddStoryModal = ({
                   setActivePanel(activePanel === "music" ? null : "music")
                 }
                 className={cn(
-                  "w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 text-white flex flex-col gap-1 py-2",
-                  activePanel === "music" && "bg-primary hover:bg-primary/90"
+                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  activePanel === "music"
+                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
+                    : "border-white/20 hover:border-white/40"
                 )}
               >
                 <Music className="w-6 h-6" />
-                <span className="text-[10px]">Music</span>
+                <span className="text-[9px] font-medium">Music</span>
               </Button>
 
               <Button
@@ -472,22 +491,27 @@ export const AddStoryModal = ({
                   setActivePanel(activePanel === "effects" ? null : "effects")
                 }
                 className={cn(
-                  "w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 text-white flex flex-col gap-1 py-2",
-                  activePanel === "effects" && "bg-primary hover:bg-primary/90"
+                  "w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
+                  activePanel === "effects"
+                    ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110"
+                    : "border-white/20 hover:border-white/40"
                 )}
               >
                 <Wand2 className="w-6 h-6" />
-                <span className="text-[10px]">Effects</span>
+                <span className="text-[9px] font-medium">Effects</span>
               </Button>
             </div>
           </div>
 
           {/* Active Panel Overlay */}
           {activePanel && (
-            <div className="absolute bottom-32 left-0 right-0 mx-4 bg-background/95 backdrop-blur-sm rounded-2xl p-4 z-30 border border-border shadow-2xl">
+            <div className="absolute bottom-32 left-0 right-0 mx-4 bg-background/98 backdrop-blur-xl rounded-2xl p-5 z-30 border border-primary/30 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
               {activePanel === "text" && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm">Add Text</h3>
+                <div className="space-y-4">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Type className="w-4 h-4 text-primary" />
+                    Add Text
+                  </h3>
                   <Input
                     value={newText}
                     onChange={(e) => setNewText(e.target.value)}
@@ -519,14 +543,17 @@ export const AddStoryModal = ({
               )}
 
               {activePanel === "stickers" && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm">Add Stickers</h3>
-                  <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Smile className="w-4 h-4 text-primary" />
+                    Add Stickers
+                  </h3>
+                  <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto pr-2">
                     {STICKER_EMOJIS.map((emoji) => (
                       <button
                         key={emoji}
                         onClick={() => addSticker(emoji)}
-                        className="text-3xl hover:scale-125 transition-transform"
+                        className="text-3xl hover:scale-125 transition-transform active:scale-95 p-1 rounded-lg hover:bg-accent"
                       >
                         {emoji}
                       </button>
@@ -536,9 +563,12 @@ export const AddStoryModal = ({
               )}
 
               {activePanel === "music" && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm">Add Music</h3>
-                  <div className="space-y-2">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Music className="w-4 h-4 text-primary" />
+                    Add Music
+                  </h3>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-2">
                     {MUSIC_OPTIONS.map((music) => (
                       <button
                         key={music}
@@ -568,8 +598,11 @@ export const AddStoryModal = ({
               )}
 
               {activePanel === "effects" && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm">Apply Effects</h3>
+                <div className="space-y-4">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Wand2 className="w-4 h-4 text-primary" />
+                    Apply Effects
+                  </h3>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       "none",
@@ -583,10 +616,10 @@ export const AddStoryModal = ({
                         key={effect}
                         onClick={() => setSelectedEffect(effect)}
                         className={cn(
-                          "p-3 rounded-lg text-sm capitalize transition-colors",
+                          "p-3 rounded-lg text-sm capitalize transition-all font-medium",
                           selectedEffect === effect
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-accent hover:bg-accent/70"
+                            ? "bg-primary text-primary-foreground shadow-md"
+                            : "bg-accent hover:bg-accent/80 hover:scale-105"
                         )}
                       >
                         {effect}
@@ -599,62 +632,67 @@ export const AddStoryModal = ({
           )}
 
           {/* Bottom Actions */}
-          <div className="absolute bottom-4 left-0 right-0 px-4 z-20 space-y-3">
-            {/* Save Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="bg-black/50 hover:bg-black/70 text-white rounded-full px-4 absolute bottom-20 left-4"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save
-            </Button>
-
-            {/* Select Media Button */}
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full max-w-xs mx-auto bg-primary hover:bg-primary/90 text-white rounded-full py-6 font-semibold flex items-center justify-center gap-2"
-            >
-              <ImageIcon className="w-5 h-5" />
-              Select Media
-            </Button>
-            <p className="text-center text-xs text-white/70">
-              Supports JPG, PNG, MP4
-            </p>
-
-            {/* Share Options */}
-            <div className="flex gap-3 justify-center mt-4">
+          <div className="absolute bottom-4 left-0 right-0 px-4 z-20">
+            <div className="bg-gradient-to-t from-black/80 to-transparent p-4 rounded-2xl space-y-3">
+              {/* Save Button */}
               <Button
-                variant="outline"
-                onClick={() => setShareWithCloseFriends(!shareWithCloseFriends)}
-                className={cn(
-                  "flex-1 max-w-[180px] rounded-full py-6 font-semibold border-2",
-                  shareWithCloseFriends
-                    ? "bg-primary/20 border-primary text-primary"
-                    : "bg-background/80 border-white/30 text-white"
-                )}
+                variant="ghost"
+                size="sm"
+                onClick={() => toast.success("Story saved as draft!")}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full px-5 py-2 backdrop-blur-md border border-white/20 absolute -top-24 left-4 font-medium"
               >
-                <Users className="w-5 h-5 mr-2" />
-                Close Friends
+                <Save className="w-4 h-4 mr-2" />
+                Save Draft
               </Button>
 
+              {/* Select Media Button */}
               <Button
-                onClick={handlePost}
-                disabled={isUploading}
-                className="flex-1 max-w-[180px] bg-primary hover:bg-primary/90 text-white rounded-full py-6 font-semibold"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full max-w-xs mx-auto bg-white/10 hover:bg-white/20 text-white rounded-full py-5 font-semibold flex items-center justify-center gap-2 backdrop-blur-md border border-white/30 transition-all hover:scale-105"
               >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Posting...
-                  </>
-                ) : (
-                  <>
-                    Your Story
-                    <span className="ml-2">→</span>
-                  </>
-                )}
+                <ImageIcon className="w-5 h-5" />
+                Select Media
               </Button>
+              <p className="text-center text-xs text-white/60 font-medium">
+                Supports JPG, PNG, MP4
+              </p>
+
+              {/* Share Options */}
+              <div className="flex gap-3 justify-center mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setShareWithCloseFriends(!shareWithCloseFriends)
+                  }
+                  className={cn(
+                    "flex-1 max-w-[180px] rounded-full py-5 font-semibold border-2 backdrop-blur-md transition-all",
+                    shareWithCloseFriends
+                      ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/30"
+                      : "bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                  )}
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  Close Friends
+                </Button>
+
+                <Button
+                  onClick={handlePost}
+                  disabled={isUploading}
+                  className="flex-1 max-w-[180px] bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-5 font-bold shadow-lg shadow-primary/40 transition-all hover:scale-105 disabled:hover:scale-100"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      Your Story
+                      <span className="ml-2">→</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

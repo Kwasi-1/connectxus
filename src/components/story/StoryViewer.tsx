@@ -106,18 +106,18 @@ export const StoryViewer = ({
   if (!isOpen || !currentStory) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-black/98 backdrop-blur-md flex items-center justify-center">
       {/* Story container */}
-      <div className="relative w-full max-w-md h-full md:h-[90vh] bg-black">
+      <div className="relative w-full max-w-md h-full md:h-[90vh] bg-gradient-to-br from-black via-gray-900 to-black md:rounded-2xl overflow-hidden shadow-2xl">
         {/* Progress bars */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2">
+        <div className="absolute top-0 left-0 right-0 z-20 flex gap-1.5 p-3">
           {currentGroup.stories.map((_, index) => (
             <div
               key={index}
-              className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden"
+              className="flex-1 h-0.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm"
             >
               <div
-                className="h-full bg-white transition-all duration-100"
+                className="h-full bg-gradient-to-r from-primary to-white transition-all duration-100"
                 style={{
                   width:
                     index < currentStoryIndex
@@ -132,20 +132,22 @@ export const StoryViewer = ({
         </div>
 
         {/* Header */}
-        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3">
-          <div className="flex items-center gap-2">
-            <Avatar className="w-10 h-10 ring-2 ring-white">
+        <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-gradient-to-b from-black/60 to-transparent pb-6">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-11 h-11 ring-2 ring-primary/60 shadow-lg">
               <AvatarImage
                 src={currentGroup.avatar}
                 alt={currentGroup.username}
               />
-              <AvatarFallback>
+              <AvatarFallback className="bg-primary/20">
                 {currentGroup.username.substring(0, 2)}
               </AvatarFallback>
             </Avatar>
             <div className="text-white">
-              <p className="font-semibold text-sm">@{currentGroup.username}</p>
-              <p className="text-xs text-white/80">
+              <p className="font-bold text-sm drop-shadow-lg">
+                @{currentGroup.username}
+              </p>
+              <p className="text-xs text-white/90 drop-shadow-md">
                 {getTimeAgo(currentStory.created_at)}
               </p>
             </div>
@@ -154,7 +156,7 @@ export const StoryViewer = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 backdrop-blur-md rounded-full"
               onClick={() => {
                 // Share functionality
               }}
@@ -164,7 +166,7 @@ export const StoryViewer = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 backdrop-blur-md rounded-full"
               onClick={onClose}
             >
               <X className="w-5 h-5" />
@@ -191,36 +193,38 @@ export const StoryViewer = ({
             className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer"
             onClick={handlePrevious}
             aria-label="Previous story"
+            title="Previous story"
           />
           <button
             className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer"
             onClick={handleNext}
             aria-label="Next story"
+            title="Next story"
           />
         </div>
 
         {/* Reply input */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/60 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent pt-8">
           <div className="flex items-center gap-2">
             <Input
               placeholder={`Reply to @${currentGroup.username}...`}
-              className="bg-white/10 border-white/30 text-white placeholder:text-white/60 focus-visible:ring-white/50"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-primary/50 backdrop-blur-md"
             />
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/20 text-white text-xl"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
             >
               ❤️
             </Button>
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/20 text-white text-xl"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
             >
               😂
             </Button>
             <Button
               size="icon"
-              className="bg-transparent hover:bg-white/20 text-white text-xl"
+              className="bg-transparent hover:bg-white/10 text-white text-2xl border border-white/20 backdrop-blur-md"
             >
               👍
             </Button>
@@ -230,14 +234,14 @@ export const StoryViewer = ({
         {/* Desktop navigation arrows */}
         <button
           onClick={handlePrevious}
-          className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 transition-colors"
+          className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full p-3 transition-all hover:scale-110 disabled:opacity-50 border border-white/20"
           disabled={currentGroupIndex === 0 && currentStoryIndex === 0}
         >
           <ChevronLeft className="w-6 h-6 text-white" />
         </button>
         <button
           onClick={handleNext}
-          className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 transition-colors"
+          className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full p-3 transition-all hover:scale-110 border border-white/20"
         >
           <ChevronRight className="w-6 h-6 text-white" />
         </button>

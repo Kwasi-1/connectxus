@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Eye } from "lucide-react";
 import { Event } from "@/api/events.api";
 import moment from "moment";
 import { cn } from "@/lib/utils";
@@ -33,11 +33,11 @@ export const EventCard = ({
       onClick={onClick}
       className={cn(
         "group relative rounded-none overflow-hidden cursor-pointer",
-        "border shadow-sm transition-all duration-300 flex flex-col h-full isolate"
+        "shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full isolate"
       )}
     >
       {/* Header Image Section */}
-      <div className="relative h-36 w-full bg-slate-100 overflow-hidden shrink-0">
+      <div className="relative h-36 w-full bg-muted overflow-hidden shrink-0">
         {event.image_url ? (
           <img
             src={event.image_url}
@@ -45,8 +45,8 @@ export const EventCard = ({
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
-          <div className="flex items-center justify-center h-full bg-indigo-50 text-indigo-300">
-            <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400 font-medium">
+          <div className="flex items-center justify-center h-full bg-primary/5">
+            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground font-medium">
               No Image
             </div>
           </div>
@@ -60,45 +60,40 @@ export const EventCard = ({
 
       {/* Content Section */}
       <div className="py-4 px-5 flex flex-col gap-5 grow">
-        {/* Title with yellow highlight underline effect */}
+        {/* Title */}
         <div className="relative w-fit">
-          <h3 className="text-xl font-semibold text-slate-900 leading-tight z-10 relative line-clamp-2 custom-font capitalize">
+          <h3 className="text-xl font-semibold text-foreground leading-tight z-10 relative line-clamp-2 custom-font capitalize">
             {event.title}
           </h3>
-          {/* Decorative highlight */}
-          {/* <div className="absolute bottom-0.5 left-0 w-full h-2.5 bg-[#FCD34D]/40 -z-0 rounded-sm transform -rotate-1" /> */}
         </div>
 
         {/* Info Row: Date + Details */}
         <div className="flex items-start gap-5 pt-1">
           {/* Date Column - Big and Bold */}
           <div className="flex flex-col items-center leading-none shrink-0 min-w-[3rem]">
-            <span className="text-4xl custom-font font-[500] text-slate-800 tracking-tightest">
+            <span className="text-4xl custom-font font-[500] text-primary tracking-tightest">
               {day}
             </span>
-            <span className="text-sm font-bold text-slate-500 uppercase mt-1 tracking-wider">
+            <span className="text-sm font-bold text-muted-foreground uppercase mt-1 tracking-wider">
               {month}
             </span>
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-12 bg-slate-100 hidden" />
-
           {/* Details Column */}
           <div className="flex-1 flex flex-col gap-3 min-w-0">
             {/* Location */}
-            <div className="flex items-start gap-2.5 text-slate-600">
-              <MapPin className="w-4 h-4 mt-1 shrink-0 text-slate-400" />
+            <div className="flex items-start gap-2.5">
+              <MapPin className="w-4 h-4 mt-1 shrink-0 text-muted-foreground" />
               <div className="text-sm font-medium leading-snug truncate w-full">
-                <span className="block text-slate-800 font-medium truncate">
+                <span className="block text-foreground font-medium truncate">
                   {locationName}
                 </span>
                 {locationSub ? (
-                  <span className="block text-slate-500 text-xs truncate">
+                  <span className="block text-muted-foreground text-xs truncate">
                     {locationSub}
                   </span>
                 ) : (
-                  <span className="block text-slate-500 text-xs truncate opacity-0">
+                  <span className="block text-muted-foreground text-xs truncate opacity-0">
                     .
                   </span>
                 )}
@@ -106,21 +101,33 @@ export const EventCard = ({
             </div>
 
             {/* Time */}
-            <div className="flex items-center gap-2.5 text-slate-600">
-              <Clock className="w-4 h-4 shrink-0 text-slate-400" />
-              <span className="text-sm font-medium text-slate-600">{time}</span>
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">
+                {time}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Footer Button - Pushed to bottom */}
-        <div className="mt-auto pt-2">
-          <Button
-            variant="outline"
-            className="w-full rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground font-bold h-11 transition-colors"
-          >
-            {event.registration_required ? "Comprar Bilhete" : "View Details"}
-          </Button>
+        <div className="mt-auto pt-2 flex items-center justify-end">
+          {event.registration_required ? (
+            <Button            
+              variant="outline"
+              className="rounded-full text-muted-foreground font-medium gap-2">
+              Register
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full text-muted-foreground font-medium gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              View Details
+            </Button>
+          )}
         </div>
       </div>
     </Card>

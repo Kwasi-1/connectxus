@@ -60,7 +60,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 {getInitials(user.name)}
               </span>
             </div> */}
-            <Avatar className="w-10 h-10 lg:w-12 lg:h-12 xl:w-10 xl:h-10 rounded-sm">
+            <Avatar className="w-10 h-10 lg:w-12 lg:h-12 xl:w-10 xl:h-10 rounde">
               <AvatarImage
                 src={user.avatar || undefined}
                 alt={user.name}
