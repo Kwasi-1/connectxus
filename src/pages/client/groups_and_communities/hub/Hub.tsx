@@ -531,12 +531,12 @@ const Hub = () => {
             )}
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 bg-muted rounded-lg px-[2px] py-[1.5px] h-10 text-muted-foreground">
+            <div className="flex gap-2 bg-muted rounded-full px-[1.5px] py-[1.5px] h-10 text-muted-foreground">
               <Button
                 size="sm"
                 variant={eventFilter === "not-registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("not-registered")}
-                className={`flex-1 rounded-md h-full  ${
+                className={`flex-1 rounded-full h-full  ${
                   eventFilter === "not-registered" &&
                   "hover:bg-background text-foreground"
                 }`}
@@ -547,7 +547,7 @@ const Hub = () => {
                 size="sm"
                 variant={eventFilter === "registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("registered")}
-                className={`flex-1 rounded-md h-full ${
+                className={`flex-1 rounded-full h-full ${
                   eventFilter === "registered" &&
                   "hover:bg-background text-foreground"
                 }`}

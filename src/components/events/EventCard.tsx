@@ -71,7 +71,7 @@ export const EventCard = ({
         <div className="flex items-start gap-5 pt-1">
           {/* Date Column - Big and Bold */}
           <div className="flex flex-col items-center leading-none shrink-0 min-w-[3rem]">
-            <span className="text-4xl custom-font font-[500] text-primary tracking-tightest">
+            <span className="text-4xl custom-font font-[500] text-muted-foreground/80 tracking-tightest">
               {day}
             </span>
             <span className="text-sm font-bold text-muted-foreground uppercase mt-1 tracking-wider">
@@ -111,7 +111,7 @@ export const EventCard = ({
         </div>
 
         {/* Footer Button - Pushed to bottom */}
-        <div className="mt-auto pt-2 flex items-center justify-end">
+        <div className="mt-auto pt2 flex items-center justify-end">
           {event.registration_required ? (
             <Button            
               variant="outline"
@@ -124,7 +124,7 @@ export const EventCard = ({
               size="sm"
               className="rounded-full text-muted-foreground font-medium gap-2"
             >
-              <Eye className="w-4 h-4" />
+              {/* <Eye className="w-4 h-4" /> */}
               View Details
             </Button>
           )}
