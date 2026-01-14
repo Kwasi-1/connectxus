@@ -1,8 +1,9 @@
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Users, UserCheck, Clock } from "lucide-react";
 import { Event } from "@/api/events.api";
 import moment from "moment";
-import { cn } from "@/lib/utils";
 
 interface EventCardProps {
   event: Event;
@@ -10,105 +11,97 @@ interface EventCardProps {
   showRegistrationStatus?: boolean;
 }
 
-export const EventCard = ({
-  event,
-  onClick,
-  showRegistrationStatus = true,
-}: EventCardProps) => {
-  const startDate = moment(event.start_date);
-
-  // Extract date parts for the badge
-  const month = startDate.format("MMM");
-  const dayNumber = startDate.format("D");
-  const dayName = startDate.format("ddd").toUpperCase();
-  const startTime = startDate.format("h:mm A");
+export const EventCard = ({ event, onClick, showRegistrationStatus = true }: EventCardProps) => {
+  const isPast = new Date(event.end_date) < new Date();
+  const isFull = event.max_attendees && event.registered_count >= event.max_attendees;
+  const isUpcoming = new Date(event.start_date) > new Date();
 
   return (
-    <div
+    <Card
+      className="overflow-hidden hover:shadow-lg rounded-none transition-shadow cursor-pointer"
       onClick={onClick}
-      className="group relative w-full h-[28rem] md:h-[20rem] rounded-[0.9rem] overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 isolate bg-muted/20"
     >
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        {event.image_url ? (
+      {event.image_url && (
+        <div className="w-full h-36 overflow-hidden">
           <img
             src={event.image_url}
             alt={event.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover"
           />
-        ) : (
-          <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-            <span className="text-slate-400 font-medium">No Image</span>
+        </div>
+      )}
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h3 className="font-semibold text-lg line-clamp-2">{event.title}</h3>
+            {showRegistrationStatus && event.is_registered && (
+              <Badge variant="secondary" className="shrink-0">
+                <UserCheck className="h-3 w-3 mr-1" />
+                Registered
+              </Badge>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10" />
-
-      {/* Top Status Badges */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 items-end">
-        {showRegistrationStatus && event.is_registered && (
-          <Badge className="bg-white/90 text-black hover:bg-white backdrop-blur-md shadow-sm transition-all border-none font-semibold">
-            <UserCheck className="h-3.5 w-3.5 mr-1" />
-            Registered
-          </Badge>
-        )}
-        {event.category && (
-          <Badge
-            variant="outline"
-            className="bg-black/20 text-white border-white/20 backdrop-blur-md font-medium"
-          >
-            {event.category}
-          </Badge>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 md:p-4 z-20 text-white flex flex-col gap-5">
-        {/* Title */}
-        <h3 className="text-2xl md:text-2xl font-semibold leading-[1.1] tracking-tight line-clamp-2 drop-shadow-sm">
-          {event.title}
-        </h3>
-
-        {/* Bottom Row: Date Badge and Details */}
-        <div className="flex items-end gap-3 md:gap-4">
-          {/* Date Badge */}
-          <div className="flex-shrink-0 w-[3.5rem] md:w-16 rounded-md overflow-hidden shadow-lg shadow-black/20 bg-white">
-            <div className="bg-zinc-800 text-white text-[10px] md:text-xs font-bold text-center py-1 uppercase tracking-widest">
-              {month}
-            </div>
-            <div className="bg-white text-zinc-900 flex flex-col items-center justify-center py-1.5 md:py-2">
-              <span className="text-xl md:text-2xl font-black leading-none tracking-tighter">
-                {dayNumber}
-              </span>
-              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-zinc-500 mt-0.5">
-                {dayName}
-              </span>
-            </div>
-          </div>
-
-          {/* Details (Location & Time) */}
-          <div className="flex-1 flex items-end justify-between pb-0.5 min-w-0 gap-2">
-            <div className="flex flex-col min-w-0 gap-0.5">
-              <span className="font-semibold text-white/95 text-sm md:text-base truncate">
-                {event.location?.split(",")[0] || "Location TBD"}
-              </span>
-              <span className="text-xs text-white/70 truncate max-w-[150px] md:max-w-[200px]">
-                {event.location || "Details coming soon"}
-              </span>
-            </div>
-            <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-              <span className="text-sm md:text-base font-medium text-white/95">
-                {startTime}
-              </span>
-              <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
-                Local
-              </span>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{event.category}</Badge>
+            {isPast && <Badge variant="secondary">Past</Badge>}
+            {isFull && <Badge variant="destructive">Full</Badge>}
+            {isUpcoming && <Badge variant="default">Upcoming</Badge>}
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Description */}
+        {event.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
+        )}
+
+        {/* Date & Time */}
+        <div className="flex items-start gap-2 text-sm">
+          <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div>
+            <p className="font-medium">{moment(event.start_date).format("MMM D, YYYY")}</p>
+            <p className="text-muted-foreground">
+              {moment(event.start_date).format("h:mm A")} -{" "}
+              {moment(event.end_date).format("h:mm A")}
+            </p>
+          </div>
+        </div>
+
+        {/* Location */}
+        {event.location && (
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-muted-foreground truncate">{event.location}</p>
+          </div>
+        )}
+
+        {/* Registration Info */}
+        {event.registration_required && (
+          <div className="flex items-center gap-2 text-sm">
+            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-muted-foreground">
+              {event.registered_count} registered
+              {event.max_attendees && ` / ${event.max_attendees} max`}
+            </p>
+          </div>
+        )}
+
+        {/* Tags */}
+        {event.tags && event.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {event.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {event.tags.length > 3 && (
+              <Badge variant="secondary" className="text-xs">
+                +{event.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
