@@ -1511,7 +1511,7 @@ const GroupDetail = () => {
                               <Avatar
                                 className="h-12 w-12 cursor-pointer"
                                 onClick={() =>
-                                  navigate(`/profile/${member.id}`)
+                                  navigate(`/profile/${member.username}`)
                                 }
                               >
                                 <AvatarImage
@@ -1527,7 +1527,7 @@ const GroupDetail = () => {
                               <div
                                 className="flex-1 cursor-pointer"
                                 onClick={() =>
-                                  navigate(`/profile/${member.id}`)
+                                  navigate(`/profile/${member.username}`)
                                 }
                               >
                                 <div className="flex items-center gap-2">

@@ -72,7 +72,12 @@ import { EventCard } from "@/components/events/EventCard";
 import { EventForm } from "@/components/events/EventForm";
 import { EventDetailModal } from "@/components/events/EventDetailModal";
 
-type CommunityTab = "posts" | "announcements" | "members" | "settings" | "events";
+type CommunityTab =
+  | "posts"
+  | "announcements"
+  | "members"
+  | "settings"
+  | "events";
 
 const CommunityDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -84,7 +89,6 @@ const CommunityDetail = () => {
 
   const currentUserId = user?.id || "";
 
-  
   const initialTab = (searchParams.get("tab") as CommunityTab) || "posts";
   const [activeTab, setActiveTab] = useState<CommunityTab>(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,7 +116,6 @@ const CommunityDetail = () => {
   const isModerator = community?.role === "moderator";
   const canManage = isAdmin || isModerator;
 
-  
   const {
     posts,
     isLoading: postsLoading,
@@ -125,12 +128,11 @@ const CommunityDetail = () => {
     deletePost,
     sharePost,
   } = useFeed({
-    type: 'community',
+    type: "community",
     communityId: id,
     enabled: !!id && activeTab === "posts",
   });
 
-  
   const { loadMoreRef } = useInfiniteScroll({
     loading: isFetchingNextPage,
     hasMore: hasNextPage || false,
@@ -159,10 +161,9 @@ const CommunityDetail = () => {
         media: data.media,
       }),
     onSuccess: () => {
-      
       queryClient.invalidateQueries({
         queryKey: ["community-posts", id],
-        refetchType: 'active'
+        refetchType: "active",
       });
       toast({
         title: "Post created",
@@ -346,13 +347,11 @@ const CommunityDetail = () => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    
     if (selectedPostImages.length + files.length > 4) {
       sonnerToast.error("You can only upload up to 4 images per post");
       return;
     }
 
-    
     const validFiles = files.filter((file) => {
       if (!file.type.startsWith("image/")) {
         sonnerToast.error(`${file.name} is not an image file`);
@@ -367,7 +366,6 @@ const CommunityDetail = () => {
 
     if (validFiles.length === 0) return;
 
-    
     const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
     setSelectedPostImages([...selectedPostImages, ...validFiles]);
     setPostImagePreviews([...postImagePreviews, ...newPreviews]);
@@ -393,7 +391,6 @@ const CommunityDetail = () => {
     try {
       let imageUrls: string[] = [];
 
-      
       if (selectedPostImages.length > 0) {
         setIsUploadingPostImages(true);
         const uploadPromises = selectedPostImages.map((file) =>
@@ -508,8 +505,7 @@ const CommunityDetail = () => {
     }
   };
 
-  const handleQuote = (postId: string) => {
-  };
+  const handleQuote = (postId: string) => {};
 
   const handlePromoteToAdmin = (userId: string) => {
     addAdminMutation.mutate(userId);
@@ -746,7 +742,6 @@ const CommunityDetail = () => {
                           rows={3}
                         />
 
-                        
                         {postImagePreviews.length > 0 && (
                           <div className="grid grid-cols-2 gap-2">
                             {postImagePreviews.map((preview, index) => (
@@ -776,18 +771,28 @@ const CommunityDetail = () => {
                               onChange={handlePostImageSelect}
                               className="hidden"
                               id="post-image-upload"
-                              disabled={selectedPostImages.length >= 4 || isUploadingPostImages}
+                              disabled={
+                                selectedPostImages.length >= 4 ||
+                                isUploadingPostImages
+                              }
                             />
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => document.getElementById('post-image-upload')?.click()}
-                              disabled={selectedPostImages.length >= 4 || isUploadingPostImages}
+                              onClick={() =>
+                                document
+                                  .getElementById("post-image-upload")
+                                  ?.click()
+                              }
+                              disabled={
+                                selectedPostImages.length >= 4 ||
+                                isUploadingPostImages
+                              }
                             >
                               <ImageIcon className="h-4 w-4 mr-1" />
                               {selectedPostImages.length > 0
                                 ? `${selectedPostImages.length}/4 images`
-                                : 'Add images'}
+                                : "Add images"}
                             </Button>
                             <span className="text-sm text-muted-foreground">
                               {newPostContent.length}/280
@@ -802,14 +807,18 @@ const CommunityDetail = () => {
                                 setSelectedPostImages([]);
                                 setPostImagePreviews([]);
                               }}
-                              disabled={isUploadingPostImages || createPostMutation.isPending}
+                              disabled={
+                                isUploadingPostImages ||
+                                createPostMutation.isPending
+                              }
                             >
                               Cancel
                             </Button>
                             <Button
                               onClick={handleCreatePost}
                               disabled={
-                                (!newPostContent.trim() && selectedPostImages.length === 0) ||
+                                (!newPostContent.trim() &&
+                                  selectedPostImages.length === 0) ||
                                 newPostContent.length > 280 ||
                                 isUploadingPostImages ||
                                 createPostMutation.isPending
@@ -863,7 +872,6 @@ const CommunityDetail = () => {
                   )}
                 </div>
 
-                
                 {hasNextPage && (
                   <div ref={loadMoreRef} className="py-4 text-center">
                     {isFetchingNextPage && <FeedLoadingSkeleton count={2} />}
@@ -1069,315 +1077,315 @@ const CommunityDetail = () => {
           </TabsContent>
 
           <TabsContent value="members" className="mt-0">
-                <div className="p-4 space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search members..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 rounded-full"
-                    />
-                  </div>
+            <div className="p-4 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search members..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 rounded-full"
+                />
+              </div>
 
-                  {membersLoading ? (
-                    <LoadingSpinner />
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {members
-                        .filter(
-                          (member) =>
-                            member.full_name
-                              .toLowerCase()
-                              .includes(searchQuery.toLowerCase()) ||
-                            member.username
-                              .toLowerCase()
-                              .includes(searchQuery.toLowerCase())
-                        )
-                        .map((member) => {
-                          const isMemberAdmin = member.role === "admin";
-                          const isMemberModerator = member.role === "moderator";
+              {membersLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <div className="divide-y divide-border">
+                  {members
+                    .filter(
+                      (member) =>
+                        member.full_name
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        member.username
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                    )
+                    .map((member) => {
+                      const isMemberAdmin = member.role === "admin";
+                      const isMemberModerator = member.role === "moderator";
 
-                          return (
-                            <div
-                              key={member.id}
-                              className="p-4 hover:bg-muted/5"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Avatar
-                                  className="h-12 w-12 cursor-pointer"
-                                  onClick={() => navigate(`/profile/${member.id}`)}
-                                >
-                                  <AvatarImage
-                                    src={member.avatar || undefined}
-                                    alt={member.full_name}
-                                  />
-                                  <AvatarFallback>
-                                    {member.full_name
-                                      .substring(0, 2)
-                                      .toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div
-                                  className="flex-1 cursor-pointer"
-                                  onClick={() => navigate(`/profile/${member.id}`)}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-semibold">
-                                      {member.full_name}
-                                    </h3>
-                                    {member.verified && (
-                                      <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                        <span className="text-primary-foreground text-xs">
-                                          ✓
-                                        </span>
-                                      </div>
-                                    )}
-                                    {isMemberAdmin && (
-                                      <Badge
-                                        variant="default"
-                                        className="text-xs gap-1"
-                                      >
-                                        <Crown className="h-3 w-3" />
-                                        Admin
-                                      </Badge>
-                                    )}
-                                    {isMemberModerator && !isMemberAdmin && (
-                                      <Badge
-                                        variant="secondary"
-                                        className="text-xs gap-1"
-                                      >
-                                        <Shield className="h-3 w-3" />
-                                        Moderator
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    @{member.username}
-                                  </p>
-                                  {member.department && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {member.department}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              
-              {(community.is_member || community.community_type === "public") && (
-                <TabsContent value="events" className="mt-0">
-                  <CommunityEventsTab
-                    communityId={id || ""}
-                    canManage={canManage}
-                  />
-                </TabsContent>
-              )}
-
-              {canManage && (
-              <TabsContent value="settings" className="mt-0">
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">
-                      Community Settings
-                    </h3>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Basic Information</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <Label htmlFor="community-name">Community Name</Label>
-                          <Input
-                            id="community-name"
-                            value={community?.name || ""}
-                            disabled
-                            className="mt-1"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Community name cannot be changed
-                          </p>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="community-description">
-                            Description
-                          </Label>
-                          {isEditingSettings ? (
-                            <Textarea
-                              id="community-description"
-                              value={communityDescription}
-                              onChange={(e) =>
-                                setCommunityDescription(e.target.value)
+                      return (
+                        <div key={member.id} className="p-4 hover:bg-muted/5">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              className="h-12 w-12 cursor-pointer"
+                              onClick={() =>
+                                navigate(`/profile/${member.username}`)
                               }
-                              className="mt-1"
-                              rows={3}
-                            />
-                          ) : (
-                            <p className="mt-1 p-3 bg-muted rounded-md">
-                              {community?.description}
-                            </p>
-                          )}
-                        </div>
-
-                        {isEditingSettings && (
-                          <div>
-                            <ImageUploadField
-                              label="Cover Image"
-                              currentImage={coverImageUrl}
-                              onUploadComplete={(url) => setCoverImageUrl(url)}
-                              moduleType="communities"
-                              moduleId={id}
-                              aspectRatio="16/9"
-                            />
+                            >
+                              <AvatarImage
+                                src={member.avatar || undefined}
+                                alt={member.full_name}
+                              />
+                              <AvatarFallback>
+                                {member.full_name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div
+                              className="flex-1 cursor-pointer"
+                              onClick={() =>
+                                navigate(`/profile/${member.username}`)
+                              }
+                            >
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold">
+                                  {member.full_name}
+                                </h3>
+                                {member.verified && (
+                                  <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                    <span className="text-primary-foreground text-xs">
+                                      ✓
+                                    </span>
+                                  </div>
+                                )}
+                                {isMemberAdmin && (
+                                  <Badge
+                                    variant="default"
+                                    className="text-xs gap-1"
+                                  >
+                                    <Crown className="h-3 w-3" />
+                                    Admin
+                                  </Badge>
+                                )}
+                                {isMemberModerator && !isMemberAdmin && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs gap-1"
+                                  >
+                                    <Shield className="h-3 w-3" />
+                                    Moderator
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                @{member.username}
+                              </p>
+                              {member.department && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {member.department}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
 
+          {(community.is_member || community.community_type === "public") && (
+            <TabsContent value="events" className="mt-0">
+              <CommunityEventsTab
+                communityId={id || ""}
+                canManage={canManage}
+              />
+            </TabsContent>
+          )}
+
+          {canManage && (
+            <TabsContent value="settings" className="mt-0">
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">
+                    Community Settings
+                  </h3>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Basic Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="community-name">Community Name</Label>
+                        <Input
+                          id="community-name"
+                          value={community?.name || ""}
+                          disabled
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Community name cannot be changed
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="community-description">
+                          Description
+                        </Label>
+                        {isEditingSettings ? (
+                          <Textarea
+                            id="community-description"
+                            value={communityDescription}
+                            onChange={(e) =>
+                              setCommunityDescription(e.target.value)
+                            }
+                            className="mt-1"
+                            rows={3}
+                          />
+                        ) : (
+                          <p className="mt-1 p-3 bg-muted rounded-md">
+                            {community?.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {isEditingSettings && (
                         <div>
-                          <Label>Community Type</Label>
-                          <div className="mt-1 flex items-center gap-2">
-                            <Badge variant="secondary">
-                              {community?.category}
+                          <ImageUploadField
+                            label="Cover Image"
+                            currentImage={coverImageUrl}
+                            onUploadComplete={(url) => setCoverImageUrl(url)}
+                            moduleType="communities"
+                            moduleId={id}
+                            aspectRatio="16/9"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <Label>Community Type</Label>
+                        <div className="mt-1 flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {community?.category}
+                          </Badge>
+                          {community?.level && community.level !== "All" && (
+                            <Badge variant="outline">
+                              Level {community.level}
                             </Badge>
-                            {community?.level && community.level !== "All" && (
+                          )}
+                          {community?.department &&
+                            community.department !== "All" && (
                               <Badge variant="outline">
-                                Level {community.level}
+                                {community.department}
                               </Badge>
                             )}
-                            {community?.department &&
-                              community.department !== "All" && (
-                                <Badge variant="outline">
-                                  {community.department}
-                                </Badge>
-                              )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Community type and criteria are set by app
-                            administrators
-                          </p>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Community type and criteria are set by app
+                          administrators
+                        </p>
+                      </div>
 
-                        <div className="flex gap-2">
-                          {isEditingSettings ? (
-                            <>
-                              <Button onClick={handleUpdateCommunitySettings}>
-                                Save Changes
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setIsEditingSettings(false);
-                                  setCommunityDescription(
-                                    community?.description || ""
-                                  );
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              onClick={() => setIsEditingSettings(true)}
-                              variant="outline"
-                            >
-                              Edit Description
+                      <div className="flex gap-2">
+                        {isEditingSettings ? (
+                          <>
+                            <Button onClick={handleUpdateCommunitySettings}>
+                              Save Changes
                             </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Community Statistics</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Total Members
-                          </span>
-                          <span className="font-semibold">
-                            {community?.member_count}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Posts This Month
-                          </span>
-                          <span className="font-semibold">{posts.length}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Announcements
-                          </span>
-                          <span className="font-semibold">
-                            {announcements.length}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Community Created
-                          </span>
-                          <span className="font-semibold">
-                            {moment(community?.created_at).fromNow()}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    
-                    {isAdmin && (
-                      <Card className="border-red-200 dark:border-red-900">
-                        <CardHeader>
-                          <CardTitle className="text-red-600 dark:text-red-400">
-                            Danger Zone
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center justify-between p-4 border border-red-200 dark:border-red-900 rounded-md">
-                            <div>
-                              <p className="font-medium">Delete Community</p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Permanently delete this community and all of its
-                                content. This action cannot be undone.
-                              </p>
-                            </div>
                             <Button
-                              variant="destructive"
+                              variant="outline"
                               onClick={() => {
-                                if (confirm('Are you sure you want to delete this community? This action cannot be undone.')) {
-                                  
-                                  toast({
-                                    title: "Not implemented",
-                                    description: "Community deletion is not yet implemented",
-                                    variant: "destructive",
-                                  });
-                                }
+                                setIsEditingSettings(false);
+                                setCommunityDescription(
+                                  community?.description || ""
+                                );
                               }}
                             >
-                              Delete Community
+                              Cancel
                             </Button>
+                          </>
+                        ) : (
+                          <Button
+                            onClick={() => setIsEditingSettings(true)}
+                            variant="outline"
+                          >
+                            Edit Description
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Community Statistics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Total Members
+                        </span>
+                        <span className="font-semibold">
+                          {community?.member_count}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Posts This Month
+                        </span>
+                        <span className="font-semibold">{posts.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Announcements
+                        </span>
+                        <span className="font-semibold">
+                          {announcements.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Community Created
+                        </span>
+                        <span className="font-semibold">
+                          {moment(community?.created_at).fromNow()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {isAdmin && (
+                    <Card className="border-red-200 dark:border-red-900">
+                      <CardHeader>
+                        <CardTitle className="text-red-600 dark:text-red-400">
+                          Danger Zone
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border border-red-200 dark:border-red-900 rounded-md">
+                          <div>
+                            <p className="font-medium">Delete Community</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Permanently delete this community and all of its
+                              content. This action cannot be undone.
+                            </p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
+                          <Button
+                            variant="destructive"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  "Are you sure you want to delete this community? This action cannot be undone."
+                                )
+                              ) {
+                                toast({
+                                  title: "Not implemented",
+                                  description:
+                                    "Community deletion is not yet implemented",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            Delete Community
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
-              </TabsContent>
-              )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>
   );
 };
-
 
 const CommunityEventsTab = ({
   communityId,
@@ -1392,23 +1400,28 @@ const CommunityEventsTab = ({
   const queryClient = useQueryClient();
 
   const { data: upcomingEvents = [], isLoading: upcomingLoading } = useQuery({
-    queryKey: ['community-upcoming-events', communityId],
+    queryKey: ["community-upcoming-events", communityId],
     queryFn: () => getCommunityUpcomingEvents(communityId, 10),
     enabled: !!communityId,
   });
 
   const { data: allEvents = [], isLoading: allLoading } = useQuery({
-    queryKey: ['community-events', communityId],
+    queryKey: ["community-events", communityId],
     queryFn: () => getCommunityEvents(communityId, { page: 1, limit: 20 }),
     enabled: !!communityId,
   });
 
   const createEventMutation = useMutation({
-    mutationFn: (data: Omit<CreateEventRequest, 'space_id'>) => createCommunityEvent(communityId, data),
+    mutationFn: (data: Omit<CreateEventRequest, "space_id">) =>
+      createCommunityEvent(communityId, data),
     onSuccess: () => {
       toast.success("Event created successfully");
-      queryClient.invalidateQueries({ queryKey: ['community-events', communityId] });
-      queryClient.invalidateQueries({ queryKey: ['community-upcoming-events', communityId] });
+      queryClient.invalidateQueries({
+        queryKey: ["community-events", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["community-upcoming-events", communityId],
+      });
       setShowCreateForm(false);
     },
     onError: () => {
@@ -1417,11 +1430,16 @@ const CommunityEventsTab = ({
   });
 
   const updateEventMutation = useMutation({
-    mutationFn: ({ eventId, data }: { eventId: string; data: any }) => updateEvent(eventId, data),
+    mutationFn: ({ eventId, data }: { eventId: string; data: any }) =>
+      updateEvent(eventId, data),
     onSuccess: () => {
       toast.success("Event updated successfully");
-      queryClient.invalidateQueries({ queryKey: ['community-events', communityId] });
-      queryClient.invalidateQueries({ queryKey: ['community-upcoming-events', communityId] });
+      queryClient.invalidateQueries({
+        queryKey: ["community-events", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["community-upcoming-events", communityId],
+      });
       setEditingEvent(null);
     },
     onError: () => {
@@ -1447,7 +1465,10 @@ const CommunityEventsTab = ({
           event={editingEvent || undefined}
           onSubmit={async (data) => {
             if (editingEvent) {
-              await updateEventMutation.mutateAsync({ eventId: editingEvent.id, data });
+              await updateEventMutation.mutateAsync({
+                eventId: editingEvent.id,
+                data,
+              });
             } else {
               await createEventMutation.mutateAsync(data);
             }
@@ -1456,7 +1477,9 @@ const CommunityEventsTab = ({
             setShowCreateForm(false);
             setEditingEvent(null);
           }}
-          isSubmitting={createEventMutation.isPending || updateEventMutation.isPending}
+          isSubmitting={
+            createEventMutation.isPending || updateEventMutation.isPending
+          }
         />
       </div>
     );
@@ -1475,7 +1498,6 @@ const CommunityEventsTab = ({
       </div>
 
       <div className="space-y-6">
-        
         <div>
           <h4 className="font-medium mb-3">Upcoming Events</h4>
           {upcomingEvents.length === 0 ? (
@@ -1493,7 +1515,6 @@ const CommunityEventsTab = ({
           )}
         </div>
 
-        
         <div>
           <h4 className="font-medium mb-3">All Events</h4>
           {allEvents.length === 0 ? (
@@ -1512,11 +1533,13 @@ const CommunityEventsTab = ({
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{event.title}</p>
                       {event.is_registered && (
-                        <Badge variant="secondary" className="text-xs">Registered</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Registered
+                        </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {moment(event.start_date).format('MMM D, YYYY • h:mm A')}
+                      {moment(event.start_date).format("MMM D, YYYY • h:mm A")}
                     </p>
                   </div>
                   <Badge variant="outline">{event.category}</Badge>
@@ -1527,7 +1550,6 @@ const CommunityEventsTab = ({
         </div>
       </div>
 
-      
       {selectedEvent && (
         <EventDetailModal
           event={selectedEvent}
