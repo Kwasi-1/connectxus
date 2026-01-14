@@ -288,7 +288,7 @@ export const NewStoryModal = ({
             </div>
 
             {/* Right Side Toolbar */}
-            <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
+            <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
               <Button
                 variant="ghost"
                 size="icon"
@@ -325,20 +325,20 @@ export const NewStoryModal = ({
             </div>
           </div>
 
-          {/* Active Panel */}
+          {/* Active Panel - Right Side */}
           {activePanel && (
-            <div className="absolute bottom-32 left-0 right-0 mx-4 bg-background/98 backdrop-blur-xl rounded-2xl p-5 z-30 border border-primary/30 shadow-2xl">
+            <div className="absolute -right-[376px] top-1/2 -translate-y-1/2 w-72 bg-black/90 backdrop-blur-xl rounded-2xl p-5 z-30 border border-white/30 shadow-2xl max-h-[70vh] overflow-y-auto mt-8">
               {activePanel === "caption" && (
                 <div className="space-y-4">
-                  <h3 className="font-bold text-base">Add Caption</h3>
+                  <h3 className="font-bold text-base text-white">Add Caption</h3>
                   <Input
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
                     placeholder="Write a caption..."
-                    className="w-full"
+                    className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     maxLength={150}
                   />
-                  <p className="text-xs text-muted-foreground text-right">
+                  <p className="text-xs text-white/70 text-right">
                     {caption.length}/150
                   </p>
                 </div>
@@ -346,8 +346,8 @@ export const NewStoryModal = ({
 
               {activePanel === "filters" && (
                 <div className="space-y-4">
-                  <h3 className="font-bold text-base">Apply Filter</h3>
-                  <div className="grid grid-cols-3 gap-2 max-h-[40vh] overflow-y-auto pr-2">
+                  <h3 className="font-bold text-base text-white">Apply Filter</h3>
+                  <div className="grid grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto pr-2">
                     {IMAGE_FILTERS.map((filter) => (
                       <button
                         key={filter.name}
@@ -355,8 +355,8 @@ export const NewStoryModal = ({
                         className={cn(
                           "p-3 rounded-lg text-sm capitalize transition-all font-medium text-center",
                           selectedFilter.name === filter.name
-                            ? "bg-primary text-primary-foreground shadow-md"
-                            : "bg-accent hover:bg-accent/80"
+                            ? "bg-white text-black shadow-md"
+                            : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
                         )}
                       >
                         {filter.name}
