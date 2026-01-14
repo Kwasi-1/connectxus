@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -67,7 +68,7 @@ const Messages = () => {
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wsClient = useRef(getWebSocketClient());
   const markedAsReadRef = useRef<Set<string>>(new Set());
@@ -784,26 +785,29 @@ const Messages = () => {
                                           return (
                                             <div
                                               key={idx}
-                                              className="flex items-center gap-2 p-3 rounded-md bg-background/10"
+                                              className="flex flex-col gap-2 p-3 rounded-md bg-background/10 max-w-xs"
                                             >
-                                              <Music className="h-6 w-6 flex-shrink-0" />
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm truncate">
-                                                  {attachment.filename ||
-                                                    "Audio"}
-                                                </p>
-                                                {attachment.size && (
-                                                  <p className="text-xs opacity-70">
-                                                    {formatFileSize(
-                                                      attachment.size
-                                                    )}
+                                              <div className="flex items-center gap-2">
+                                                <Music className="h-5 w-5 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm truncate">
+                                                    {attachment.filename ||
+                                                      "Audio"}
                                                   </p>
-                                                )}
+                                                  {attachment.size && (
+                                                    <p className="text-xs opacity-70">
+                                                      {formatFileSize(
+                                                        attachment.size
+                                                      )}
+                                                    </p>
+                                                  )}
+                                                </div>
                                               </div>
                                               <audio
                                                 src={attachment.url}
                                                 controls
-                                                className="w-full mt-2"
+                                                className="w-full h-8"
+                                                preload="metadata"
                                               />
                                             </div>
                                           );
@@ -846,7 +850,7 @@ const Messages = () => {
                                 !message.content.match(
                                   /^\((image|video|audio|file)\)$/
                                 ) && (
-                                  <p className="text-sm">{message.content}</p>
+                                  <p className="text-sm text-wrap">{message.content}</p>
                                 )}
                               <p
                                 className={`text-xs mt-1 ${
@@ -964,28 +968,38 @@ const Messages = () => {
                   </Button>
 
                   {/* Message input field with emoji button */}
-                  <div className="flex-1 relative bg-muted rounded-[22px] flex items-center">
+                  <div className="flex-1 relative bg-muted rounded-[22px] flex items-end">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full hover:bg-muted-foreground/10 flex-shrink-0 ml-1"
+                      className="h-10 w-10 rounded-full hover:bg-muted-foreground/10 flex-shrink-0 ml-1 mb-1"
                       title="Emoji"
                     >
                       <Smile className="h-5 w-5 text-muted-foreground" />
                     </Button>
 
-                    <Input
+                    <Textarea
                       ref={messageInputRef}
                       placeholder="Message"
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
+                      onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        // Auto-resize textarea
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = "auto";
+                        target.style.height = `${Math.min(
+                          target.scrollHeight,
+                          120
+                        )}px`;
+                      }}
+                      onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();
                         }
                       }}
-                      className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-2 text-[15px] placeholder:text-muted-foreground"
+                      rows={1}
+                      className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[40px] max-h-[120px] py-2.5 px-2 text-[15px] placeholder:text-muted-foreground resize-none overflow-y-auto"
                       disabled={isUploadingFiles}
                     />
                   </div>
