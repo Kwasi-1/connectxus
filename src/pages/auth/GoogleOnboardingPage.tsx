@@ -145,13 +145,22 @@ export const GoogleOnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
+              <div className="flex gap-2">
               <h2 className="text-2xl font-semibold">Welcome, {googleData.full_name}!</h2>
+              {googleData.avatar && (
+                <img
+                  src={googleData.avatar}
+                  alt={"logo"}
+                  className="w-10 h-10 rounded-full mx-auto hidden"
+                />
+              )}
+              </div>
               <p className="text-muted-foreground">
                 Let's complete your profile
               </p>
             </div>
 
-            <div className="p-4 bg-muted/50 rounded-lg text-center space-y-2">
+            <div className="p-4 bg-muted/50 rounded-lg text-center space-y-2 hidden">
               {googleData.avatar && (
                 <img
                   src={googleData.avatar}

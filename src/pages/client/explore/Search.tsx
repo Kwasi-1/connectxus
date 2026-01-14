@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search as SearchIcon, Clock, TrendingUp } from "lucide-react";
+import { Search as SearchIcon, Clock, TrendingUp, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,10 @@ const Search = () => {
     localStorage.removeItem("searchHistory");
   };
 
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <AppLayout>
       <div className="border-r border-border h-full tracking-wider">
@@ -61,6 +65,15 @@ const Search = () => {
                 className="pl-10 py-3 border rounded-full text-base"
                 autoFocus
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
             </div>
           </div>
         </div>

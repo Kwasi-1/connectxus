@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, X, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,6 +162,16 @@ export function RightSidebar() {
     }
   };
 
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  const removeSearchHistory = (query: string) => {
+    const updatedHistory = searchHistory.filter((item) => item !== query);
+    setSearchHistory(updatedHistory);
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+  };
+
   const handleFollow = (userId: string) => {
     const isCurrentlyFollowing = followedUsers.has(userId);
 
@@ -182,9 +192,19 @@ export function RightSidebar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="pl-10 py-3 border rounded-full text-base"
+            className="pl-10 pr-10 py-3 border rounded-full text-base"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
+        
       </div>
 
       <div className="p-4 pl-6 pt-2 space-y-2">
