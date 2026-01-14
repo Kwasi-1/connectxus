@@ -37,7 +37,11 @@ import {
   getRecommendedCommunities,
   Community,
 } from "@/api/communities.api";
-import { getRecommendedEvents, getUserRegisteredEvents, Event } from "@/api/events.api";
+import {
+  getRecommendedEvents,
+  getUserRegisteredEvents,
+  Event,
+} from "@/api/events.api";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
@@ -57,11 +61,14 @@ import { HubTab } from "@/types/communities";
 const Hub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("communities");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventFilter, setEventFilter] = useState<"registered" | "not-registered">("not-registered");
+  const [eventFilter, setEventFilter] = useState<
+    "registered" | "not-registered"
+  >("not-registered");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [showMySpaceEventsOnly, setShowMySpaceEventsOnly] = useState(false);
-  const [pendingShowMySpaceEventsOnly, setPendingShowMySpaceEventsOnly] = useState(false);
+  const [pendingShowMySpaceEventsOnly, setPendingShowMySpaceEventsOnly] =
+    useState(false);
 
   const navigate = useNavigate();
   const { ref: infiniteScrollRef, inView } = useInView();
@@ -102,12 +109,14 @@ const Hub = () => {
       staleTime: 60000,
     });
 
-  const { data: recommendedCommunities = [], isLoading: loadingRecommendedCommunities } =
-    useQuery({
-      queryKey: ["recommended-communities"],
-      queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
-      staleTime: 60000,
-    });
+  const {
+    data: recommendedCommunities = [],
+    isLoading: loadingRecommendedCommunities,
+  } = useQuery({
+    queryKey: ["recommended-communities"],
+    queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
+    staleTime: 60000,
+  });
 
   const {
     data: eventsData,
@@ -169,14 +178,14 @@ const Hub = () => {
   const myCommunities = userCommunities;
   const myGroups = userGroups;
 
-  const joinedCommunityIds = new Set(userCommunities.map(c => c.id));
+  const joinedCommunityIds = new Set(userCommunities.map((c) => c.id));
   const exploreCommunities = recommendedCommunities
-    .filter(c => !joinedCommunityIds.has(c.id))
+    .filter((c) => !joinedCommunityIds.has(c.id))
     .slice(0, 3);
 
-  const joinedGroupIds = new Set(userGroups.map(g => g.id));
+  const joinedGroupIds = new Set(userGroups.map((g) => g.id));
   const exploreGroups = recommendedGroups
-    .filter(g => !joinedGroupIds.has(g.id))
+    .filter((g) => !joinedGroupIds.has(g.id))
     .slice(0, 3);
 
   const handleApplyFilters = () => {
@@ -522,13 +531,14 @@ const Hub = () => {
             )}
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 bg-muted rounded-full px-[2px] py-[1.5px] h-10 text-muted-foreground">
+            <div className="flex gap-2 bg-muted rounded-lg px-[2px] py-[1.5px] h-10 text-muted-foreground">
               <Button
                 size="sm"
                 variant={eventFilter === "not-registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("not-registered")}
-                className={`flex-1 rounded-full h-full  ${
-                  eventFilter === "not-registered" && "hover:bg-background text-foreground"
+                className={`flex-1 rounded-md h-full  ${
+                  eventFilter === "not-registered" &&
+                  "hover:bg-background text-foreground"
                 }`}
               >
                 Recommended
@@ -537,8 +547,9 @@ const Hub = () => {
                 size="sm"
                 variant={eventFilter === "registered" ? "outline" : "light"}
                 onClick={() => setEventFilter("registered")}
-                className={`flex-1 rounded-full h-full ${
-                  eventFilter === "registered" && "hover:bg-background text-foreground"
+                className={`flex-1 rounded-md h-full ${
+                  eventFilter === "registered" &&
+                  "hover:bg-background text-foreground"
                 }`}
               >
                 Registered
@@ -553,40 +564,49 @@ const Hub = () => {
             ) : (
               <>
                 {allEvents.length > 0 ? (
-                  <div className="space-y-4">
-                    {allEvents
-                      .filter(
-                        (event) =>
-                          !eventSearchQuery ||
-                          event.title
-                            .toLowerCase()
-                            .includes(eventSearchQuery.toLowerCase()) ||
-                          event.description
-                            ?.toLowerCase()
-                            .includes(eventSearchQuery.toLowerCase()) ||
-                          event.category
-                            .toLowerCase()
-                            .includes(eventSearchQuery.toLowerCase())
-                      )
-                      .map((event) => (
-                        <EventCard
-                          key={event.id}
-                          event={event}
-                          onClick={() => {
-                            if (event.group_id) {
-                              navigate(`/groups/${event.group_id}?tab=events`);
-                            } else if (event.community_id) {
-                              navigate(`/communities/${event.community_id}?tab=events`);
-                            } else {
-                              setSelectedEvent(event);
-                            }
-                          }}
-                          showRegistrationStatus={true}
-                        />
-                      ))}
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {allEvents
+                        .filter(
+                          (event) =>
+                            !eventSearchQuery ||
+                            event.title
+                              .toLowerCase()
+                              .includes(eventSearchQuery.toLowerCase()) ||
+                            event.description
+                              ?.toLowerCase()
+                              .includes(eventSearchQuery.toLowerCase()) ||
+                            event.category
+                              .toLowerCase()
+                              .includes(eventSearchQuery.toLowerCase())
+                        )
+                        .map((event) => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onClick={() => {
+                              if (event.group_id) {
+                                navigate(
+                                  `/groups/${event.group_id}?tab=events`
+                                );
+                              } else if (event.community_id) {
+                                navigate(
+                                  `/communities/${event.community_id}?tab=events`
+                                );
+                              } else {
+                                setSelectedEvent(event);
+                              }
+                            }}
+                            showRegistrationStatus={true}
+                          />
+                        ))}
+                    </div>
 
                     {hasNextPage && (
-                      <div ref={infiniteScrollRef} className="flex justify-center py-4">
+                      <div
+                        ref={infiniteScrollRef}
+                        className="flex justify-center py-4"
+                      >
                         {isFetchingNextPage && (
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         )}
@@ -597,7 +617,9 @@ const Hub = () => {
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {eventFilter === "registered" ? "No Registered Events" : "No Events Available"}
+                      {eventFilter === "registered"
+                        ? "No Registered Events"
+                        : "No Events Available"}
                     </h3>
                     <p className="text-muted-foreground">
                       {eventFilter === "registered"
@@ -614,7 +636,10 @@ const Hub = () => {
 
       {/* Filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto"
+        >
           <SheetHeader>
             <SheetTitle>Filter Events</SheetTitle>
           </SheetHeader>
@@ -639,7 +664,11 @@ const Hub = () => {
           </div>
 
           <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={handleResetFilters} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handleResetFilters}
+              className="flex-1"
+            >
               Reset
             </Button>
             <Button onClick={handleApplyFilters} className="flex-1">

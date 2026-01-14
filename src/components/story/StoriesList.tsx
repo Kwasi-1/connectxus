@@ -36,7 +36,7 @@ export const StoriesList = ({
         <Button
           variant="ghost"
           size="icon"
-          className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm shadow-md hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-transparent backdrop-blur-sm hover:bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={() => scroll("left")}
         >
           <ChevronLeft className="w-5 h-5" />
@@ -72,7 +72,7 @@ export const StoriesList = ({
         <Button
           variant="ghost"
           size="icon"
-          className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm shadow-md hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-transparent backdrop-blur-sm hover:bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={() => scroll("right")}
         >
           <ChevronRight className="w-5 h-5" />
