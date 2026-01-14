@@ -177,6 +177,7 @@ export interface AdminAuthContextType {
   admin: AdminUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  googleSignIn: (idToken: string) => Promise<void>;
   signOut: () => void;
   hasPermission: (permission: AdminPermission) => boolean;
   hasRole: (role: AdminRole) => boolean;

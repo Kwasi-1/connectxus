@@ -1,27 +1,36 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Shield, Lock } from 'lucide-react';
-import Logo from '@/components/shared/Logo';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Shield, Lock } from "lucide-react";
+import Logo from "@/components/shared/Logo";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import { signInWithGoogle } from "@/lib/firebase";
 
 export function AdminAuthPage() {
-  const { signIn, isLoading } = useAdminAuth();
+  const { signIn, googleSignIn, isLoading } = useAdminAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Validation Error",
         description: "Please fill in all fields.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -30,14 +39,45 @@ export function AdminAuthPage() {
       await signIn(email, password);
       toast({
         title: "Welcome!",
-        description: "Successfully signed in to Admin Portal."
+        description: "Successfully signed in to Admin Portal.",
       });
     } catch (error) {
       toast({
         title: "Authentication Failed",
         description: "Invalid credentials. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const idToken = await signInWithGoogle();
+      await googleSignIn(idToken);
+
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed in to Admin Portal with Google.",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage === "Sign-in cancelled") {
+        toast({
+          title: "Cancelled",
+          description: "Google sign-in was cancelled.",
+        });
+      } else {
+        toast({
+          title: "Authentication Failed",
+          description:
+            errorMessage || "Failed to sign in with Google. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -50,7 +90,9 @@ export function AdminAuthPage() {
             <div className="flex items-center space-x-2">
               <Shield className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold text-foreground custom-font">Connect</h1>
+                <h1 className="text-2xl font-bold text-foreground custom-font">
+                  Connect
+                </h1>
                 <p className="text-sm text-muted-foreground">Admin Portal</p>
               </div>
             </div>
@@ -93,10 +135,10 @@ export function AdminAuthPage() {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || isGoogleLoading}
               >
                 {isLoading ? (
                   <>
@@ -112,13 +154,39 @@ export function AdminAuthPage() {
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  OR
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11 rounded-lg border-input hover:bg-accent/50 transition-colors"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading || isLoading}
+            >
+              <Icon icon="devicon:google" className="w-5 h-5 mr-2" />
+              {isGoogleLoading
+                ? "Signing in with Google..."
+                : "Continue with Google"}
+            </Button>
+
+            {/* <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Demo Credentials:</h4>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p><strong>Admin:</strong> admin@university.edu / admin123</p>
                 <p><strong>Super Admin:</strong> super@university.edu / super123</p>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 

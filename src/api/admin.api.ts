@@ -107,6 +107,31 @@ export interface AdminLoginResponse {
   user: AdminUser;
 }
 
+export interface AdminGoogleSignInRequest {
+  id_token: string;
+}
+
+export interface AdminGoogleSignInNewUserResponse {
+  new_user: boolean;
+  email: string;
+  full_name: string;
+  avatar: string;
+  id_token: string;
+  needs_onboarding: boolean;
+}
+
+export interface AdminGoogleSignInExistingUserResponse {
+  new_user: boolean;
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+  refresh_token_expires_at: string;
+  user: AdminUser;
+  needs_onboarding: boolean;
+}
+
+export type AdminGoogleSignInResponse = AdminGoogleSignInNewUserResponse | AdminGoogleSignInExistingUserResponse;
+
 export interface SuspendUserRequest {
   user_id: string;
   suspended_by: string;
@@ -144,6 +169,36 @@ export const adminApi = {
       clearTokens();
       localStorage.removeItem("admin-user");
     }
+  },
+
+  googleSignIn: async (idToken: string): Promise<AdminGoogleSignInResponse> => {
+    const response = await apiClient.post<{ data: AdminGoogleSignInResponse }>(
+      "/users/auth/google",
+      { id_token: idToken }
+    );
+
+    const data = response.data.data;
+
+    // Check if user needs onboarding
+    if (data.needs_onboarding) {
+      throw new Error("Account needs onboarding. Please complete registration first.");
+    }
+
+    // Check if this is an existing user with admin privileges
+    if ('access_token' in data && 'user' in data) {
+      const user = data.user;
+      
+      // Validate admin role
+      if (!user.role || !["admin", "super_admin", "moderator"].includes(user.role)) {
+        throw new Error("Access denied. Admin privileges required.");
+      }
+
+      // Set tokens
+      setAccessToken(data.access_token);
+      setRefreshToken(data.refresh_token);
+    }
+
+    return data;
   },
 
   getSpaces: async (params?: {
