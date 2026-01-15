@@ -238,7 +238,7 @@ export const ProfileHeader = ({
   return (
     <div className="relative">
       {/* Cover Image */}
-      <div className="h-48 md:h-52 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
+      <div className="h-48 md:h-48 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
         {/* Back button overlay - optional */}
         <div className="absolute top-4 left-4 z-10">
           {/* Add back button here if needed */}
@@ -249,7 +249,7 @@ export const ProfileHeader = ({
       </div>
 
       {/* Avatar positioned outside cover container to avoid clipping */}
-      <div className="absolute top-36 md:top-36 left-4 md:left-6 z-10">
+      <div className="absolute top-36 md:top-32 left-4 md:left-6 z-10">
         <div className="relative">
           <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background  rounded-3xl md:rounded-[28px] shadow-md">
             <AvatarImage

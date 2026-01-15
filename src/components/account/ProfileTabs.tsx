@@ -6,12 +6,14 @@ import {
   BookOpen,
   GraduationCap,
   Settings,
+  Image,
+  MessageCircle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserProfile, Post } from "@/types/global";
+import { UserProfile, Post, Comment as CommentType } from "@/types/global";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,9 @@ import { useFeed } from "@/hooks/useFeed";
 import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useNavigate } from "react-router-dom";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getUserReplies, Comment as ApiComment } from "@/api/posts.api";
+import { formatDistanceToNow } from "date-fns";
 
 interface ProfileTabsProps {
   user: UserProfile;
@@ -34,6 +39,7 @@ export const ProfileTabs = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts");
 
+  // User posts feed
   const {
     posts,
     isLoading: postsLoading,
@@ -50,6 +56,20 @@ export const ProfileTabs = ({
     enabled: activeTab === "posts",
   });
 
+  // User's media posts
+  const {
+    posts: mediaPosts,
+    isLoading: mediaLoading,
+    hasNextPage: hasMoreMedia,
+    isFetchingNextPage: isFetchingMoreMedia,
+    fetchNextPage: fetchMoreMedia,
+  } = useFeed({
+    type: "media",
+    userId: user.id,
+    enabled: activeTab === "media",
+  });
+
+  // User's liked posts (only for own profile)
   const {
     posts: likedPosts,
     isLoading: likedLoading,
@@ -65,10 +85,44 @@ export const ProfileTabs = ({
     enabled: activeTab === "likes" && isOwnProfile,
   });
 
+  // User's replies (comments)
+  const {
+    data: repliesData,
+    isLoading: repliesLoading,
+    hasNextPage: hasMoreReplies,
+    isFetchingNextPage: isFetchingMoreReplies,
+    fetchNextPage: fetchMoreReplies,
+  } = useInfiniteQuery({
+    queryKey: ["user-replies", user.id],
+    queryFn: async ({ pageParam = 1 }) => {
+      const replies = await getUserReplies(user.id, {
+        page: pageParam,
+        limit: 20,
+      });
+      return {
+        replies,
+        nextPage: replies.length >= 20 ? pageParam + 1 : undefined,
+        hasMore: replies.length >= 20,
+      };
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage?.hasMore ? lastPage.nextPage : undefined,
+    initialPageParam: 1,
+    enabled: activeTab === "replies",
+  });
+
+  const replies = repliesData?.pages?.flatMap((page) => page.replies) ?? [];
+
   const { loadMoreRef: postsLoadMoreRef } = useInfiniteScroll({
     loading: isFetchingMorePosts,
     hasMore: hasMorePosts || false,
     onLoadMore: fetchMorePosts,
+  });
+
+  const { loadMoreRef: mediaLoadMoreRef } = useInfiniteScroll({
+    loading: isFetchingMoreMedia,
+    hasMore: hasMoreMedia || false,
+    onLoadMore: fetchMoreMedia,
   });
 
   const { loadMoreRef: likedLoadMoreRef } = useInfiniteScroll({
@@ -77,28 +131,42 @@ export const ProfileTabs = ({
     onLoadMore: fetchMoreLiked,
   });
 
+  const { loadMoreRef: repliesLoadMoreRef } = useInfiniteScroll({
+    loading: isFetchingMoreReplies,
+    hasMore: hasMoreReplies || false,
+    onLoadMore: fetchMoreReplies,
+  });
+
   const handleComment = (postId: string) => {
     navigate(`/post/${postId}`);
   };
 
   const handleQuote = (postId: string) => {};
 
+  const formatTimeAgo = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch {
+      return "recently";
+    }
+  };
+
   const getTabs = () => {
     const baseTabs = [
       {
         id: "posts",
         label: "Posts",
-        count: posts?.length || 0,
+        count: posts?.length || null,
       },
       {
         id: "replies",
         label: "Replies",
-        count: null,
+        count: replies?.length || null,
       },
       {
         id: "media",
         label: "Media",
-        count: null,
+        count: mediaPosts?.length || null,
       },
     ];
 
@@ -106,7 +174,7 @@ export const ProfileTabs = ({
       baseTabs.push({
         id: "likes",
         label: "Likes",
-        count: likedPosts?.length || 0,
+        count: likedPosts?.length || null,
       });
 
       baseTabs.push({
@@ -120,6 +188,55 @@ export const ProfileTabs = ({
   };
 
   const tabs = getTabs();
+
+  // Reply item component
+  const ReplyItem = ({ reply }: { reply: ApiComment }) => {
+    const authorUsername = reply.author?.username || "unknown";
+    const authorFullName = reply.author?.full_name || "Unknown User";
+    const authorAvatar = reply.author?.avatar;
+
+    return (
+      <div
+        className="p-4 border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
+        onClick={() => navigate(`/post/${reply.post_id}`)}
+      >
+        <div className="flex gap-3">
+          <Avatar className="w-10 h-10 shrink-0">
+            <AvatarImage src={authorAvatar || undefined} />
+            <AvatarFallback className="text-xs">
+              {authorFullName.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-foreground">
+                {authorFullName}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                @{authorUsername}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                · {formatTimeAgo(reply.created_at)}
+              </span>
+            </div>
+            <p className="text-sm text-foreground mt-1 whitespace-pre-wrap break-words">
+              {reply.content}
+            </p>
+            <div className="flex items-center gap-4 mt-2 text-muted-foreground text-xs">
+              <div className="flex items-center gap-1">
+                <Heart className="h-3.5 w-3.5" />
+                <span>{reply.likes_count}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span>View thread</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Tabs
@@ -136,7 +253,6 @@ export const ProfileTabs = ({
             className="mx- px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
           >
             <div className="flex items-center gap-2 min-w-0">
-              {/* <tab.icon className="h-4 w-4" /> */}
               <span className="truncate">{tab.label}</span>
               {tab.count !== null && (
                 <span className="text-muted-foreground">({tab.count})</span>
@@ -146,6 +262,7 @@ export const ProfileTabs = ({
         ))}
       </TabsList>
 
+      {/* Posts Tab */}
       <TabsContent value="posts" className="space-y-0 mt-0">
         {postsLoading ? (
           <FeedLoadingSkeleton count={5} />
@@ -163,7 +280,6 @@ export const ProfileTabs = ({
                   ))}
                 </div>
 
-                {/* Infinite scroll trigger */}
                 {hasMorePosts && (
                   <div ref={postsLoadMoreRef} className="py-4 text-center">
                     {isFetchingMorePosts && <FeedLoadingSkeleton count={2} />}
@@ -192,29 +308,90 @@ export const ProfileTabs = ({
 
       {/* Replies Tab */}
       <TabsContent value="replies" className="space-y-0 mt-0">
-        <div className="text-center py-12 text-muted-foreground">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg mb-2">No replies yet</p>
-          <p className="text-sm">
-            When {isOwnProfile ? "you reply" : `${user.username} replies`} to
-            posts, they'll show up here.
-          </p>
-        </div>
+        {repliesLoading ? (
+          <FeedLoadingSkeleton count={5} />
+        ) : (
+          <>
+            {replies && replies.length > 0 ? (
+              <>
+                <div>
+                  {replies.map((reply) => (
+                    <ReplyItem key={reply.id} reply={reply} />
+                  ))}
+                </div>
+
+                {hasMoreReplies && (
+                  <div ref={repliesLoadMoreRef} className="py-4 text-center">
+                    {isFetchingMoreReplies && <FeedLoadingSkeleton count={2} />}
+                  </div>
+                )}
+
+                {!hasMoreReplies && replies && replies.length > 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    You've reached the end
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">No replies yet</p>
+                <p className="text-sm">
+                  When {isOwnProfile ? "you reply" : `${user.username} replies`}{" "}
+                  to posts, they'll show up here.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </TabsContent>
 
       {/* Media Tab */}
       <TabsContent value="media" className="space-y-0 mt-0">
-        <div className="text-center py-12 text-muted-foreground">
-          <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg mb-2">No media yet</p>
-          <p className="text-sm">
-            Photos and videos from posts will appear here.
-          </p>
-        </div>
+        {mediaLoading ? (
+          <FeedLoadingSkeleton count={5} />
+        ) : (
+          <>
+            {mediaPosts && mediaPosts.length > 0 ? (
+              <>
+                <div className="divide-y divide-border">
+                  {mediaPosts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      currentUserId={authUser?.id}
+                    />
+                  ))}
+                </div>
+
+                {hasMoreMedia && (
+                  <div ref={mediaLoadMoreRef} className="py-4 text-center">
+                    {isFetchingMoreMedia && <FeedLoadingSkeleton count={2} />}
+                  </div>
+                )}
+
+                {!hasMoreMedia && mediaPosts && mediaPosts.length > 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    You've reached the end
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Image className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">No media yet</p>
+                <p className="text-sm">
+                  Photos and videos from posts will appear here.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </TabsContent>
 
       {isOwnProfile && (
         <>
+          {/* Likes Tab */}
           <TabsContent value="likes" className="space-y-0 mt-0">
             {likedLoading ? (
               <FeedLoadingSkeleton count={5} />
@@ -232,7 +409,6 @@ export const ProfileTabs = ({
                       ))}
                     </div>
 
-                    {/* Infinite scroll trigger */}
                     {hasMoreLiked && (
                       <div ref={likedLoadMoreRef} className="py-4 text-center">
                         {isFetchingMoreLiked && (
@@ -260,43 +436,7 @@ export const ProfileTabs = ({
             )}
           </TabsContent>
 
-          <TabsContent value="groups" className="space-y-4 mt-0">
-            <div className="pt-4" />
-            {user.joinedGroups && user.joinedGroups.length > 0 ? (
-              user.joinedGroups.map((group) => (
-                <Card
-                  key={group.id}
-                  className="border-0 border-b border-border rounded-none"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={group.avatar} />
-                        <AvatarFallback>
-                          {group.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-medium">{group.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {group.members} members • {group.category}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">No groups joined</p>
-                <p className="text-sm">
-                  Join groups to connect with others who share your interests.
-                </p>
-              </div>
-            )}
-          </TabsContent>
-
+          {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-4">
             <Card className="rounded-none border-0">
               <CardContent className="p-6 space-y-6 rounded-none">

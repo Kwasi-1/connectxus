@@ -54,8 +54,12 @@ export interface Comment {
   author: User;
   content: string;
   postId: string;
+  parentCommentId?: string | null;
+  depth?: number;
   likes: number;
   isLiked: boolean;
+  repliesCount?: number;
+  replies?: Comment[];
   createdAt: Date;
 }
 

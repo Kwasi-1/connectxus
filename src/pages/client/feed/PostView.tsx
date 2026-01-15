@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PostCard } from "@/components/feed/PostCard";
-import { Comment } from "@/components/feed/Comment";
+import { ThreadedComment } from "@/components/feed/ThreadedComment";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,20 +29,23 @@ const PostView = () => {
   const queryClient = useQueryClient();
 
   const [post, setPost] = useState<ApiPost | null>(null);
-  const [comments, setComments] = useState<CommentType[]>([]);
+  const [flatComments, setFlatComments] = useState<CommentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const transformComment = (apiComment: ApiComment): CommentType => {
-    
     const authorData = apiComment.author || {};
     const authorId = authorData.id || apiComment.author_id;
-    const username = authorData.username || (apiComment as any).username || "Unknown";
-    const displayName = authorData.full_name || (apiComment as any).full_name || username;
-    const avatar = authorData.avatar || (apiComment as any).author_avatar || undefined;
-    const verified = authorData.verified || (apiComment as any).author_verified || false;
+    const username =
+      authorData.username || (apiComment as any).username || "Unknown";
+    const displayName =
+      authorData.full_name || (apiComment as any).full_name || username;
+    const avatar =
+      authorData.avatar || (apiComment as any).author_avatar || undefined;
+    const verified =
+      authorData.verified || (apiComment as any).author_verified || false;
 
     return {
       id: apiComment.id,
@@ -56,15 +59,58 @@ const PostView = () => {
         followers: 0,
         following: 0,
         createdAt: new Date(),
-        roles: [],
+        role: "user",
       },
       content: apiComment.content,
       postId: apiComment.post_id,
+      parentCommentId: apiComment.parent_comment_id || null,
+      depth: apiComment.depth || 0,
       likes: apiComment.likes_count,
       isLiked: apiComment.is_liked || false,
+      repliesCount: apiComment.replies_count || 0,
       createdAt: new Date(apiComment.created_at),
     };
   };
+
+  // Build threaded comment tree from flat list
+  const threadedComments = useMemo(() => {
+    if (flatComments.length === 0) return [];
+
+    // Create a map by comment ID
+    const commentMap = new Map<string, CommentType>();
+    flatComments.forEach((c) => {
+      commentMap.set(c.id, { ...c, replies: [] });
+    });
+
+    // Build tree
+    const rootComments: CommentType[] = [];
+
+    flatComments.forEach((c) => {
+      const comment = commentMap.get(c.id)!;
+      if (c.parentCommentId && commentMap.has(c.parentCommentId)) {
+        const parent = commentMap.get(c.parentCommentId)!;
+        if (!parent.replies) parent.replies = [];
+        parent.replies.push(comment);
+      } else {
+        rootComments.push(comment);
+      }
+    });
+
+    // Count replies for each comment
+    const countReplies = (comment: CommentType): number => {
+      if (!comment.replies || comment.replies.length === 0) return 0;
+      return comment.replies.reduce(
+        (acc, reply) => acc + 1 + countReplies(reply),
+        0
+      );
+    };
+
+    rootComments.forEach((c) => {
+      c.repliesCount = countReplies(c);
+    });
+
+    return rootComments;
+  }, [flatComments]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -97,7 +143,7 @@ const PostView = () => {
           page: 1,
           limit: 100,
         });
-        setComments(apiComments.map(transformComment));
+        setFlatComments(apiComments.map(transformComment));
       } catch (err: any) {
         console.error("Error fetching comments:", err);
         toast.error("Failed to load comments");
@@ -115,48 +161,46 @@ const PostView = () => {
     const previousPost = { ...post };
 
     try {
-      
-      await queryClient.cancelQueries({ queryKey: ['feed'] });
-      await queryClient.cancelQueries({ queryKey: ['user-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['community-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['group-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['liked-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['trending-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['posts'] });
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      await queryClient.cancelQueries({ queryKey: ["user-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["community-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["group-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["liked-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["trending-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
 
-      
       setPost({
         ...post,
         is_liked: !post.is_liked,
-        likes_count: post.is_liked ? (post.likes_count || 0) - 1 : (post.likes_count || 0) + 1,
+        likes_count: post.is_liked
+          ? (post.likes_count || 0) - 1
+          : (post.likes_count || 0) + 1,
       });
 
-      
       const updatePostLike = (old: any) => {
         if (!old) return old;
 
-        
         if (old.pages) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              posts: page.posts?.map((p: any) =>
-                p.id === postId
-                  ? {
-                      ...p,
-                      is_liked: !p.is_liked,
-                      likes_count: p.is_liked
-                        ? Math.max(0, (p.likes_count || 0) - 1)
-                        : (p.likes_count || 0) + 1,
-                    }
-                  : p
-              ) || [],
+              posts:
+                page.posts?.map((p: any) =>
+                  p.id === postId
+                    ? {
+                        ...p,
+                        is_liked: !p.is_liked,
+                        likes_count: p.is_liked
+                          ? Math.max(0, (p.likes_count || 0) - 1)
+                          : (p.likes_count || 0) + 1,
+                      }
+                    : p
+                ) || [],
             })),
           };
         }
 
-        
         if (old.id === postId) {
           return {
             ...old,
@@ -170,20 +214,24 @@ const PostView = () => {
         return old;
       };
 
-      
-      queryClient.setQueriesData({ queryKey: ['feed'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['user-posts'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['community-posts'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['group-posts'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['liked-posts'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['trending-posts'] }, updatePostLike);
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updatePostLike);
+      queryClient.setQueriesData({ queryKey: ["feed"] }, updatePostLike);
+      queryClient.setQueriesData({ queryKey: ["user-posts"] }, updatePostLike);
+      queryClient.setQueriesData(
+        { queryKey: ["community-posts"] },
+        updatePostLike
+      );
+      queryClient.setQueriesData({ queryKey: ["group-posts"] }, updatePostLike);
+      queryClient.setQueriesData({ queryKey: ["liked-posts"] }, updatePostLike);
+      queryClient.setQueriesData(
+        { queryKey: ["trending-posts"] },
+        updatePostLike
+      );
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updatePostLike);
 
       await toggleLikePost(postId);
     } catch (err: any) {
       console.error("Error liking post:", err);
       toast.error("Failed to like post");
-
       setPost(previousPost);
     }
   };
@@ -198,46 +246,44 @@ const PostView = () => {
     const previousPost = { ...post };
 
     try {
-      
-      await queryClient.cancelQueries({ queryKey: ['feed'] });
-      await queryClient.cancelQueries({ queryKey: ['user-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['community-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['group-posts'] });
-      await queryClient.cancelQueries({ queryKey: ['trending-posts'] });
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      await queryClient.cancelQueries({ queryKey: ["user-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["community-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["group-posts"] });
+      await queryClient.cancelQueries({ queryKey: ["trending-posts"] });
 
-      
       setPost({
         ...post,
         is_reposted: !post.is_reposted,
-        reposts_count: post.is_reposted ? (post.reposts_count || 0) - 1 : (post.reposts_count || 0) + 1,
+        reposts_count: post.is_reposted
+          ? (post.reposts_count || 0) - 1
+          : (post.reposts_count || 0) + 1,
       });
 
-      
       const updatePostRepost = (old: any) => {
         if (!old) return old;
 
-        
         if (old.pages) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              posts: page.posts?.map((p: any) =>
-                p.id === postId
-                  ? {
-                      ...p,
-                      is_reposted: !p.is_reposted,
-                      reposts_count: p.is_reposted
-                        ? Math.max(0, (p.reposts_count || 0) - 1)
-                        : (p.reposts_count || 0) + 1,
-                    }
-                  : p
-              ) || [],
+              posts:
+                page.posts?.map((p: any) =>
+                  p.id === postId
+                    ? {
+                        ...p,
+                        is_reposted: !p.is_reposted,
+                        reposts_count: p.is_reposted
+                          ? Math.max(0, (p.reposts_count || 0) - 1)
+                          : (p.reposts_count || 0) + 1,
+                      }
+                    : p
+                ) || [],
             })),
           };
         }
 
-        
         if (old.id === postId) {
           return {
             ...old,
@@ -251,20 +297,30 @@ const PostView = () => {
         return old;
       };
 
-      
-      queryClient.setQueriesData({ queryKey: ['feed'] }, updatePostRepost);
-      queryClient.setQueriesData({ queryKey: ['user-posts'] }, updatePostRepost);
-      queryClient.setQueriesData({ queryKey: ['community-posts'] }, updatePostRepost);
-      queryClient.setQueriesData({ queryKey: ['group-posts'] }, updatePostRepost);
-      queryClient.setQueriesData({ queryKey: ['trending-posts'] }, updatePostRepost);
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updatePostRepost);
+      queryClient.setQueriesData({ queryKey: ["feed"] }, updatePostRepost);
+      queryClient.setQueriesData(
+        { queryKey: ["user-posts"] },
+        updatePostRepost
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["community-posts"] },
+        updatePostRepost
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["group-posts"] },
+        updatePostRepost
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["trending-posts"] },
+        updatePostRepost
+      );
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updatePostRepost);
 
       await repostPost(postId);
       toast.success("Post reposted!");
     } catch (err: any) {
       console.error("Error reposting:", err);
       toast.error("Failed to repost");
-
       setPost(previousPost);
     }
   };
@@ -276,11 +332,30 @@ const PostView = () => {
   };
 
   const handleCommentLike = async (commentId: string) => {
-    const previousComments = [...comments];
+    const updateLikeRecursively = (comments: CommentType[]): CommentType[] => {
+      return comments.map((comment) => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            isLiked: !comment.isLiked,
+            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
+          };
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          return {
+            ...comment,
+            replies: updateLikeRecursively(comment.replies),
+          };
+        }
+        return comment;
+      });
+    };
+
+    const previousComments = [...flatComments];
 
     try {
-      setComments(
-        comments.map((comment) =>
+      setFlatComments(
+        flatComments.map((comment) =>
           comment.id === commentId
             ? {
                 ...comment,
@@ -295,8 +370,7 @@ const PostView = () => {
     } catch (err: any) {
       console.error("Error liking comment:", err);
       toast.error("Failed to like comment");
-
-      setComments(previousComments);
+      setFlatComments(previousComments);
     }
   };
 
@@ -308,12 +382,12 @@ const PostView = () => {
     try {
       await createComment(postId, { content: newComment });
 
-      
+      // Refresh comments
       const apiComments = await getPostComments(postId, {
         page: 1,
         limit: 100,
       });
-      setComments(apiComments.map(transformComment));
+      setFlatComments(apiComments.map(transformComment));
 
       setNewComment("");
 
@@ -322,26 +396,24 @@ const PostView = () => {
         comments_count: (post.comments_count || 0) + 1,
       });
 
-      
       const updateCommentCount = (old: any) => {
         if (!old) return old;
 
-        
         if (old.pages) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              posts: page.posts?.map((p: any) =>
-                p.id === postId
-                  ? { ...p, comments_count: (p.comments_count || 0) + 1 }
-                  : p
-              ) || [],
+              posts:
+                page.posts?.map((p: any) =>
+                  p.id === postId
+                    ? { ...p, comments_count: (p.comments_count || 0) + 1 }
+                    : p
+                ) || [],
             })),
           };
         }
 
-        
         if (old.id === postId) {
           return { ...old, comments_count: (old.comments_count || 0) + 1 };
         }
@@ -349,12 +421,20 @@ const PostView = () => {
         return old;
       };
 
-      
-      queryClient.setQueriesData({ queryKey: ['feed'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['user-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['community-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['group-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updateCommentCount);
+      queryClient.setQueriesData({ queryKey: ["feed"] }, updateCommentCount);
+      queryClient.setQueriesData(
+        { queryKey: ["user-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["community-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["group-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updateCommentCount);
 
       toast.success("Comment added!");
     } catch (err: any) {
@@ -374,12 +454,12 @@ const PostView = () => {
         parent_comment_id: commentId,
       });
 
-      
+      // Refresh comments
       const apiComments = await getPostComments(postId, {
         page: 1,
         limit: 100,
       });
-      setComments(apiComments.map(transformComment));
+      setFlatComments(apiComments.map(transformComment));
 
       if (post) {
         setPost({
@@ -388,26 +468,24 @@ const PostView = () => {
         });
       }
 
-      
       const updateCommentCount = (old: any) => {
         if (!old) return old;
 
-        
         if (old.pages) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              posts: page.posts?.map((p: any) =>
-                p.id === postId
-                  ? { ...p, comments_count: (p.comments_count || 0) + 1 }
-                  : p
-              ) || [],
+              posts:
+                page.posts?.map((p: any) =>
+                  p.id === postId
+                    ? { ...p, comments_count: (p.comments_count || 0) + 1 }
+                    : p
+                ) || [],
             })),
           };
         }
 
-        
         if (old.id === postId) {
           return { ...old, comments_count: (old.comments_count || 0) + 1 };
         }
@@ -415,18 +493,26 @@ const PostView = () => {
         return old;
       };
 
-      
-      queryClient.setQueriesData({ queryKey: ['feed'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['user-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['community-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['group-posts'] }, updateCommentCount);
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updateCommentCount);
+      queryClient.setQueriesData({ queryKey: ["feed"] }, updateCommentCount);
+      queryClient.setQueriesData(
+        { queryKey: ["user-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["community-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["group-posts"] },
+        updateCommentCount
+      );
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updateCommentCount);
 
       toast.success("Reply added!");
     } catch (err: any) {
       console.error("Error adding reply:", err);
       toast.error("Failed to add reply");
-      throw err; 
+      throw err;
     }
   };
 
@@ -481,54 +567,91 @@ const PostView = () => {
             />
           </div>
 
-          <div className="border-b border-border p-4">
-            <div className="flex space-x-3">
-              <Avatar className="w-11 h-11">
+          {/* Comment Input - YouTube Style */}
+          <div className="border-b border-border px-4 py-4">
+            <div className="flex items-start gap-3">
+              <Avatar className="w-10 h-10 shrink-0">
                 <AvatarImage src={authUser?.avatar} />
                 <AvatarFallback>
-                  {authUser?.full_name
+                  {authUser?.name
                     ?.split(" ")
                     .map((n) => n[0])
                     .join("") || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 flex ">
-                <textarea
-                  placeholder="Post your reply"
-                  className="w-full px-3 pb-3 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
-                  rows={3}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Add a comment..."
+                  className="w-full px-0 py-2 text-base bg-transparent text-foreground placeholder-muted-foreground border-muted-foreground/30 focus:border-foreground outline-none transition-colors"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   disabled={isSubmittingComment}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddComment();
+                    }
+                  }}
                 />
-                <div className="flex justify-end items-end mt-2">
-                  <Button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim() || isSubmittingComment}
-                    className="bg-foreground text-primary-foreground px-5 py-1.5 rounded-full font-bold hover:bg-foreground/90 disabled:opacity-50"
-                  >
-                    {isSubmittingComment ? "Posting..." : "Reply"}
-                  </Button>
-                </div>
+                {newComment.trim() && (
+                  <div className="flex justify-end gap-2 mt-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNewComment("")}
+                      disabled={isSubmittingComment}
+                      className="h-9 px-4 rounded-full font-medium"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleAddComment}
+                      disabled={!newComment.trim() || isSubmittingComment}
+                      className="h-9 px-4 rounded-full font-medium bg-foreground text-background hover:bg-foreground/80"
+                    >
+                      {isSubmittingComment ? "Posting..." : "Reply"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <div>
+          {/* Comments Section - YouTube Threaded Style */}
+          <div className="px-4">
+            {/* Comments Count Header */}
+            {!commentsLoading && threadedComments.length > 0 && (
+              <div className="py-4 border-b border-border/50">
+                <span className="text-sm font-medium text-foreground">
+                  {flatComments.length}{" "}
+                  {flatComments.length === 1 ? "Reply" : "Replys"}
+                </span>
+              </div>
+            )}
+
             {commentsLoading ? (
               <LoadingSpinner size="md" />
-            ) : comments.length > 0 ? (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  onLike={handleCommentLike}
-                  onReply={handleReplyToComment}
-                />
-              ))
+            ) : threadedComments.length > 0 ? (
+              <div className="divide-y-0">
+                {threadedComments.map((comment) => (
+                  <ThreadedComment
+                    key={comment.id}
+                    comment={comment}
+                    onLike={handleCommentLike}
+                    onReply={handleReplyToComment}
+                    depth={0}
+                    maxDepth={5}
+                  />
+                ))}
+              </div>
             ) : (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No replies yet</p>
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">No comments yet</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Be the first to comment!
+                </p>
               </div>
             )}
           </div>

@@ -75,6 +75,8 @@ export interface Comment {
   parent_comment_id?: string | null;
   content: string;
   likes_count: number;
+  replies_count?: number;
+  depth?: number;
   created_at: string;
   updated_at?: string | null;
   author?: any;
@@ -369,6 +371,32 @@ export const reportPost = async (
   await apiClient.post(`/posts/${postId}/report`, data);
 };
 
+// Get user's replies (comments on other posts)
+export const getUserReplies = async (
+  userId: string,
+  params?: PaginationParams
+): Promise<Comment[]> => {
+  const response = await apiClient.get<ApiResponse<Comment[]>>(
+    `/users/${userId}/comments`,
+    { params }
+  );
+  return response.data.data;
+};
+
+// Get user's media posts (posts with images/videos)
+export const getUserMediaPosts = async (
+  userId: string,
+  params?: PaginationParams
+): Promise<Post[]> => {
+  // Fetch user's posts and filter those with media
+  const posts = await getPostsByUser(userId, params);
+  return posts.filter(post => 
+    (post.media && post.media.length > 0) || 
+    (post.images && post.images.length > 0) ||
+    post.video
+  );
+};
+
 export const postsApi = {
   getPostById,
   createPost,
@@ -396,6 +424,9 @@ export const postsApi = {
   getPostQuotesPaginated,
   getPostRepostsPaginated,
   reportPost,
+  getUserReplies,
+  getUserMediaPosts,
 };
 
 export default postsApi;
+
