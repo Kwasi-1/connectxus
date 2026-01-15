@@ -36,16 +36,26 @@ const PostView = () => {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const transformComment = (apiComment: ApiComment): CommentType => {
+    // The backend returns author info at root level: username, full_name, avatar, user_verified
+    // But also might have nested author object in some cases
     const authorData = apiComment.author || {};
     const authorId = authorData.id || apiComment.author_id;
+
+    // Try multiple locations for each field
     const username =
-      authorData.username || (apiComment as any).username || "Unknown";
+      (apiComment as any).username || authorData.username || "Unknown";
     const displayName =
-      authorData.full_name || (apiComment as any).full_name || username;
+      (apiComment as any).full_name || authorData.full_name || username;
     const avatar =
-      authorData.avatar || (apiComment as any).author_avatar || undefined;
+      (apiComment as any).avatar ||
+      authorData.avatar ||
+      (apiComment as any).author_avatar ||
+      undefined;
     const verified =
-      authorData.verified || (apiComment as any).author_verified || false;
+      (apiComment as any).user_verified ||
+      authorData.verified ||
+      (apiComment as any).author_verified ||
+      false;
 
     return {
       id: apiComment.id,
@@ -567,12 +577,12 @@ const PostView = () => {
             />
           </div>
 
-          {/* Comment Input - YouTube Style */}
-          <div className="border-b border-border px-4 py-4">
+          {/* Comment Input - Instagram/Threads Style */}
+          <div className="border-b border-border px-4 py-3">
             <div className="flex items-start gap-3">
               <Avatar className="w-10 h-10 shrink-0">
                 <AvatarImage src={authUser?.avatar} />
-                <AvatarFallback>
+                <AvatarFallback className="text-xs">
                   {authUser?.name
                     ?.split(" ")
                     .map((n) => n[0])
@@ -580,7 +590,7 @@ const PostView = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <input
+                {/* <input
                   type="text"
                   placeholder="Add a comment..."
                   className="w-full px-0 py-2 text-base bg-transparent text-foreground placeholder-muted-foreground border-muted-foreground/30 focus:border-foreground outline-none transition-colors"
@@ -593,9 +603,17 @@ const PostView = () => {
                       handleAddComment();
                     }
                   }}
+                /> */}
+                <textarea
+                  placeholder="Post your reply"
+                  className="w-full px-0 pb-2 pt-1 text-xl bg-transparent text-foreground placeholder-muted-foreground resize-none border-none outline-none"
+                  rows={newComment.trim() ? 3 : 2}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  disabled={isSubmittingComment}
                 />
                 {newComment.trim() && (
-                  <div className="flex justify-end gap-2 mt-3">
+                  <div className="flex justify-end gap-2 mt3">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -619,22 +637,14 @@ const PostView = () => {
             </div>
           </div>
 
-          {/* Comments Section - YouTube Threaded Style */}
+          {/* Comments Section - Instagram/Threads Style */}
           <div className="px-4">
-            {/* Comments Count Header */}
-            {!commentsLoading && threadedComments.length > 0 && (
-              <div className="py-4 border-b border-border/50">
-                <span className="text-sm font-medium text-foreground">
-                  {flatComments.length}{" "}
-                  {flatComments.length === 1 ? "Reply" : "Replys"}
-                </span>
-              </div>
-            )}
-
             {commentsLoading ? (
-              <LoadingSpinner size="md" />
+              <div className="py-8">
+                <LoadingSpinner size="md" />
+              </div>
             ) : threadedComments.length > 0 ? (
-              <div className="divide-y-0">
+              <div>
                 {threadedComments.map((comment) => (
                   <ThreadedComment
                     key={comment.id}
@@ -648,9 +658,9 @@ const PostView = () => {
               </div>
             ) : (
               <div className="py-12 text-center">
-                <p className="text-muted-foreground">No comments yet</p>
-                <p className="text-sm text-muted-foreground/70 mt-1">
-                  Be the first to comment!
+                <p className="text-muted-foreground text-sm">No comments yet</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Start the conversation
                 </p>
               </div>
             )}

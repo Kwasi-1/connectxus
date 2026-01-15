@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Heart,
-  MessageCircle,
-  ChevronDown,
-  ChevronUp,
-  MoreVertical,
-} from "lucide-react";
+import { Heart, MoreHorizontal, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Comment as CommentType } from "@/types/global";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ThreadedCommentProps {
   comment: CommentType;
@@ -18,6 +13,7 @@ interface ThreadedCommentProps {
   onReply?: (commentId: string, content: string) => void;
   depth?: number;
   maxDepth?: number;
+  isLastChild?: boolean;
 }
 
 export function ThreadedComment({
@@ -26,13 +22,15 @@ export function ThreadedComment({
   onReply,
   depth = 0,
   maxDepth = 5,
+  isLastChild = false,
 }: ThreadedCommentProps) {
+  const { user: authUser } = useAuth();
   const [isLiked, setIsLiked] = useState(comment.isLiked);
   const [likes, setLikes] = useState(comment.likes);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [showReplies, setShowReplies] = useState(depth < 2); // Auto-expand first 2 levels
+  const [showReplies, setShowReplies] = useState(depth < 2);
 
   useEffect(() => {
     setIsLiked(comment.isLiked);
@@ -59,6 +57,7 @@ export function ThreadedComment({
       await onReply(comment.id, replyContent);
       setReplyContent("");
       setShowReplyInput(false);
+      setShowReplies(true);
     } finally {
       setIsSubmittingReply(false);
     }
@@ -82,9 +81,30 @@ export function ThreadedComment({
 
   const formatTimeAgo = (date: Date) => {
     try {
-      return formatDistanceToNow(new Date(date), { addSuffix: true });
+      const distance = formatDistanceToNow(new Date(date), {
+        addSuffix: false,
+      });
+      // Shorten the format like Instagram (e.g., "2h", "3d", "1w")
+      return distance
+        .replace(" seconds", "s")
+        .replace(" second", "s")
+        .replace(" minutes", "m")
+        .replace(" minute", "m")
+        .replace(" hours", "h")
+        .replace(" hour", "h")
+        .replace(" days", "d")
+        .replace(" day", "d")
+        .replace(" weeks", "w")
+        .replace(" week", "w")
+        .replace(" months", "mo")
+        .replace(" month", "mo")
+        .replace(" years", "y")
+        .replace(" year", "y")
+        .replace("about ", "")
+        .replace("less than a", "<1")
+        .replace("over ", "");
     } catch {
-      return "recently";
+      return "now";
     }
   };
 
@@ -92,168 +112,208 @@ export function ThreadedComment({
   const hasReplies = replies.length > 0;
   const repliesCount = comment.repliesCount || replies.length;
 
-  // YouTube-style avatar size decreases with depth
-  const avatarSizeClass = depth === 0 ? "w-10 h-10" : "w-8 h-8";
-  const indentClass = depth > 0 ? "ml-12" : "";
+  // Thread line logic
+  const showThreadLine = hasReplies && showReplies;
 
   return (
-    <div className={cn("py-3", depth === 0 && "border-b border-border/50")}>
-      <div className={cn("flex gap-3", indentClass)}>
-        {/* Avatar */}
-        <Avatar className={cn(avatarSizeClass, "shrink-0")}>
-          <AvatarImage src={authorAvatar} />
-          <AvatarFallback className="text-xs bg-muted">
-            {getInitials(authorDisplayName)}
-          </AvatarFallback>
-        </Avatar>
+    <div className="relative">
+      {/* Main comment row */}
+      <div className={cn("flex gap-3 py-3", depth > 0 && "ml-10")}>
+        {/* Avatar column with thread line */}
+        <div className="relative flex flex-col items-center">
+          <Avatar className="w-8 h-8 shrink-0 z-10">
+            <AvatarImage src={authorAvatar} />
+            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
+              {getInitials(authorDisplayName)}
+            </AvatarFallback>
+          </Avatar>
+
+          {/* Thread line extending down from avatar */}
+          {showThreadLine && (
+            <div className="w-0.5 bg-border flex-1 mt-2 min-h-[20px]" />
+          )}
+        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-foreground hover:underline cursor-pointer">
-              @{authorUsername}
-            </span>
-            {authorVerified && (
-              <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground text-[10px]">✓</span>
-              </div>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {formatTimeAgo(comment.createdAt)}
-            </span>
+          {/* Header row */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span
+                className="font-semibold text-[13px] text-foreground hover:opacity-70 cursor-pointer truncate"
+                onClick={() => {
+                  /* Navigate to profile */
+                }}
+              >
+                {authorUsername}
+              </span>
+              {authorVerified && (
+                <svg
+                  className="w-3.5 h-3.5 text-primary shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                </svg>
+              )}
+              <span className="text-[13px] text-muted-foreground shrink-0">
+                · {formatTimeAgo(comment.createdAt)}
+              </span>
+            </div>
+
+            {/* More options */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity -mt-0.5"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Comment Text */}
-          <p className="text-sm text-foreground mt-1 whitespace-pre-wrap break-words">
+          {/* Comment content */}
+          <p className="text-[14px] text-foreground mt-0.5 whitespace-pre-wrap break-words leading-snug">
             {comment.content}
           </p>
 
-          {/* Actions Row - YouTube Style */}
-          <div className="flex items-center gap-1 mt-2">
-            {/* Like Button */}
-            <Button
-              variant="ghost"
-              size="sm"
+          {/* Actions - Instagram/Threads style */}
+          <div className="flex items-center gap-4 mt-2">
+            {/* Like */}
+            <button
               onClick={handleLike}
-              className={cn(
-                "h-8 px-2 hover:bg-muted rounded-full gap-1.5",
-                isLiked && "text-red-500"
-              )}
+              className="flex items-center gap-1 group/like"
             >
-              <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-              {likes > 0 && <span className="text-xs">{likes}</span>}
-            </Button>
-
-            {/* Reply Button */}
-            {depth < maxDepth && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReplyClick}
+              <Heart
                 className={cn(
-                  "h-8 px-3 hover:bg-muted rounded-full text-xs font-medium",
-                  showReplyInput && "bg-muted"
+                  "h-4 w-4 transition-colors",
+                  isLiked
+                    ? "fill-red-500 text-red-500"
+                    : "text-muted-foreground group-hover/like:text-foreground"
                 )}
+              />
+              {likes > 0 && (
+                <span
+                  className={cn(
+                    "text-xs",
+                    isLiked ? "text-red-500" : "text-muted-foreground"
+                  )}
+                >
+                  {likes}
+                </span>
+              )}
+            </button>
+
+            {/* Reply */}
+            {depth < maxDepth && (
+              <button
+                onClick={handleReplyClick}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Reply
-              </Button>
+              </button>
             )}
 
-            {/* More Options */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-muted rounded-full ml-auto"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            {/* View replies toggle */}
+            {hasReplies && !showReplies && (
+              <button
+                onClick={() => setShowReplies(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View {repliesCount} {repliesCount === 1 ? "reply" : "replies"}
+              </button>
+            )}
           </div>
 
-          {/* Reply Input - YouTube Style */}
+          {/* Reply input - Instagram/Threads style */}
           {showReplyInput && (
-            <div className="mt-3 flex gap-3">
+            <div className="mt-3 flex items-center gap-2">
               <Avatar className="w-6 h-6 shrink-0">
-                <AvatarImage src={authorAvatar} />
+                <AvatarImage src={authUser?.avatar} />
                 <AvatarFallback className="text-[10px] bg-muted">
-                  U
+                  {authUser?.name?.substring(0, 1) || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1.5">
                 <input
                   type="text"
-                  placeholder={`Reply to @${authorUsername}...`}
-                  className="w-full px-0 py-2 text-sm bg-transparent text-foreground placeholder-muted-foreground border-b border-muted-foreground/30 focus:border-foreground outline-none transition-colors"
+                  placeholder={`Reply to ${authorUsername}...`}
+                  className="flex-1 text-sm bg-transparent text-foreground placeholder-muted-foreground outline-none min-w-0"
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   disabled={isSubmittingReply}
+                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       handleSubmitReply();
                     }
+                    if (e.key === "Escape") {
+                      setShowReplyInput(false);
+                      setReplyContent("");
+                    }
                   }}
                 />
-                <div className="flex justify-end gap-2 mt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReplyClick}
-                    disabled={isSubmittingReply}
-                    className="h-8 px-4 rounded-full text-sm font-medium"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSubmitReply}
-                    disabled={!replyContent.trim() || isSubmittingReply}
-                    className="h-8 px-4 rounded-full text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {isSubmittingReply ? "Replying..." : "Reply"}
-                  </Button>
-                </div>
+                <button
+                  onClick={handleSubmitReply}
+                  disabled={!replyContent.trim() || isSubmittingReply}
+                  title="Send reply"
+                  className={cn(
+                    "text-primary transition-opacity",
+                    (!replyContent.trim() || isSubmittingReply) &&
+                      "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Send className="h-4 w-4" />
+                </button>
               </div>
+              <button
+                onClick={() => {
+                  setShowReplyInput(false);
+                  setReplyContent("");
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
             </div>
-          )}
-
-          {/* View Replies Toggle - YouTube Style */}
-          {hasReplies && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowReplies(!showReplies)}
-              className="h-8 px-3 mt-2 hover:bg-primary/10 rounded-full text-primary font-medium text-sm gap-1"
-            >
-              {showReplies ? (
-                <>
-                  <ChevronUp className="h-4 w-4" />
-                  Hide {repliesCount} {repliesCount === 1 ? "reply" : "replies"}
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4" />
-                  {repliesCount} {repliesCount === 1 ? "reply" : "replies"}
-                </>
-              )}
-            </Button>
           )}
         </div>
       </div>
 
-      {/* Nested Replies */}
+      {/* Nested replies with connecting line */}
       {hasReplies && showReplies && (
-        <div className="mt-2">
-          {replies.map((reply) => (
-            <ThreadedComment
-              key={reply.id}
-              comment={reply}
-              onLike={onLike}
-              onReply={onReply}
-              depth={depth + 1}
-              maxDepth={maxDepth}
-            />
-          ))}
+        <div className="relative">
+          {/* Connecting line from parent */}
+          {depth === 0 && (
+            <div className="absolute left-4 top-0 w-0.5 bg-border h-3" />
+          )}
+
+          <div className={cn(depth > 0 && "ml-10")}>
+            {replies.map((reply, index) => (
+              <ThreadedComment
+                key={reply.id}
+                comment={reply}
+                onLike={onLike}
+                onReply={onReply}
+                depth={depth + 1}
+                maxDepth={maxDepth}
+                isLastChild={index === replies.length - 1}
+              />
+            ))}
+          </div>
+
+          {/* Hide replies button */}
+          {repliesCount > 0 && (
+            <button
+              onClick={() => setShowReplies(false)}
+              className={cn(
+                "text-xs text-muted-foreground hover:text-foreground transition-colors ml-10 mt-1 mb-2",
+                depth > 0 && "ml-20"
+              )}
+            >
+              Hide replies
+            </button>
+          )}
         </div>
       )}
     </div>
