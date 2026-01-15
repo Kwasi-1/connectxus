@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PostCard } from "@/components/feed/PostCard";
@@ -20,18 +20,19 @@ import {
 } from "@/api/posts.api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+
+const COMMENTS_PER_PAGE = 20;
 
 const PostView = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [post, setPost] = useState<ApiPost | null>(null);
-  const [flatComments, setFlatComments] = useState<CommentType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
@@ -82,6 +83,62 @@ const PostView = () => {
     };
   };
 
+  useEffect(() => {
+    const fetchPost = async () => {
+      if (!postId) return;
+
+      setLoading(true);
+
+      try {
+        const apiPost = await getPostById(postId);
+        setPost(apiPost);
+      } catch (err: any) {
+        console.error("Error fetching post:", err);
+        toast.error("Failed to load post");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [postId]);
+
+  // Infinite query for comments
+  const {
+    data: commentsData,
+    isLoading: commentsLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch: refetchComments,
+  } = useInfiniteQuery({
+    queryKey: ["post-comments", postId],
+    queryFn: async ({ pageParam = 1 }) => {
+      if (!postId) return { comments: [], nextPage: undefined, hasMore: false };
+
+      const apiComments = await getPostComments(postId, {
+        page: pageParam,
+        limit: COMMENTS_PER_PAGE,
+      });
+
+      return {
+        comments: apiComments.map(transformComment),
+        nextPage:
+          apiComments.length >= COMMENTS_PER_PAGE ? pageParam + 1 : undefined,
+        hasMore: apiComments.length >= COMMENTS_PER_PAGE,
+      };
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage?.hasMore ? lastPage.nextPage : undefined,
+    initialPageParam: 1,
+    enabled: !!postId,
+  });
+
+  // Flatten comments from all pages
+  const flatComments = useMemo(() => {
+    return commentsData?.pages?.flatMap((page) => page.comments) ?? [];
+  }, [commentsData]);
+
   // Build threaded comment tree from flat list
   const threadedComments = useMemo(() => {
     if (flatComments.length === 0) return [];
@@ -122,48 +179,23 @@ const PostView = () => {
     return rootComments;
   }, [flatComments]);
 
+  // Intersection observer for infinite scroll
   useEffect(() => {
-    const fetchPost = async () => {
-      if (!postId) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-      setLoading(true);
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
 
-      try {
-        const apiPost = await getPostById(postId);
-        setPost(apiPost);
-      } catch (err: any) {
-        console.error("Error fetching post:", err);
-        toast.error("Failed to load post");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPost();
-  }, [postId]);
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      if (!postId) return;
-
-      setCommentsLoading(true);
-
-      try {
-        const apiComments = await getPostComments(postId, {
-          page: 1,
-          limit: 100,
-        });
-        setFlatComments(apiComments.map(transformComment));
-      } catch (err: any) {
-        console.error("Error fetching comments:", err);
-        toast.error("Failed to load comments");
-      } finally {
-        setCommentsLoading(false);
-      }
-    };
-
-    fetchComments();
-  }, [postId]);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleLike = async (postId: string) => {
     if (!post || post.id !== postId) return;
@@ -392,12 +424,8 @@ const PostView = () => {
     try {
       await createComment(postId, { content: newComment });
 
-      // Refresh comments
-      const apiComments = await getPostComments(postId, {
-        page: 1,
-        limit: 100,
-      });
-      setFlatComments(apiComments.map(transformComment));
+      // Refresh comments using the query
+      await refetchComments();
 
       setNewComment("");
 
@@ -464,12 +492,8 @@ const PostView = () => {
         parent_comment_id: commentId,
       });
 
-      // Refresh comments
-      const apiComments = await getPostComments(postId, {
-        page: 1,
-        limit: 100,
-      });
-      setFlatComments(apiComments.map(transformComment));
+      // Refresh comments using the query
+      await refetchComments();
 
       if (post) {
         setPost({
@@ -637,10 +661,10 @@ const PostView = () => {
             </div>
           </div>
 
-          {/* Comments Section - Instagram/Threads Style */}
-          <div className="px-4">
+          {/* Comments Section */}
+          <div className="px-4 pb-8">
             {commentsLoading ? (
-              <div className="py-8">
+              <div className="py-8 flex justify-center">
                 <LoadingSpinner size="md" />
               </div>
             ) : threadedComments.length > 0 ? (
@@ -655,6 +679,20 @@ const PostView = () => {
                     maxDepth={5}
                   />
                 ))}
+
+                {/* Infinite scroll trigger */}
+                <div ref={loadMoreRef} className="py-4">
+                  {isFetchingNextPage && (
+                    <div className="flex justify-center">
+                      <LoadingSpinner size="sm" />
+                    </div>
+                  )}
+                  {!hasNextPage && flatComments.length > COMMENTS_PER_PAGE && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      No more comments
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="py-12 text-center">

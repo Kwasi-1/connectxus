@@ -30,7 +30,7 @@ export function ThreadedComment({
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [showReplies, setShowReplies] = useState(depth < 2);
+  const [showReplies, setShowReplies] = useState(false); // Hidden by default
 
   useEffect(() => {
     setIsLiked(comment.isLiked);
@@ -118,12 +118,17 @@ export function ThreadedComment({
   return (
     <div className="relative">
       {/* Main comment row */}
-      <div className={cn("flex gap-3 py-3", depth > 0 && "ml-10")}>
+      <div className={cn("flex gap-3 py-3", depth > 0 && "ml-12")}>
         {/* Avatar column with thread line */}
         <div className="relative flex flex-col items-center">
-          <Avatar className="w-8 h-8 shrink-0 z-10">
+          <Avatar
+            className={cn(
+              "shrink-0 z-10",
+              depth === 0 ? "w-10 h-10" : "w-9 h-9"
+            )}
+          >
             <AvatarImage src={authorAvatar} />
-            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
+            <AvatarFallback className="text-sm bg-muted text-muted-foreground">
               {getInitials(authorDisplayName)}
             </AvatarFallback>
           </Avatar>
@@ -140,7 +145,7 @@ export function ThreadedComment({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
               <span
-                className="font-semibold text-[13px] text-foreground hover:opacity-70 cursor-pointer truncate"
+                className="font-semibold text-[15px] text-foreground hover:opacity-70 cursor-pointer truncate"
                 onClick={() => {
                   /* Navigate to profile */
                 }}
@@ -149,14 +154,14 @@ export function ThreadedComment({
               </span>
               {authorVerified && (
                 <svg
-                  className="w-3.5 h-3.5 text-primary shrink-0"
+                  className="w-4 h-4 text-primary shrink-0"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                 </svg>
               )}
-              <span className="text-[13px] text-muted-foreground shrink-0">
+              <span className="text-sm text-muted-foreground shrink-0">
                 · {formatTimeAgo(comment.createdAt)}
               </span>
             </div>
@@ -172,20 +177,20 @@ export function ThreadedComment({
           </div>
 
           {/* Comment content */}
-          <p className="text-[14px] text-foreground mt-0.5 whitespace-pre-wrap break-words leading-snug">
+          <p className="text-[15px] text-foreground mt-1 whitespace-pre-wrap break-words leading-relaxed">
             {comment.content}
           </p>
 
           {/* Actions - Instagram/Threads style */}
-          <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-4 mt-3">
             {/* Like */}
             <button
               onClick={handleLike}
-              className="flex items-center gap-1 group/like"
+              className="flex items-center gap-1.5 group/like"
             >
               <Heart
                 className={cn(
-                  "h-4 w-4 transition-colors",
+                  "h-[18px] w-[18px] transition-colors",
                   isLiked
                     ? "fill-red-500 text-red-500"
                     : "text-muted-foreground group-hover/like:text-foreground"
@@ -194,7 +199,7 @@ export function ThreadedComment({
               {likes > 0 && (
                 <span
                   className={cn(
-                    "text-xs",
+                    "text-sm",
                     isLiked ? "text-red-500" : "text-muted-foreground"
                   )}
                 >
@@ -207,7 +212,7 @@ export function ThreadedComment({
             {depth < maxDepth && (
               <button
                 onClick={handleReplyClick}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Reply
               </button>
@@ -217,19 +222,19 @@ export function ThreadedComment({
             {hasReplies && !showReplies && (
               <button
                 onClick={() => setShowReplies(true)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-primary font-medium hover:text-primary/80 transition-colors"
               >
                 View {repliesCount} {repliesCount === 1 ? "reply" : "replies"}
               </button>
             )}
           </div>
 
-          {/* Reply input - Instagram/Threads style */}
+          {/* Reply input */}
           {showReplyInput && (
             <div className="mt-3 flex items-center gap-2">
-              <Avatar className="w-6 h-6 shrink-0">
+              <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage src={authUser?.avatar} />
-                <AvatarFallback className="text-[10px] bg-muted">
+                <AvatarFallback className="text-xs bg-muted">
                   {authUser?.name?.substring(0, 1) || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -285,10 +290,10 @@ export function ThreadedComment({
         <div className="relative">
           {/* Connecting line from parent */}
           {depth === 0 && (
-            <div className="absolute left-4 top-0 w-0.5 bg-border h-3" />
+            <div className="absolute left-5 top-0 w-0.5 bg-border h-3" />
           )}
 
-          <div className={cn(depth > 0 && "ml-10")}>
+          <div className={cn(depth > 0 && "ml-12")}>
             {replies.map((reply, index) => (
               <ThreadedComment
                 key={reply.id}
@@ -307,8 +312,8 @@ export function ThreadedComment({
             <button
               onClick={() => setShowReplies(false)}
               className={cn(
-                "text-xs text-muted-foreground hover:text-foreground transition-colors ml-10 mt-1 mb-2",
-                depth > 0 && "ml-20"
+                "text-sm text-muted-foreground hover:text-foreground transition-colors mt-1 mb-2",
+                depth === 0 ? "ml-[52px]" : "ml-12"
               )}
             >
               Hide replies
