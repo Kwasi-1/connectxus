@@ -444,15 +444,29 @@ export function TutoringRequestCard({
                           Request Again
                         </Button>
                       )}
-                      {onRate && !request.rating && (
-                        <Button
-                          size="sm"
-                          onClick={() => onRate(request)}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          <Star className="h-4 w-4 mr-2" />
-                          Review Session
-                        </Button>
+                      {onRate && (
+                        <>
+                          {request.rating ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="text-purple-600"
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Reviewed
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => onRate(request)}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Review Session
+                            </Button>
+                          )}
+                        </>
                       )}
                       {onRequestRefund && (
                         <>

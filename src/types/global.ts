@@ -15,6 +15,7 @@ export interface User {
   displayName: string;
   email: string;
   avatar?: string;
+  cover_image?: string;
   bio?: string;
   verified: boolean;
   followers: number;
@@ -29,7 +30,7 @@ export interface User {
   role: string;
   isActive?: boolean;
   status?: string;
-  auth_provider?: string; 
+  auth_provider?: string;
 }
 
 export interface Post {
@@ -55,12 +56,11 @@ export interface Comment {
   content: string;
   postId: string;
   parentCommentId?: string | null;
-  depth?: number;
   likes: number;
   isLiked: boolean;
-  repliesCount?: number;
-  replies?: Comment[];
+  repliesCount?: number; 
   createdAt: Date;
+  depth?: number; 
 }
 
 export interface Group {

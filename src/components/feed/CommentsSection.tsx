@@ -110,13 +110,14 @@ export function CommentsSection({ postId, onReply }: CommentsSectionProps) {
               content: comment.content,
               author: comment.author || {
                 id: comment.author_id,
-                username: 'user',
-                displayName: 'User',
-                avatar: null,
-                verified: false,
+                username: comment.username || 'user',
+                displayName: comment.full_name || 'User',
+                avatar: comment.avatar || null,
+                verified: comment.author_verified || false,
               },
               likes: comment.likes_count || 0,
               isLiked: comment.is_liked || false,
+              repliesCount: comment.replies_count || 0,
               createdAt: comment.created_at || new Date().toISOString(),
             }}
             onLike={handleLikeComment}

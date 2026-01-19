@@ -3,7 +3,6 @@ import { StoryData, Community, Group } from "@/types/storyTypes";
 const NEW_STORAGE_KEY = "campus_stories_v2";
 const AUDIENCE_SELECTION_KEY = "story_audience_selection";
 
-// Get all stories from localStorage
 export const getStoriesFromStorage = (): StoryData[] => {
   try {
     const stored = localStorage.getItem(NEW_STORAGE_KEY);
@@ -11,13 +10,11 @@ export const getStoriesFromStorage = (): StoryData[] => {
 
     const stories: StoryData[] = JSON.parse(stored);
     
-    // Filter out expired stories
     const now = new Date().getTime();
     const validStories = stories.filter(
       (story) => new Date(story.expiresAt).getTime() > now
     );
 
-    // Update storage if any stories were filtered out
     if (validStories.length !== stories.length) {
       localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(validStories));
     }
@@ -29,11 +26,10 @@ export const getStoriesFromStorage = (): StoryData[] => {
   }
 };
 
-// Save a new story to localStorage
 export const saveStoryToStorage = (story: StoryData): void => {
   try {
     const stories = getStoriesFromStorage();
-    stories.unshift(story); // Add to beginning
+    stories.unshift(story); 
     localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(stories));
   } catch (error) {
     console.error("Error saving story to localStorage:", error);
@@ -41,7 +37,6 @@ export const saveStoryToStorage = (story: StoryData): void => {
   }
 };
 
-// Delete a story from localStorage
 export const deleteStoryFromStorage = (storyId: string): void => {
   try {
     const stories = getStoriesFromStorage();
@@ -53,7 +48,6 @@ export const deleteStoryFromStorage = (storyId: string): void => {
   }
 };
 
-// Get saved audience selection
 export const getSavedAudienceSelection = (): {
   type: "community" | "group" | "following";
   ids: string[];
@@ -70,7 +64,6 @@ export const getSavedAudienceSelection = (): {
   }
 };
 
-// Save audience selection
 export const saveAudienceSelection = (
   type: "community" | "group" | "following",
   ids: string[]
@@ -85,7 +78,6 @@ export const saveAudienceSelection = (
   }
 };
 
-// Mock data for communities
 export const mockCommunities: Community[] = [
   {
     id: "comm1",
@@ -119,7 +111,6 @@ export const mockCommunities: Community[] = [
   },
 ];
 
-// Mock data for groups
 export const mockGroups: Group[] = [
   {
     id: "grp1",

@@ -204,6 +204,7 @@ export function RightSidebar() {
             </button>
           )}
         </div>
+        
       </div>
 
       <div className="p-4 pl-6 pt-2 space-y-2">
@@ -259,45 +260,90 @@ export function RightSidebar() {
                 Show more
               </Button>
             </CardContent>
-          </Card>       
+          </Card>
 
           <Card className="rounded-2xl">
             <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold">
+                  Campus Highlights
+                </CardTitle>
+                <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full">
+                  {mockCampusHighlightStories.length} New
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Catch up on what's happening around campus!
+              </p>
+
+              {/* Story preview avatars */}
+              <div className="flex items-center -space-x-4">
+                {mockCampusHighlightStories.slice(0, 3).map((story, index) => (
+                  <Avatar
+                    key={story.id}
+                    className="w-10 h-10 border-2 border-background"
+                  >
+                    <AvatarImage src={story.media_url} alt={story.username} />
+                    <AvatarFallback>
+                      {story.username.substring(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {mockCampusHighlightStories.length > 3 && (
+                  <div className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold">
+                    +{mockCampusHighlightStories.length - 3}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                variant="ghost"
+                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
+                onClick={() => navigate("/campus-highlights")}
+              >
+                View Campus Stories
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl hidden">
+            <CardHeader className="pb-3">
               <CardTitle className="text-xl font-bold">
-                Campus Highlights
+                What's happening
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {loadingAnnouncements ? (
+              {loadingTrending ? (
                 <>
-                  <CampusHighlightSkeleton />
-                  <CampusHighlightSkeleton />
-                  <CampusHighlightSkeleton />
+                  <TrendingTopicSkeleton />
+                  <TrendingTopicSkeleton />
+                  <TrendingTopicSkeleton />
                 </>
-              ) : announcements.length === 0 ? (
+              ) : trendingTopics.length === 0 ? (
                 <div className="p-3 text-left text-sm text-muted-foreground">
-                  No announcements available
+                  No trending topics at the moment
                 </div>
               ) : (
-                announcements.map((announcement) => (
+                trendingTopics.map((topic, index) => (
                   <div
-                    key={announcement.id}
+                    key={index}
                     className="hover:bg-muted p-3 rounded-lg cursor-pointer transition-colors"
                     onClick={() =>
-                      navigate(`/announcements/${announcement.id}`)
+                      navigate(
+                        `/explore?topic=${encodeURIComponent(topic.name)}`
+                      )
                     }
                   >
-                    <h4 className="font-semibold text-foreground text-base">
-                      {announcement.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {announcement.content}
+                    <p className="text-xs text-muted-foreground">
+                      {topic.category || "Trending"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {announcement.created_at &&
-                        formatDistanceToNow(new Date(announcement.created_at), {
-                          addSuffix: true,
-                        })}
+                    <h4 className="font-semibold text-foreground">
+                      {topic.name}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {topic.posts_count || 0} posts
                     </p>
                   </div>
                 ))
@@ -305,9 +351,9 @@ export function RightSidebar() {
               <Button
                 variant="ghost"
                 className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
-                onClick={() => navigate("/announcements")}
+                onClick={() => navigate("/explore")}
               >
-                View all announcements
+                Show more
               </Button>
             </CardContent>
           </Card>

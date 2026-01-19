@@ -189,6 +189,19 @@ export const completeGoogleOnboarding = async (
   return responseData;
 };
 
+export interface CheckUsernameResponse {
+  available: boolean;
+  message: string;
+}
+
+export const checkUsernameAvailability = async (username: string): Promise<CheckUsernameResponse> => {
+  const response = await apiClient.post<ApiResponse<CheckUsernameResponse>>(
+    '/users/check-username',
+    { username }
+  );
+  return response.data.data;
+};
+
 export const authApi = {
   login,
   register,
@@ -196,6 +209,7 @@ export const authApi = {
   refreshToken,
   googleSignIn,
   completeGoogleOnboarding,
+  checkUsernameAvailability,
 };
 
 export default authApi;

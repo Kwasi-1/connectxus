@@ -52,6 +52,7 @@ const Account = () => {
         displayName: userProfile.full_name || userProfile.username || "",
         username: userProfile.username || "",
         avatar: userProfile.avatar || "",
+        cover_image: userProfile.cover_image || "",
         bio: userProfile.bio || "",
         level: userProfile.level || "",
         department: userProfile.department || userProfile.department_name || "",
@@ -60,7 +61,7 @@ const Account = () => {
         followers: userProfile.followers_count || 0,
         following: userProfile.following_count || 0,
         verified: userProfile.verified || false,
-        auth_provider: userProfile.auth_provider, 
+        auth_provider: userProfile.auth_provider,
         posts: [],
       }
     : undefined;
@@ -70,6 +71,7 @@ const Account = () => {
       full_name: updatedUser.displayName,
       bio: updatedUser.bio,
       avatar: updatedUser.avatar,
+      cover_image: updatedUser.cover_image || undefined,
       level: updatedUser.level,
       department_id: updatedUser.department_id || undefined,
     });

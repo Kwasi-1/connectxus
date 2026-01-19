@@ -1,5 +1,5 @@
 export type StoryType = "text" | "image" | "video";
-export type AudienceType = "community" | "group" | "following";
+export type AudienceType = "space" | "following" | "community" | "group";
 
 export interface FilterMetadata {
   name: string;
@@ -10,13 +10,13 @@ export interface FilterMetadata {
 export interface StoryData {
   id: string;
   type: StoryType;
-  mediaUrl?: string; // Object URL for image/video
+  mediaUrl?: string; 
   caption?: string;
-  backgroundColor?: string; // For text stories
-  gradient?: string; // For text stories with gradient
+  backgroundColor?: string;
+  gradient?: string;
   filter?: FilterMetadata;
   audienceType: AudienceType;
-  audienceSelection: string[]; // IDs of communities/groups
+  audienceSelection: string[]; 
   createdAt: string;
   expiresAt: string;
   userId: string;
@@ -38,7 +38,6 @@ export interface Group {
   memberCount: number;
 }
 
-// Available filters for images and videos
 export const IMAGE_FILTERS: FilterMetadata[] = [
   { name: "None", cssClass: "" },
   { name: "Grayscale", cssClass: "grayscale" },
@@ -52,7 +51,6 @@ export const IMAGE_FILTERS: FilterMetadata[] = [
   { name: "Fade", cssClass: "opacity-80 brightness-110" },
 ];
 
-// Background colors and gradients for text stories
 export const TEXT_BACKGROUNDS = [
   { name: "Red", value: "#EF4444" },
   { name: "Orange", value: "#F97316" },

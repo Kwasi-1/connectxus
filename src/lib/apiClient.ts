@@ -136,7 +136,7 @@ const handleApiError = (error: AxiosError<any>) => {
       }
       break;
     case 403:
-      toast.error(message || 'Access denied. You do not have permission.');
+      toast.error(message || 'Something went wrong');
       break;
     case 404:
       toast.error(message || 'Resource not found.');

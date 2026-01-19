@@ -41,6 +41,7 @@ interface CreateGroupModalProps {
     tags: string[];
     groupType: "public" | "private" | "project";
     avatar_file_id?: string | null;
+    cover_image?: string | null;
     projectRoles?: any[];
     projectDeadline?: Date;
     isAcceptingApplications?: boolean;
@@ -76,6 +77,8 @@ export function CreateGroupModal({
 
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([]);
@@ -134,6 +137,43 @@ export function CreateGroupModal({
     setProfileImagePreview(null);
   };
 
+  const handleCoverImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Cover image must be less than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCoverImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    }
+  };
+
+  const removeCoverImage = () => {
+    if (coverImagePreview) {
+      URL.revokeObjectURL(coverImagePreview);
+    }
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+  };
+
   const handleAddRole = () => {
     if (currentRole.name.trim() && currentRole.slots > 0) {
       setProjectRoles([
@@ -171,28 +211,39 @@ export function CreateGroupModal({
     }
 
     let avatarFileId: string | null = null;
+    let coverImageUrl: string | null = null;
 
-    if (profileImageFile) {
-      try {
-        setIsUploadingImage(true);
+    try {
+      setIsUploadingImage(true);
+
+      if (profileImageFile) {
         const uploaded = await uploadFile({
           file: profileImageFile,
           moduleType: "groups",
           accessLevel: "public",
         });
         avatarFileId = uploaded.file_id;
-      } catch (error) {
-        console.error("Failed to upload image:", error);
-        toast({
-          title: "Upload Failed",
-          description: "Failed to upload profile image. Please try again.",
-          variant: "destructive",
-        });
-        setIsUploadingImage(false);
-        return;
-      } finally {
-        setIsUploadingImage(false);
       }
+
+      if (coverImageFile) {
+        const uploaded = await uploadFile({
+          file: coverImageFile,
+          moduleType: "groups",
+          accessLevel: "public",
+        });
+        coverImageUrl = uploaded.url;
+      }
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive",
+      });
+      setIsUploadingImage(false);
+      return;
+    } finally {
+      setIsUploadingImage(false);
     }
 
     const groupData = {
@@ -203,6 +254,7 @@ export function CreateGroupModal({
       groupType,
       level,
       avatar_file_id: avatarFileId,
+      cover_image: coverImageUrl,
       ...(groupType === "project" && {
         projectRoles: projectRoles.map((role) => ({
           ...role,
@@ -235,6 +287,11 @@ export function CreateGroupModal({
     }
     setProfileImageFile(null);
     setProfileImagePreview(null);
+    if (coverImagePreview) {
+      URL.revokeObjectURL(coverImagePreview);
+    }
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
     onClose();
   };
 
@@ -417,6 +474,58 @@ export function CreateGroupModal({
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Max 5MB. JPG, PNG, or GIF.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cover Image</Label>
+              <div className="space-y-2">
+                {coverImagePreview && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden">
+                    <img
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageUpload}
+                    className="hidden"
+                    id="cover-image-upload"
+                    aria-label="Upload cover image"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("cover-image-upload")?.click()
+                      }
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {coverImageFile ? "Change Cover" : "Upload Cover"}
+                    </Button>
+                    {coverImageFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeCoverImage}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 10MB. JPG, PNG, or GIF. Recommended: 1200x400px
                   </p>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ImageIcon, Calendar, MapPin, Smile, X, Loader2 } from "lucide-react";
+import { ImageIcon, Calendar, MapPin, Smile, X, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,56 +13,78 @@ interface PostComposerProps {
 
 export function PostComposer({ onPost }: PostComposerProps) {
   const [content, setContent] = useState("");
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<{ url: string; type: "image" | "video" }[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<FileMetadata[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const maxChars = 280;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const imageFiles = Array.from(files).filter((file) =>
-      file.type.startsWith("image/")
+    const mediaFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("image/") || file.type.startsWith("video/")
     );
 
-    if (imageFiles.length === 0) {
-      toast.error("Please select only image files");
+    if (mediaFiles.length === 0) {
+      toast.error("Please select only image or video files");
       return;
     }
 
-    const maxSize = 10 * 1024 * 1024; 
-    const oversizedFiles = imageFiles.filter((file) => file.size > maxSize);
+    const hasImages = mediaFiles.some((file) => file.type.startsWith("image/"));
+    const hasVideos = mediaFiles.some((file) => file.type.startsWith("video/"));
+
+    if (hasImages && hasVideos) {
+      toast.error("Cannot mix images and videos in one post");
+      return;
+    }
+
+    if (hasVideos && mediaFiles.length > 1) {
+      toast.error("Only one video allowed per post");
+      return;
+    }
+
+    if (hasVideos && selectedMedia.length > 0) {
+      toast.error("Cannot add video with existing media");
+      return;
+    }
+
+    const maxSize = hasVideos ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for images
+    const oversizedFiles = mediaFiles.filter((file) => file.size > maxSize);
     if (oversizedFiles.length > 0) {
-      toast.error("Some images exceed 10MB limit");
+      const sizeLimit = hasVideos ? "50MB" : "10MB";
+      toast.error(`Some files exceed ${sizeLimit} limit`);
       return;
     }
 
-    const totalImages = selectedImages.length + imageFiles.length;
-    if (totalImages > 4) {
+    const totalMedia = selectedMedia.length + mediaFiles.length;
+    if (totalMedia > 4 && hasImages) {
       toast.error("Maximum 4 images allowed per post");
       return;
     }
 
-    const newPreviews = imageFiles.map((file) => URL.createObjectURL(file));
+    const newPreviews = mediaFiles.map((file) => ({
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith("image/") ? ("image" as const) : ("video" as const),
+    }));
 
-    setSelectedImages((prev) => [...prev, ...imageFiles]);
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    setSelectedMedia((prev) => [...prev, ...mediaFiles]);
+    setMediaPreviews((prev) => [...prev, ...newPreviews]);
   };
 
-  const handleRemoveImage = (index: number) => {
-    URL.revokeObjectURL(imagePreviews[index]);
+  const handleRemoveMedia = (index: number) => {
+    URL.revokeObjectURL(mediaPreviews[index].url);
 
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
+    setMediaPreviews((prev) => prev.filter((_, i) => i !== index));
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handlePost = async () => {
-    if (!content.trim() && selectedImages.length === 0) {
-      toast.error("Please add some content or images");
+    if (!content.trim() && selectedMedia.length === 0) {
+      toast.error("Please add some content or media");
       return;
     }
 
@@ -70,8 +92,8 @@ export function PostComposer({ onPost }: PostComposerProps) {
       setIsUploading(true);
       let mediaUrls: string[] = [];
 
-      if (selectedImages.length > 0) {
-        const uploadPromises = selectedImages.map((file) =>
+      if (selectedMedia.length > 0) {
+        const uploadPromises = selectedMedia.map((file) =>
           uploadFile({
             file,
             moduleType: "posts",
@@ -87,8 +109,8 @@ export function PostComposer({ onPost }: PostComposerProps) {
       onPost(content, mediaUrls);
 
       setContent("");
-      setSelectedImages([]);
-      setImagePreviews([]);
+      setSelectedMedia([]);
+      setMediaPreviews([]);
       setUploadedFiles([]);
 
       toast.success("Post created successfully!");
@@ -101,7 +123,7 @@ export function PostComposer({ onPost }: PostComposerProps) {
   };
 
   const isDisabled =
-    (!content.trim() && selectedImages.length === 0) ||
+    (!content.trim() && selectedMedia.length === 0) ||
     content.length > maxChars ||
     isUploading;
 
@@ -120,34 +142,42 @@ export function PostComposer({ onPost }: PostComposerProps) {
             className="min-h-[40px] border-none resize-none text-xl placeholder:text-muted-foreground focus-visible:ring-0 p-0"
           />
 
-          {/* Image Preview */}
-          {imagePreviews.length > 0 && (
+          {/* Media Preview */}
+          {mediaPreviews.length > 0 && (
             <div className="mt-3">
-              {imagePreviews.length === 1 ? (
+              {mediaPreviews.length === 1 ? (
                 <div className="relative rounded-2xl overflow-hidden border border-border">
-                  <img
-                    src={imagePreviews[0]}
-                    alt="Preview"
-                    className="w-full h-auto max-h-96 object-cover"
-                  />
+                  {mediaPreviews[0].type === "image" ? (
+                    <img
+                      src={mediaPreviews[0].url}
+                      alt="Preview"
+                      className="w-full h-auto max-h-96 object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={mediaPreviews[0].url}
+                      className="w-full h-auto max-h-96 object-cover"
+                      controls
+                    />
+                  )}
                   <button
-                    onClick={() => handleRemoveImage(0)}
+                    onClick={() => handleRemoveMedia(0)}
                     className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-              ) : imagePreviews.length === 2 ? (
+              ) : mediaPreviews.length === 2 ? (
                 <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden">
-                  {imagePreviews.map((preview, index) => (
+                  {mediaPreviews.map((preview, index) => (
                     <div key={index} className="relative border border-border rounded-xl overflow-hidden">
                       <img
-                        src={preview}
+                        src={preview.url}
                         alt={`Preview ${index + 1}`}
                         className="w-full h-48 object-cover"
                       />
                       <button
-                        onClick={() => handleRemoveImage(index)}
+                        onClick={() => handleRemoveMedia(index)}
                         className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                       >
                         <X className="h-4 w-4" />
@@ -157,15 +187,15 @@ export function PostComposer({ onPost }: PostComposerProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {imagePreviews.map((preview, index) => (
+                  {mediaPreviews.map((preview, index) => (
                     <div key={index} className="relative border border-border rounded-xl overflow-hidden">
                       <img
-                        src={preview}
+                        src={preview.url}
                         alt={`Preview ${index + 1}`}
                         className="w-full h-32 object-cover"
                       />
                       <button
-                        onClick={() => handleRemoveImage(index)}
+                        onClick={() => handleRemoveMedia(index)}
                         className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                       >
                         <X className="h-4 w-4" />
@@ -182,9 +212,9 @@ export function PostComposer({ onPost }: PostComposerProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
-                onChange={handleImageSelect}
+                onChange={handleMediaSelect}
                 className="hidden"
               />
               <Button
@@ -192,9 +222,20 @@ export function PostComposer({ onPost }: PostComposerProps) {
                 size="sm"
                 className="p-2 h-auto hover:bg-primary/10"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || imagePreviews.length >= 4}
+                disabled={isUploading || mediaPreviews.length >= 4}
+                title="Add image or video"
               >
                 <ImageIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 h-auto hover:bg-primary/10"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || mediaPreviews.length >= 1}
+                title="Add video"
+              >
+                <Video className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"

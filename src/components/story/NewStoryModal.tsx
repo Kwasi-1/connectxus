@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   X,
   Image as ImageIcon,
@@ -24,23 +24,20 @@ import { cn } from "@/lib/utils";
 import { TextStoryCreator } from "./TextStoryCreator";
 import { ShareToSelector } from "./ShareToSelector";
 import { IMAGE_FILTERS, StoryType, AudienceType } from "@/types/storyTypes";
-import {
-  saveStoryToStorage,
-  getSavedAudienceSelection,
-} from "@/utils/newStoryStorage";
+import { useStories } from "@/hooks/useStories";
+import { uploadFile } from "@/api/files.api";
 
 interface NewStoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStoryCreated: () => void;
 }
 
 export const NewStoryModal = ({
   isOpen,
   onClose,
-  onStoryCreated,
 }: NewStoryModalProps) => {
   const { user } = useAuth();
+  const { createStory, isCreating } = useStories();
   const [storyType, setStoryType] = useState<StoryType | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -55,20 +52,109 @@ export const NewStoryModal = ({
   const [showShareToSelector, setShowShareToSelector] = useState(false);
   const [audienceType, setAudienceType] = useState<AudienceType>("following");
   const [audienceIds, setAudienceIds] = useState<string[]>([]);
+  const [isTrimming, setIsTrimming] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const trimVideoToThreeMinutes = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.muted = true;
+
+      video.onloadedmetadata = async () => {
+        const duration = video.duration;
+
+        if (duration <= 180) {
+          resolve(file);
+          return;
+        }
+
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            reject(new Error("Failed to get canvas context"));
+            return;
+          }
+
+          video.currentTime = 0;
+          await new Promise((res) => {
+            video.onseeked = res;
+          });
+
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          const stream = canvas.captureStream(30);
+
+          const audioContext = new AudioContext();
+          const source = audioContext.createMediaElementSource(video);
+          const destination = audioContext.createMediaStreamDestination();
+          source.connect(destination);
+          source.connect(audioContext.destination);
+
+          stream.addTrack(destination.stream.getAudioTracks()[0]);
+
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "video/webm;codecs=vp9,opus",
+            videoBitsPerSecond: 2500000,
+          });
+
+          const chunks: Blob[] = [];
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              chunks.push(e.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: "video/webm" });
+            const trimmedFile = new File([blob], file.name.replace(/\.\w+$/, ".webm"), {
+              type: "video/webm",
+            });
+            resolve(trimmedFile);
+            video.pause();
+            audioContext.close();
+          };
+
+          let startTime = Date.now();
+          const drawFrame = () => {
+            if (video.currentTime < 180 && Date.now() - startTime < 180000) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              requestAnimationFrame(drawFrame);
+            } else {
+              mediaRecorder.stop();
+            }
+          };
+
+          mediaRecorder.start();
+          video.play();
+          drawFrame();
+        } catch (error) {
+          console.error("Error trimming video:", error);
+          reject(error);
+        }
+      };
+
+      video.onerror = () => {
+        reject(new Error("Failed to load video"));
+      };
+
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
       toast.error("Please select an image or video file");
       return;
     }
 
-    // Validate file size (50MB max)
     const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error("File must be less than 50MB");
@@ -76,72 +162,118 @@ export const NewStoryModal = ({
     }
 
     const type = file.type.startsWith("image/") ? "image" : "video";
-    setMediaType(type);
-    setStoryType(type);
-    setSelectedFile(file);
 
-    // Create preview
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    if (type === "video") {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = async () => {
+        window.URL.revokeObjectURL(video.src);
+        const duration = video.duration;
+
+        if (duration > 180) {
+          setIsTrimming(true);
+          toast.info("Video is longer than 3 minutes. Automatically trimming to first 3 minutes...");
+
+          try {
+            const trimmedFile = await trimVideoToThreeMinutes(file);
+            setMediaType(type);
+            setStoryType(type);
+            setSelectedFile(trimmedFile);
+            const url = URL.createObjectURL(trimmedFile);
+            setPreviewUrl(url);
+            setIsTrimming(false);
+            toast.success("Video trimmed successfully");
+          } catch (error) {
+            console.error("Error trimming video:", error);
+            toast.error("Failed to trim video. Please try a shorter video.");
+            setIsTrimming(false);
+          }
+          return;
+        }
+
+        setMediaType(type);
+        setStoryType(type);
+        setSelectedFile(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      };
+      video.src = URL.createObjectURL(file);
+    } else {
+      setMediaType(type);
+      setStoryType(type);
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
   };
 
-  const handleTextStoryComplete = (text: string, background: string) => {
-    // Save text story
-    const savedAudience = getSavedAudienceSelection();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+  const handleTextStoryComplete = async (
+    text: string,
+    background: string
+  ) => {
+    if (audienceType === "community" && audienceIds.length === 0) {
+      toast.error("Please select at least one community");
+      return;
+    }
+    if (audienceType === "group" && audienceIds.length === 0) {
+      toast.error("Please select at least one group");
+      return;
+    }
 
-    const storyData = {
-      id: `story_${Date.now()}`,
-      type: "text" as StoryType,
-      caption: text,
-      backgroundColor: background,
-      audienceType: savedAudience.type,
-      audienceSelection: savedAudience.ids,
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      userId: user?.id || "user1",
-      username: user?.name || "user",
-      userAvatar: user?.avatar,
-    };
+    try {
+      const isGradient = background.includes("gradient");
 
-    saveStoryToStorage(storyData);
-    toast.success("Text story posted!");
-    handleReset();
-    onStoryCreated();
+      createStory({
+        story_type: "text",
+        content: text,
+        background_color: isGradient ? undefined : background,
+        background_gradient: isGradient ? background : undefined,
+        audience_type: audienceType,
+        community_ids: audienceType === "community" ? audienceIds : undefined,
+        group_ids: audienceType === "group" ? audienceIds : undefined,
+      });
+
+      handleReset();
+    } catch (error) {
+      console.error("Error posting text story:", error);
+      toast.error("Failed to post story");
+    }
   };
 
   const handlePost = async () => {
     if (!selectedFile || !previewUrl || !mediaType) return;
 
+    if (audienceType === "community" && audienceIds.length === 0) {
+      toast.error("Please select at least one community");
+      return;
+    }
+    if (audienceType === "group" && audienceIds.length === 0) {
+      toast.error("Please select at least one group");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const uploadResult = await uploadFile({
+        file: selectedFile,
+        moduleType: "story",
+        accessLevel: "public",
+      });
 
-      const savedAudience = getSavedAudienceSelection();
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-      const storyData = {
-        id: `story_${Date.now()}`,
-        type: mediaType as StoryType,
-        mediaUrl: previewUrl,
+      createStory({
+        story_type: mediaType,
+        media_url: uploadResult.url,
         caption: caption || undefined,
-        filter: selectedFilter.name !== "None" ? selectedFilter : undefined,
-        audienceType: savedAudience.type,
-        audienceSelection: savedAudience.ids,
-        createdAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        userId: user?.id || "user1",
-        username: user?.name || "user",
-        userAvatar: user?.avatar,
-      };
+        filter_name:
+          selectedFilter.name !== "None" ? selectedFilter.name : undefined,
+        filter_css:
+          selectedFilter.name !== "None" ? selectedFilter.css : undefined,
+        audience_type: audienceType,
+        community_ids: audienceType === "community" ? audienceIds : undefined,
+        group_ids: audienceType === "group" ? audienceIds : undefined,
+      });
 
-      saveStoryToStorage(storyData);
-      toast.success("Story posted successfully!");
       handleReset();
-      onStoryCreated();
     } catch (error) {
       console.error("Error posting story:", error);
       toast.error("Failed to post story");
@@ -177,9 +309,33 @@ export const NewStoryModal = ({
     setAudienceIds(ids);
   };
 
+  const getShareButtonText = () => {
+    if (audienceType === "space") return "Space";
+    if (audienceType === "following") return "Following";
+    if (audienceType === "community" && audienceIds.length > 0) {
+      return `Communities (${audienceIds.length})`;
+    }
+    if (audienceType === "group" && audienceIds.length > 0) {
+      return `Groups (${audienceIds.length})`;
+    }
+    if (audienceType === "community") return "Communities";
+    if (audienceType === "group") return "Groups";
+    return "Following";
+  };
+
   if (!isOpen) return null;
 
-  // Text Story Creator
+  if (isTrimming) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-white animate-spin" />
+          <p className="text-white text-lg">Trimming video to 3 minutes...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (storyType === "text") {
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
@@ -192,9 +348,11 @@ export const NewStoryModal = ({
               setStoryType(null);
             }
           }}
+          audienceType={audienceType}
+          audienceIds={audienceIds}
+          onAudienceSelect={handleAudienceSelect}
         />
 
-        {/* Discard Dialog */}
         <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
           <DialogContent>
             <DialogHeader>
@@ -226,156 +384,136 @@ export const NewStoryModal = ({
     );
   }
 
-  // Image/Video Editor
   if (previewUrl && mediaType) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
         <div className="relative w-full h-full max-w-md mx-auto flex flex-col bg-gradient-to-br from-black via-gray-900 to-black">
-          {/* Top Bar */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseClick}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
-              disabled={isUploading}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowShareToSelector(true)}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 px-4"
-            >
-              Share To
-            </Button>
-          </div>
+            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCloseClick}
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
+                  disabled={isUploading}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowShareToSelector(true)}
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 px-4"
+                  disabled={isUploading}
+                >
+                  {getShareButtonText()}
+                </Button>
+              </div>
+            </div>
 
-          {/* Main Story Preview */}
-          <div className="relative flex-1 flex items-center justify-center p-4 mt-16">
-            <div className="relative w-full h-full max-h-[75vh] bg-black rounded-2xl overflow-hidden shadow-2xl">
+            <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
               {mediaType === "image" ? (
                 <img
                   src={previewUrl}
-                  alt="Story preview"
-                  className={cn(
-                    "w-full h-full object-contain",
-                    selectedFilter.cssClass
-                  )}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                  style={{
+                    filter: selectedFilter.css,
+                  }}
                 />
               ) : (
                 <video
                   src={previewUrl}
-                  className={cn(
-                    "w-full h-full object-contain",
-                    selectedFilter.cssClass
-                  )}
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                  style={{
+                    filter: selectedFilter.css,
+                  }}
                   controls
-                  muted
+                  autoPlay
                   loop
                 />
               )}
-
-              {/* Caption Overlay */}
-              {caption && (
-                <div className="absolute bottom-20 left-0 right-0 px-6">
-                  <p className="text-white text-xl font-semibold text-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] bg-black/30 backdrop-blur-sm px-4 py-2 rounded-lg">
-                    {caption}
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Right Side Toolbar */}
-            <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
+            <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
+            <div className="flex gap-2">
               <Button
-                variant="ghost"
+                variant={activePanel === "caption" ? "secondary" : "ghost"}
                 size="icon"
                 onClick={() =>
                   setActivePanel(activePanel === "caption" ? null : "caption")
                 }
-                className={cn(
-                  "w-16 h-16 rounded-full text-black flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
-                  activePanel === "caption"
-                    ? "bg-white hover:bg-white/90 border-white shadow-lg scale-110"
-                    : "bg-white/10 hover:bg-white/20 text-white border-white/20"
-                )}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
               >
-                <MessageSquare className="w-6 h-6" />
-                <span className="text-[9px] font-medium">Caption</span>
+                <MessageSquare className="w-5 h-5" />
               </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  setActivePanel(activePanel === "filters" ? null : "filters")
-                }
-                className={cn(
-                  "w-16 h-16 rounded-full text-black flex flex-col gap-0.5 py-2 backdrop-blur-md border transition-all",
-                  activePanel === "filters"
-                    ? "bg-white hover:bg-white/90 border-white shadow-lg scale-110"
-                    : "bg-white/10 hover:bg-white/20 text-white border-white/20"
-                )}
-              >
-                <Wand2 className="w-6 h-6" />
-                <span className="text-[9px] font-medium">Filters</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Active Panel - Right Side */}
-          {activePanel && (
-            <div className="absolute -right-[376px] top-1/2 -translate-y-1/2 w-72 bg-black/90 backdrop-blur-xl rounded-2xl p-5 z-30 border border-white/30 shadow-2xl max-h-[70vh] overflow-y-auto mt-8">
-              {activePanel === "caption" && (
-                <div className="space-y-4">
-                  <h3 className="font-bold text-base text-white">Add Caption</h3>
-                  <Input
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    placeholder="Write a caption..."
-                    className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    maxLength={150}
-                  />
-                  <p className="text-xs text-white/70 text-right">
-                    {caption.length}/150
-                  </p>
-                </div>
+              {mediaType === "image" && (
+                <Button
+                  variant={activePanel === "filters" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() =>
+                    setActivePanel(activePanel === "filters" ? null : "filters")
+                  }
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
+                >
+                  <Wand2 className="w-5 h-5" />
+                </Button>
               )}
+            </div>
 
-              {activePanel === "filters" && (
-                <div className="space-y-4">
-                  <h3 className="font-bold text-base text-white">Apply Filter</h3>
-                  <div className="grid grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto pr-2">
-                    {IMAGE_FILTERS.map((filter) => (
-                      <button
-                        key={filter.name}
-                        onClick={() => setSelectedFilter(filter)}
-                        className={cn(
-                          "p-3 rounded-lg text-sm capitalize transition-all font-medium text-center",
-                          selectedFilter.name === filter.name
-                            ? "bg-white text-black shadow-md"
-                            : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
-                        )}
-                      >
+            {activePanel === "caption" && (
+              <div className="space-y-2 animate-in slide-in-from-bottom-2">
+                <Input
+                  placeholder="Add a caption..."
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  maxLength={150}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md"
+                />
+                <p className="text-xs text-white/50 text-right">
+                  {caption.length}/150
+                </p>
+              </div>
+            )}
+
+            {activePanel === "filters" && mediaType === "image" && (
+              <div className="animate-in slide-in-from-bottom-2">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                  {IMAGE_FILTERS.map((filter) => (
+                    <button
+                      key={filter.name}
+                      onClick={() => setSelectedFilter(filter)}
+                      className={cn(
+                        "flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all",
+                        selectedFilter.name === filter.name
+                          ? "bg-white/20 border-2 border-white"
+                          : "bg-white/5 border-2 border-transparent hover:bg-white/10"
+                      )}
+                    >
+                      <div
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{
+                          backgroundImage: `url(${previewUrl})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                          filter: filter.css,
+                        }}
+                      />
+                      <span className="text-xs text-white font-medium">
                         {filter.name}
-                      </button>
-                    ))}
-                  </div>
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Bottom Actions */}
-          <div className="absolute bottom-4 left-0 right-0 px-4 z-20">
             <Button
               onClick={handlePost}
-              disabled={isUploading}
-              className="w-full bg-white hover:bg-white/90 text-black rounded-full py-6 font-bold shadow-lg transition-all hover:scale-105 disabled:hover:scale-100 disabled:opacity-50"
+              disabled={isUploading || isCreating}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-full shadow-lg"
             >
-              {isUploading ? (
+              {isUploading || isCreating ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Posting...
@@ -387,14 +525,14 @@ export const NewStoryModal = ({
           </div>
         </div>
 
-        {/* Share To Selector */}
         <ShareToSelector
           isOpen={showShareToSelector}
           onClose={() => setShowShareToSelector(false)}
           onSelect={handleAudienceSelect}
+          currentAudienceType={audienceType}
+          currentAudienceIds={audienceIds}
         />
 
-        {/* Discard Dialog */}
         <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
           <DialogContent>
             <DialogHeader>
@@ -426,93 +564,51 @@ export const NewStoryModal = ({
     );
   }
 
-  // Initial Selection Screen
   return (
-    <Dialog open={isOpen} onOpenChange={handleCloseClick}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={handleReset}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Story</DialogTitle>
+          <DialogTitle className="text-center">Create Story</DialogTitle>
         </DialogHeader>
-
-        <div className="py-4">
-          {/* User info */}
-          <div className="flex items-center gap-3 mb-6">
-            <Avatar className="w-12 h-12">
-              <AvatarImage src={user?.avatar} alt={user?.name} />
-              <AvatarFallback>
-                {user?.name?.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">{user?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                Story visible for 24 hours
-              </p>
+        <div className="grid grid-cols-3 gap-4 py-6">
+          <button
+            onClick={() => setStoryType("text")}
+            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
+          >
+            <div className="p-4 rounded-full bg-primary/10">
+              <Type className="w-8 h-8 text-primary" />
             </div>
-          </div>
+            <span className="font-semibold text-sm">Text</span>
+          </button>
 
-          {/* Story Type Options */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
+          >
+            <div className="p-4 rounded-full bg-primary/10">
+              <ImageIcon className="w-8 h-8 text-primary" />
+            </div>
+            <span className="font-semibold text-sm">Image</span>
+          </button>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => setStoryType("text")}
-              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                  <Type className="w-7 h-7 text-primary" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Text Story</p>
-                  <p className="text-sm text-muted-foreground">
-                    Share your thoughts with custom backgrounds
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                  <ImageIcon className="w-7 h-7 text-primary" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Image Story</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upload a photo with caption & filters
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                  <Video className="w-7 h-7 text-primary" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Video Story</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upload a video with caption & filters
-                  </p>
-                </div>
-              </div>
-            </button>
-          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
+          >
+            <div className="p-4 rounded-full bg-primary/10">
+              <Video className="w-8 h-8 text-primary" />
+            </div>
+            <span className="font-semibold text-sm">Video</span>
+          </button>
         </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </DialogContent>
     </Dialog>
   );

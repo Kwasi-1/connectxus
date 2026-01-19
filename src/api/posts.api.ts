@@ -75,10 +75,13 @@ export interface Comment {
   parent_comment_id?: string | null;
   content: string;
   likes_count: number;
-  replies_count?: number;
-  depth?: number;
+  replies_count?: number; // Only for top-level comments
   created_at: string;
   updated_at?: string | null;
+  username?: string;
+  full_name?: string;
+  avatar?: string | null;
+  author_verified?: boolean;
   author?: any;
   is_liked?: boolean;
 }
@@ -283,6 +286,22 @@ export const getPostCommentsPaginated = async (
   return response.data.data;
 };
 
+export const getCommentReplies = async (
+  commentId: string,
+  params?: PaginationParams
+): Promise<Comment[]> => {
+  const response = await apiClient.get<ApiResponse<Comment[]>>(
+    `/comments/${commentId}/replies`,
+    {
+      params: {
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+      },
+    }
+  );
+  return response.data.data;
+};
+
 export const createComment = async (
   postId: string,
   data: CreateCommentRequest
@@ -299,6 +318,17 @@ export const toggleLikeComment = async (
 ): Promise<{ likes_count: number }> => {
   const response = await apiClient.post<ApiResponse<{ likes_count: number }>>(
     `/comments/${commentId}/like`
+  );
+  return response.data.data;
+};
+
+export const getCommentLikes = async (
+  commentId: string,
+  params?: PaginationParams
+): Promise<any[]> => {
+  const response = await apiClient.get<ApiResponse<any[]>>(
+    `/comments/${commentId}/likes`,
+    { params }
   );
   return response.data.data;
 };
@@ -371,30 +401,44 @@ export const reportPost = async (
   await apiClient.post(`/posts/${postId}/report`, data);
 };
 
-// Get user's replies (comments on other posts)
-export const getUserReplies = async (
+export interface UserComment {
+  comment_id: string;
+  comment_content: string;
+  comment_created_at: string;
+  parent_comment_id?: string | null;
+  comment_likes_count: number;
+  is_liked: boolean;
+  post_id: string;
+  post_content: string | null;
+  post_media: string[] | null;
+  post_created_at: string;
+  post_likes_count: number;
+  post_comments_count: number;
+  post_reposts_count: number;
+  post_visibility: string;
+  post_is_liked: boolean;
+  post_is_reposted: boolean;
+  post_author_id: string;
+  post_author_username: string;
+  post_author_full_name: string;
+  post_author_avatar: string | null;
+  post_author_verified: boolean;
+}
+
+export const getUserComments = async (
   userId: string,
   params?: PaginationParams
-): Promise<Comment[]> => {
-  const response = await apiClient.get<ApiResponse<Comment[]>>(
+): Promise<UserComment[]> => {
+  const response = await apiClient.get<ApiResponse<UserComment[]>>(
     `/users/${userId}/comments`,
-    { params }
+    {
+      params: {
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+      },
+    }
   );
   return response.data.data;
-};
-
-// Get user's media posts (posts with images/videos)
-export const getUserMediaPosts = async (
-  userId: string,
-  params?: PaginationParams
-): Promise<Post[]> => {
-  // Fetch user's posts and filter those with media
-  const posts = await getPostsByUser(userId, params);
-  return posts.filter(post => 
-    (post.media && post.media.length > 0) || 
-    (post.images && post.images.length > 0) ||
-    post.video
-  );
 };
 
 export const postsApi = {
@@ -417,16 +461,16 @@ export const postsApi = {
   pinPost,
   getPostComments,
   getPostCommentsPaginated,
+  getCommentReplies,
   createComment,
   toggleLikeComment,
+  getCommentLikes,
   getPostLikes,
   getPostLikesPaginated,
   getPostQuotesPaginated,
   getPostRepostsPaginated,
+  getUserComments,
   reportPost,
-  getUserReplies,
-  getUserMediaPosts,
 };
 
 export default postsApi;
-

@@ -97,6 +97,10 @@ export function ContentManagement() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [feedbackList, setFeedbackList] = useState<any[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const [selectedItem, setSelectedItem] = useState<
     ContentModerationItem | CampusAnnouncement | CampusEvent | null
@@ -171,6 +175,70 @@ export function ContentManagement() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const fetchFeedback = useCallback(async () => {
+    try {
+      setFeedbackLoading(true);
+      const data = await adminApi.getAllFeedback(
+        statusFilter === "all" ? undefined : statusFilter,
+        categoryFilter === "all" ? undefined : categoryFilter,
+        feedbackPage,
+        20
+      );
+      setFeedbackList(data.feedback || []);
+    } catch (error) {
+      console.error("Failed to fetch feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load feedback data.",
+        variant: "destructive",
+      });
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [statusFilter, categoryFilter, feedbackPage, toast]);
+
+  useEffect(() => {
+    if (activeTab === "feedback") {
+      fetchFeedback();
+    }
+  }, [activeTab, fetchFeedback]);
+
+  const handleUpdateFeedbackStatus = async (feedbackId: string, status: string) => {
+    try {
+      await adminApi.updateFeedbackStatus(feedbackId, status);
+      toast({
+        title: "Success",
+        description: "Feedback status updated successfully.",
+      });
+      fetchFeedback();
+    } catch (error) {
+      console.error("Failed to update feedback status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update feedback status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    try {
+      await adminApi.deleteFeedback(feedbackId);
+      toast({
+        title: "Success",
+        description: "Feedback deleted successfully.",
+      });
+      fetchFeedback();
+    } catch (error) {
+      console.error("Failed to delete feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete feedback.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCreateAnnouncement = useCallback(async () => {
     try {      await adminApi.createAnnouncement({
@@ -1062,6 +1130,7 @@ export function ContentManagement() {
           <TabsTrigger value="moderation">Content Moderation</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
         </TabsList>
 
         <TabsContent value="moderation" className="space-y-4">
@@ -1522,6 +1591,156 @@ export function ContentManagement() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Feedback Tab */}
+        <TabsContent value="feedback" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Feedback Management</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                View and manage user feedback, suggestions, and complaints
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-2">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="reviewed">Reviewed</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="suggestion">Suggestion</SelectItem>
+                      <SelectItem value="feature_request">Feature Request</SelectItem>
+                      <SelectItem value="complaint">Complaint</SelectItem>
+                      <SelectItem value="general_feedback">General Feedback</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {feedbackLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+                  <p className="mt-4 text-sm text-muted-foreground">Loading feedback...</p>
+                </div>
+              ) : feedbackList.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
+                  <p className="text-lg font-medium mb-2">No Feedback Found</p>
+                  <p className="text-sm">
+                    No feedback entries match the current filters.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {feedbackList.map((feedback) => (
+                      <TableRow key={feedback.id}>
+                        <TableCell>
+                          <div className="font-medium">{feedback.title}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {feedback.message}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{feedback.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {feedback.rating && (
+                            <div className="flex items-center">
+                              <span className="mr-1">{feedback.rating}</span>
+                              <span className="text-yellow-500">★</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              feedback.status === "resolved"
+                                ? "default"
+                                : feedback.status === "reviewed"
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {feedback.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {moment(feedback.created_at).format("MMM D, YYYY")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {feedback.status !== "resolved" && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleUpdateFeedbackStatus(feedback.id, "reviewed")
+                                    }
+                                  >
+                                    Mark as Reviewed
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleUpdateFeedbackStatus(feedback.id, "resolved")
+                                    }
+                                  >
+                                    Mark as Resolved
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteFeedback(feedback.id)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

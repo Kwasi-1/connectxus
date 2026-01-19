@@ -75,6 +75,14 @@ export function PaymentModal({
 
     setIsInitializing(true);
     try {
+      if (pricing.total === 0) {
+        toast.success("Session activated! (No payment required)");
+        onPayment(sessionType, "free-session");
+        onOpenChange(false);
+        setIsInitializing(false);
+        return;
+      }
+
       const paymentData = await initializeTutoringPayment({
         request_id: request.id,
       });

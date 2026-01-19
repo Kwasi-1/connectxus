@@ -227,7 +227,7 @@ export function TutorApplicationForm() {
       return;
     }
 
-    if (!sessionRate || parseFloat(sessionRate) <= 0) {
+    if (!sessionRate || parseFloat(sessionRate) < 0) {
       toast({
         title: "Error",
         description: "Please provide a valid session rate.",
@@ -236,7 +236,7 @@ export function TutorApplicationForm() {
       return;
     }
 
-    if (!semesterRate || parseFloat(semesterRate) <= 0) {
+    if (!semesterRate || parseFloat(semesterRate) < 0) {
       toast({
         title: "Error",
         description: "Please provide a valid semester rate.",

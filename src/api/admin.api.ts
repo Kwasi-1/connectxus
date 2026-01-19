@@ -153,7 +153,7 @@ export const adminApi = {
       !user.role ||
       !["admin", "super_admin", "moderator"].includes(user.role)
     ) {
-      throw new Error("Access denied. Admin privileges required.");
+      throw new Error("Something went wrong");
     }
 
     setAccessToken(response.data.data.access_token);
@@ -179,21 +179,17 @@ export const adminApi = {
 
     const data = response.data.data;
 
-    // Check if user needs onboarding
     if (data.needs_onboarding) {
       throw new Error("Account needs onboarding. Please complete registration first.");
     }
 
-    // Check if this is an existing user with admin privileges
     if ('access_token' in data && 'user' in data) {
       const user = data.user;
       
-      // Validate admin role
       if (!user.role || !["admin", "super_admin", "moderator"].includes(user.role)) {
-        throw new Error("Access denied. Admin privileges required.");
+        throw new Error("Something went wrong");
       }
 
-      // Set tokens
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
     }
@@ -338,6 +334,9 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ users: any[]; total: number }> => {
     const params: any = { page, limit };
+    if (spaceId && spaceId !== "all") {
+      params.space_id = spaceId;
+    }
     const response = await apiClient.get(`/admin/users`, { params });
     return response.data.data;
   },
@@ -384,6 +383,9 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ groups: any[]; total: number; page: number; limit: number }> => {
     const params: any = { status, page, limit };
+    if (spaceId && spaceId !== "all") {
+      params.space_id = spaceId;
+    }
     const response = await apiClient.get(`/admin/groups`, { params });
     return response.data.data;
   },
@@ -517,6 +519,9 @@ export const adminApi = {
     spaceId?: string | null
   ): Promise<{ communities: any[]; page: number; limit: number }> => {
     const params: any = { category, status, page, limit };
+    if (spaceId && spaceId !== "all") {
+      params.space_id = spaceId;
+    }
     const response = await apiClient.get(`/admin/communities`, { params });
     return response.data.data;
   },
@@ -1142,6 +1147,71 @@ export const adminApi = {
     const response = await apiClient.get("/analytics/charts/events", {
       params: { period },
     });
+    return response.data.data;
+  },
+
+  getStoriesGrowth: async (period: string = "month"): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/stories", {
+      params: { period },
+    });
+    return response.data.data;
+  },
+
+  getUsersByGroupType: async (): Promise<any[]> => {
+    const response = await apiClient.get("/analytics/charts/users-by-group-type");
+    return response.data.data;
+  },
+
+  getAllFeedback: async (
+    status?: string,
+    category?: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ feedback: any[]; total: number; page: number; limit: number }> => {
+    const params: any = { page, limit };
+    if (status && status !== "all") params.status = status;
+    if (category && category !== "all") params.category = category;
+    const response = await apiClient.get("/feedback", { params });
+    return response.data.data;
+  },
+
+  getFeedbackStats: async (): Promise<any> => {
+    const response = await apiClient.get("/feedback/stats");
+    return response.data.data;
+  },
+
+  updateFeedbackStatus: async (
+    feedbackId: string,
+    status: string
+  ): Promise<void> => {
+    await apiClient.put(`/feedback/${feedbackId}/status`, { status });
+  },
+
+  deleteFeedback: async (feedbackId: string): Promise<void> => {
+    await apiClient.delete(`/feedback/${feedbackId}`);
+  },
+
+  createDepartment: async (data: {
+    space_id: string;
+    name: string;
+    description?: string;
+    head_of_department?: string;
+    contact_email?: string;
+  }): Promise<any> => {
+    const response = await apiClient.post("/departments", data);
+    return response.data.data;
+  },
+
+  bulkCreateDepartments: async (data: {
+    space_id: string;
+    departments: {
+      name: string;
+      description?: string;
+      head_of_department?: string;
+      contact_email?: string;
+    }[];
+  }): Promise<any> => {
+    const response = await apiClient.post("/departments/bulk", data);
     return response.data.data;
   },
 };

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pin, Users } from "lucide-react";
 import { GroupChat } from "@/types/messages";
+import { extractStoryReplyMessage } from "./StoryReplyMessage";
 
 interface GroupChatCardProps {
   groupChat: GroupChat;
@@ -59,7 +60,7 @@ export const GroupChatCard = ({
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground truncate pr-2">
-                  {groupChat.lastMessage}
+                  {extractStoryReplyMessage(groupChat.lastMessage)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {groupChat.memberCount} members

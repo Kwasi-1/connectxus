@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RoleSelector } from "@/features/auth/RoleSelector";
@@ -18,9 +19,10 @@ import { StudentFields } from "@/features/auth/StudentFields";
 import { StaffFields } from "@/features/auth/StaffFields";
 import { InterestsSelector } from "@/features/auth/InterestsSelector";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { completeGoogleOnboarding } from "@/api/auth.api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 
 const googleOnboardingSchema = z.object({
   role: z.enum(["student", "not-student"]),
@@ -67,6 +69,9 @@ export const GoogleOnboardingPage: React.FC = () => {
   });
 
   const watchedRole = form.watch("role");
+  const watchedUsername = form.watch("username");
+
+  const { status: usernameStatus, message: usernameMessage, isChecking: isCheckingUsername, isAvailable: isUsernameAvailable } = useUsernameAvailability(watchedUsername);
 
   useEffect(() => {
     form.setValue("is_student", watchedRole === "student");
@@ -91,7 +96,31 @@ export const GoogleOnboardingPage: React.FC = () => {
 
   const totalSteps = 4;
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    if (currentStep === 2) {
+      const username = form.getValues("username");
+
+      if (!username || username.length < 3) {
+        toast.error("Please enter a valid username (at least 3 characters)");
+        return;
+      }
+
+      if (isCheckingUsername) {
+        toast.info("Please wait while we check username availability...");
+        return;
+      }
+
+      if (isUsernameAvailable === false) {
+        toast.error("Username is already taken. Please choose another one.");
+        return;
+      }
+
+      if (isUsernameAvailable === null && username.length >= 3) {
+        toast.error("Could not verify username availability. Please try again.");
+        return;
+      }
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -201,8 +230,32 @@ export const GoogleOnboardingPage: React.FC = () => {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
+                    <div className="relative">
+                      <Input placeholder="Enter your username" {...field} />
+                      {field.value && field.value.length >= 3 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {isCheckingUsername && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          {usernameStatus === 'available' && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                          {usernameStatus === 'taken' && (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
+                  {field.value && field.value.length >= 3 && usernameMessage && (
+                    <FormDescription className={
+                      usernameStatus === 'available' ? 'text-green-600' :
+                      usernameStatus === 'taken' ? 'text-destructive' :
+                      'text-muted-foreground'
+                    }>
+                      {usernameMessage}
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

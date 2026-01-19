@@ -17,6 +17,7 @@ export interface Group {
   category: string;
   group_type: 'project' | 'public' | 'private';
   avatar?: string | null;
+  cover_image?: string | null;
   allow_invites: boolean;
   allow_member_posts: boolean;
   created_by?: string | null;

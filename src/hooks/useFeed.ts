@@ -12,7 +12,6 @@ import {
   toggleLikePost,
   repostPost,
   deletePost as apiDeletePost,
-  getUserMediaPosts,
 } from '@/api/posts.api';
 import type { FeedPost, FeedType, FeedTab, FeedFilters, FeedPaginationParams } from '@/types/feed';
 import { toast } from 'sonner';
@@ -67,10 +66,6 @@ export function useFeed(options: UseFeedOptions) {
         return ['liked-posts', userId];
       case 'trending':
         return ['trending-posts'];
-      case 'media':
-        return ['user-media-posts', userId];
-      case 'replies':
-        return ['user-replies', userId];
       default:
         return ['feed', 'following'];
     }
@@ -137,19 +132,8 @@ export function useFeed(options: UseFeedOptions) {
           case 'trending':
             posts = await getTrendingPosts(params);
             break;
-          case 'media':
-            if (!userId) {
-              console.warn('User ID required for media feed');
-              return emptyResult;
-            }
-            posts = await getUserMediaPosts(userId, params);
-            break;
-          case 'replies':
-            // For replies, we'll return empty here since useFeed expects posts
-            // The ProfileTabs component will handle replies separately
-            return emptyResult;
           default:
-            posts = await getFollowingFeed(params);
+            posts = await getForYouFeed(params);
         }
 
         if (!Array.isArray(posts)) {

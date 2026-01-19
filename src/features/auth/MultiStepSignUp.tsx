@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,8 +21,9 @@ import { StudentFields } from "./StudentFields";
 import { StaffFields } from "./StaffFields";
 import { InterestsSelector } from "./InterestsSelector";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { UniversitySelector } from "./UniversitySelector";
+import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 
 const signUpSchema = z
   .object({
@@ -77,6 +79,9 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   });
 
   const watchedRole = form.watch("role");
+  const watchedUsername = form.watch("username");
+
+  const { status: usernameStatus, message: usernameMessage, isChecking: isCheckingUsername, isAvailable: isUsernameAvailable } = useUsernameAvailability(watchedUsername);
 
   React.useEffect(() => {
     form.setValue("is_student", watchedRole === "student");
@@ -85,7 +90,31 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
 
   let totalSteps = 5;
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    if (currentStep === 2) {
+      const username = form.getValues("username");
+
+      if (!username || username.length < 3) {
+        toast.error("Please enter a valid username (at least 3 characters)");
+        return;
+      }
+
+      if (isCheckingUsername) {
+        toast.info("Please wait while we check username availability...");
+        return;
+      }
+
+      if (isUsernameAvailable === false) {
+        toast.error("Username is already taken. Please choose another one.");
+        return;
+      }
+
+      if (isUsernameAvailable === null && username.length >= 3) {
+        toast.error("Could not verify username availability. Please try again.");
+        return;
+      }
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -143,8 +172,32 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
+                    <div className="relative">
+                      <Input placeholder="Enter your username" {...field} />
+                      {field.value && field.value.length >= 3 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {isCheckingUsername && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          {usernameStatus === 'available' && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                          {usernameStatus === 'taken' && (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
+                  {field.value && field.value.length >= 3 && usernameMessage && (
+                    <FormDescription className={
+                      usernameStatus === 'available' ? 'text-green-600' :
+                      usernameStatus === 'taken' ? 'text-destructive' :
+                      'text-muted-foreground'
+                    }>
+                      {usernameMessage}
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

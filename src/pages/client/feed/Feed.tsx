@@ -18,7 +18,7 @@ import { createPost } from "@/api/posts.api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { FeedTab, FeedPost } from "@/types/feed";
-import { getStoriesFromStorage } from "@/utils/newStoryStorage";
+import { useStories } from "@/hooks/useStories";
 import type { StoryData } from "@/types/storyTypes";
 
 const Feed = () => {
@@ -36,7 +36,10 @@ const Feed = () => {
   );
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isAddStoryModalOpen, setIsAddStoryModalOpen] = useState(false);
-  const [allStories, setAllStories] = useState<StoryData[]>([]);
+  const [selectedUserStories, setSelectedUserStories] = useState<any>(null);
+  const [selectedUserIndex, setSelectedUserIndex] = useState<number>(0);
+
+  const { groupedStories, isLoading: storiesLoading } = useStories();
 
   const {
     posts,
@@ -133,26 +136,19 @@ const Feed = () => {
     setActiveTab(tab);
   };
 
-  const handleStoryClick = (story: StoryData, index: number) => {
-    setSelectedStoryIndex(index);
+  const handleStoryClick = (userStories: any, storyIndex: number) => {
+    const userIndex = groupedStories.findIndex(
+      (group) => group.user_id === userStories.user_id
+    );
+    setSelectedUserStories(userStories);
+    setSelectedStoryIndex(storyIndex);
+    setSelectedUserIndex(userIndex >= 0 ? userIndex : 0);
     setIsStoryViewerOpen(true);
   };
 
   const handleAddStory = () => {
     setIsAddStoryModalOpen(true);
   };
-
-  const handleStoryCreated = () => {
-    // Refresh stories from localStorage
-    const stories = getStoriesFromStorage();
-    setAllStories(stories);
-  };
-
-  // Load stories on mount
-  useEffect(() => {
-    const stories = getStoriesFromStorage();
-    setAllStories(stories);
-  }, []);
 
   return (
     <>
@@ -165,9 +161,10 @@ const Feed = () => {
 
           {/* Stories Section */}
           <NewStoriesList
-            stories={allStories}
+            groupedStories={groupedStories}
             onStoryClick={handleStoryClick}
             onAddStory={handleAddStory}
+            isLoading={storiesLoading}
           />
 
           <div className="min-h-screen">
@@ -246,15 +243,22 @@ const Feed = () => {
       )}
 
       {/* Story Viewer */}
-      {selectedStoryIndex !== null && (
+      {selectedStoryIndex !== null && selectedUserStories && (
         <NewStoryViewer
           isOpen={isStoryViewerOpen}
           onClose={() => {
             setIsStoryViewerOpen(false);
             setSelectedStoryIndex(null);
+            setSelectedUserStories(null);
           }}
-          stories={allStories}
+          userStories={selectedUserStories}
           initialStoryIndex={selectedStoryIndex}
+          allGroupedStories={groupedStories}
+          currentUserIndex={selectedUserIndex}
+          onUserChange={(newUserIndex) => {
+            setSelectedUserIndex(newUserIndex);
+            setSelectedUserStories(groupedStories[newUserIndex]);
+          }}
         />
       )}
 
@@ -262,7 +266,6 @@ const Feed = () => {
       <NewStoryModal
         isOpen={isAddStoryModalOpen}
         onClose={() => setIsAddStoryModalOpen(false)}
-        onStoryCreated={handleStoryCreated}
       />
     </>
   );

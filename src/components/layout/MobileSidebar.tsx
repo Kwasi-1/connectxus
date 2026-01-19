@@ -31,21 +31,6 @@ import HelpIcon from "@/assets/icons/Help.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 import { navigationItems } from "./Sidebar";
 
-// const navigationItems = [
-//   { icon: IconlyHome2, label: "Home", path: "/feed", id: "home" },
-//   { icon: IconlySearch, label: "Explore", path: "/search", id: "explore" },
-//   {
-//     icon: IconlyNotification,
-//     label: "Notifications",
-//     path: "/notifications",
-//     id: "notifications",
-//   },
-//   { icon: IconlyMessage, label: "Messages", path: "/messages", id: "messages" },
-//   { icon: IconlyCategory, label: "Groups", path: "/hub", id: "groups" },
-//   { icon: TutoringIcon, label: "Tutoring", path: "/tutoring", id: "tutoring" },
-//   { icon: HelpIcon, label: "Campus Help", path: "/help", id: "help" },
-//   { icon: AccountIcon, label: "Account", path: "/account", id: "account" },
-// ];
 
 const navItems = navigationItems;
 

@@ -10,11 +10,17 @@ import type { AudienceType } from "@/types/storyTypes";
 interface TextStoryCreatorProps {
   onComplete: (caption: string, background: string) => void;
   onClose: () => void;
+  audienceType?: AudienceType;
+  audienceIds?: string[];
+  onAudienceSelect?: (type: AudienceType, ids: string[]) => void;
 }
 
 export const TextStoryCreator = ({
   onComplete,
   onClose,
+  audienceType = "following",
+  audienceIds = [],
+  onAudienceSelect,
 }: TextStoryCreatorProps) => {
   const [caption, setCaption] = useState("");
   const [selectedBg, setSelectedBg] = useState(TEXT_BACKGROUNDS[4].value); // Blue default
@@ -24,6 +30,20 @@ export const TextStoryCreator = ({
   const handleCreate = () => {
     if (!caption.trim()) return;
     onComplete(caption, selectedBg);
+  };
+
+  const getShareButtonText = () => {
+    if (audienceType === "space") return "Space";
+    if (audienceType === "following") return "Following";
+    if (audienceType === "community" && audienceIds.length > 0) {
+      return `Communities (${audienceIds.length})`;
+    }
+    if (audienceType === "group" && audienceIds.length > 0) {
+      return `Groups (${audienceIds.length})`;
+    }
+    if (audienceType === "community") return "Communities";
+    if (audienceType === "group") return "Groups";
+    return "Following";
   };
 
   return (
@@ -45,7 +65,7 @@ export const TextStoryCreator = ({
           onClick={() => setShowShareToSelector(true)}
           className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 px-4"
         >
-          Share To
+          {getShareButtonText()}
         </Button>
       </div>
 
@@ -169,9 +189,13 @@ export const TextStoryCreator = ({
         isOpen={showShareToSelector}
         onClose={() => setShowShareToSelector(false)}
         onSelect={(type: AudienceType, ids: string[]) => {
-          // Selection is automatically saved to localStorage by ShareToSelector
+          if (onAudienceSelect) {
+            onAudienceSelect(type, ids);
+          }
           setShowShareToSelector(false);
         }}
+        currentAudienceType={audienceType}
+        currentAudienceIds={audienceIds}
       />
     </div>
   );

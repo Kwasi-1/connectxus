@@ -175,6 +175,7 @@ export const getMyTutorProfile = async (): Promise<TutorProfile | null> => {
 
 export const getRecommendedTutors = async (
   params: {
+    page?: number;
     limit?: number;
     subject_type?: string;
     min_session_rate?: number;
@@ -209,11 +210,11 @@ export const getTutorApplication = async (
   return response.data.data;
 };
 
-export const getPendingTutorApplications = async (): Promise<
+export const getMyTutorApplications = async (): Promise<
   TutorApplication[]
 > => {
   const response = await apiClient.get<ApiResponse<TutorApplication[]>>(
-    "/tutoring/tutors/applications/pending",
+    "/tutoring/tutors/applications/all",
     { params: {} }
   );
   return response.data.data;
@@ -686,9 +687,13 @@ export interface TutorService {
   }>;
 }
 
-export const getTutorServices = async (): Promise<TutorService[]> => {
+export const getTutorServices = async (
+  page: number = 1,
+  limit: number = 20
+): Promise<TutorService[]> => {
   const response = await apiClient.get<ApiResponse<TutorService[]>>(
-    "/tutoring/services"
+    "/tutoring/tutors/applications/my-services",
+    { params: { page, limit } }
   );
   return response.data.data;
 };
@@ -880,7 +885,7 @@ export const tutoringApi = {
   updateTutorAvailability,
   getRecommendedTutors,
   getTutorApplication,
-  getPendingTutorApplications,
+  getMyTutorApplications,
   submitTutorApplication,
   updateTutorApplication,
   getTutoringSession,

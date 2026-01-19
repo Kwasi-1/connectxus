@@ -587,11 +587,22 @@ const CommunityDetail = () => {
           </div>
         </div>
 
+       
+        {(coverImageUrl || community.cover_image) && (
+          <div className="h-48 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
+            <img
+              src={coverImageUrl || community.cover_image}
+              alt="Community cover"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         <div className="p-4 border-b border-border">
           <div className="flex items-start space-x-4">
             <Avatar className="h-16 w-16">
               <AvatarImage
-                src={coverImageUrl || community.cover_image || undefined}
+                src={community.avatar || undefined}
                 alt={community.name}
               />
               <AvatarFallback className="text-lg">

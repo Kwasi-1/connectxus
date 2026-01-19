@@ -23,7 +23,6 @@ export const EventCard = ({
   const day = startDate.format("DD"); // 03
   const time = startDate.format("HH:mm"); // 21:30
 
-  // Fallback for location string parsing
   const locationParts = event.location ? event.location.split(",") : ["TBD"];
   const locationName = locationParts[0].trim();
   const locationSub = locationParts.length > 1 ? locationParts[1].trim() : "";

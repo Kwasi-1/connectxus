@@ -26,7 +26,7 @@ export function Analytics() {
   return (
     <AdminPageLayout title="Analytics">
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -46,6 +46,10 @@ export function Analytics() {
           <TabsTrigger value="community" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Community</span>
+          </TabsTrigger>
+          <TabsTrigger value="help" className="flex items-center gap-2">
+            <HelpCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Help</span>
           </TabsTrigger>
         </TabsList>
 
@@ -210,7 +214,7 @@ export function Analytics() {
                 Content Analytics
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Track content creation and help request trends
+                Track content creation including posts and stories
               </p>
             </CardHeader>
             <CardContent>
@@ -224,11 +228,11 @@ export function Analytics() {
                 />
 
                 <GrowthChart
-                  title="Help Requests"
-                  dataKey="help_requests"
-                  color="#ef4444"
-                  fetchData={adminApi.getHelpRequestsGrowth}
-                  icon={<HelpCircle className="h-5 w-5 text-red-600" />}
+                  title="Stories"
+                  dataKey="active_stories"
+                  color="#ec4899"
+                  fetchData={adminApi.getStoriesGrowth}
+                  icon={<Layers className="h-5 w-5 text-pink-600" />}
                 />
               </div>
             </CardContent>
@@ -271,6 +275,40 @@ export function Analytics() {
                   color="#ec4899"
                   fetchData={adminApi.getEventsGrowth}
                   icon={<Calendar className="h-5 w-5 text-pink-600" />}
+                />
+
+                <DistributionChart
+                  title="Users by Group Type"
+                  dataKey="user_count"
+                  labelKey="group_type"
+                  fetchData={adminApi.getUsersByGroupType}
+                  icon={<Users className="h-5 w-5 text-orange-600" />}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Help Tab */}
+        <TabsContent value="help" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5" />
+                Help & Support Analytics
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track help requests and support ticket trends
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <GrowthChart
+                  title="Help Requests"
+                  dataKey="help_requests"
+                  color="#ef4444"
+                  fetchData={adminApi.getHelpRequestsGrowth}
+                  icon={<HelpCircle className="h-5 w-5 text-red-600" />}
                 />
               </div>
             </CardContent>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Check, Users, Building2, UserPlus } from "lucide-react";
+import { X, Check, Users, Building2, UserPlus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -10,50 +10,73 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import {
-  mockCommunities,
-  mockGroups,
-  getSavedAudienceSelection,
-  saveAudienceSelection,
-} from "@/utils/newStoryStorage";
+import { getUserCommunities } from "@/api/communities.api";
+import { getUserGroups } from "@/api/groups.api";
 import { AudienceType } from "@/types/storyTypes";
 
 interface ShareToSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (type: AudienceType, ids: string[]) => void;
+  currentAudienceType?: AudienceType;
+  currentAudienceIds?: string[];
 }
 
 export const ShareToSelector = ({
   isOpen,
   onClose,
   onSelect,
+  currentAudienceType = "following",
+  currentAudienceIds = [],
 }: ShareToSelectorProps) => {
-  const [audienceType, setAudienceType] = useState<AudienceType>("following");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [audienceType, setAudienceType] = useState<AudienceType>(currentAudienceType);
+  const [selectedIds, setSelectedIds] = useState<string[]>(currentAudienceIds);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      const saved = getSavedAudienceSelection();
-      setAudienceType(saved.type);
-      setSelectedIds(saved.ids);
+      setAudienceType(currentAudienceType);
+      setSelectedIds(currentAudienceIds);
     }
-  }, [isOpen]);
+  }, [isOpen, currentAudienceType, currentAudienceIds]);
+
+  useEffect(() => {
+    if (showSelectionModal) {
+      loadItems();
+    }
+  }, [showSelectionModal, audienceType]);
+
+  const loadItems = async () => {
+    setLoading(true);
+    try {
+      if (audienceType === "community") {
+        const data = await getUserCommunities();
+        setCommunities(data);
+      } else if (audienceType === "group") {
+        const data = await getUserGroups();
+        setGroups(data);
+      }
+    } catch (error) {
+      console.error("Failed to load items:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTypeSelect = (type: AudienceType) => {
     setAudienceType(type);
     if (type === "community" || type === "group") {
       setShowSelectionModal(true);
     } else {
-      // Following doesn't need selection
       setSelectedIds([]);
       handleConfirm(type, []);
     }
   };
 
   const handleConfirm = (type: AudienceType, ids: string[]) => {
-    saveAudienceSelection(type, ids);
     onSelect(type, ids);
     setShowSelectionModal(false);
     onClose();
@@ -65,17 +88,44 @@ export const ShareToSelector = ({
     );
   };
 
-  const items = audienceType === "community" ? mockCommunities : mockGroups;
+  const selectAll = () => {
+    const items = audienceType === "community" ? communities : groups;
+    setSelectedIds(items.map((item) => item.id));
+  };
+
+  const items = audienceType === "community" ? communities : groups;
 
   return (
     <>
-      {/* Main Share To Selector */}
       <Dialog open={isOpen && !showSelectionModal} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center">Share To</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4">
+            <button
+              onClick={() => handleTypeSelect("space")}
+              className={cn(
+                "w-full p-4 rounded-xl border-2 transition-all hover:scale-[1.02] flex items-center gap-4",
+                audienceType === "space"
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              )}
+            >
+              <div className="p-3 rounded-full bg-primary/20">
+                <Globe className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-semibold">Space</p>
+                <p className="text-sm text-muted-foreground">
+                  Share with entire university
+                </p>
+              </div>
+              {audienceType === "space" && (
+                <Check className="w-5 h-5 text-primary" />
+              )}
+            </button>
+
             <button
               onClick={() => handleTypeSelect("following")}
               className={cn(
@@ -152,48 +202,67 @@ export const ShareToSelector = ({
         </DialogContent>
       </Dialog>
 
-      {/* Community/Group Selection Modal */}
       <Dialog open={showSelectionModal} onOpenChange={setShowSelectionModal}>
         <DialogContent className="sm:max-w-lg max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>
-              Select {audienceType === "community" ? "Communities" : "Groups"}
+            <DialogTitle className="flex items-center justify-between">
+              <span>
+                Select {audienceType === "community" ? "Communities" : "Groups"}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={selectAll}
+                className="text-primary hover:text-primary"
+              >
+                All
+              </Button>
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[50vh] pr-4">
-            <div className="space-y-2 py-2">
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => toggleSelection(item.id)}
-                  className={cn(
-                    "w-full p-3 rounded-lg border transition-all hover:scale-[1.01] flex items-center gap-3",
-                    selectedIds.includes(item.id)
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/30"
-                  )}
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={item.avatar} alt={item.name} />
-                    <AvatarFallback>
-                      {item.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left">
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.memberCount.toLocaleString()} members
-                    </p>
-                  </div>
-                  {selectedIds.includes(item.id) && (
-                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  )}
-                </button>
-              ))}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          </ScrollArea>
+          ) : items.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No {audienceType === "community" ? "communities" : "groups"} found
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[50vh] pr-4">
+              <div className="space-y-2 py-2">
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleSelection(item.id)}
+                    className={cn(
+                      "w-full p-3 rounded-lg border transition-all hover:scale-[1.01] flex items-center gap-3",
+                      selectedIds.includes(item.id)
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/30"
+                    )}
+                  >
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={item.avatar || item.image_url} alt={item.name} />
+                      <AvatarFallback>
+                        {item.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 text-left">
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(item.member_count || item.members_count || 0).toLocaleString()} members
+                      </p>
+                    </div>
+                    {selectedIds.includes(item.id) && (
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
           <div className="flex gap-2 pt-4">
             <Button
               variant="outline"

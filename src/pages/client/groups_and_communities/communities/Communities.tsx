@@ -436,7 +436,7 @@ const Communities = () => {
               onClick={() => navigate(`/communities/${community.id}`)}
             >
               <Avatar className="h-14 w-14 rounded-sm">
-                <AvatarImage src={community.cover_image} alt={community.name} />
+                <AvatarImage src={community.avatar} alt={community.name} />
                 <AvatarFallback className="h-14 w-14 rounded-sm">
                   {community.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>

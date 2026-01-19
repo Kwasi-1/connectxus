@@ -22,6 +22,7 @@ import { uploadFile } from "@/api/files.api";
 import { getWebSocketClient } from "@/lib/websocket";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { extractStoryReplyMessage } from "@/components/messages/StoryReplyMessage";
 import {
   Search,
   Plus,
@@ -43,6 +44,10 @@ import {
   Mic,
 } from "lucide-react";
 import { NewChatModal } from "@/components/messages/NewChatModal";
+import {
+  StoryReplyMessage,
+  isStoryReply,
+} from "@/components/messages/StoryReplyMessage";
 import {
   getFileCategory,
   formatFileSize,
@@ -519,10 +524,11 @@ const Messages = () => {
     const isSelected = conversation.id === selectedConversationId;
     const { name: displayName, avatar: displayAvatar } =
       getConversationDisplay(conversation);
-    const lastMessageContent =
+    const rawLastMessage =
       conversation.last_message_content ||
       conversation.last_message?.content ||
       "No messages yet";
+    const lastMessageContent = extractStoryReplyMessage(rawLastMessage);
     const lastMessageTime =
       conversation.last_message_time || conversation.last_message?.created_at;
 
@@ -730,16 +736,22 @@ const Messages = () => {
                                 {senderName}
                               </p>
                             )}
-                            <div
-                              className={`px-3 py-2 rounded-lg ${
-                                isOwnMessage
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground"
-                              }`}
-                            >
-                              {message.attachments &&
-                                Array.isArray(message.attachments) &&
-                                message.attachments.length > 0 && (
+                            {isStoryReply(message.content) ? (
+                              <StoryReplyMessage
+                                content={message.content}
+                                isOwnMessage={isOwnMessage}
+                              />
+                            ) : (
+                              <div
+                                className={`px-3 py-2 rounded-lg ${
+                                  isOwnMessage
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-foreground"
+                                }`}
+                              >
+                                {message.attachments &&
+                                  Array.isArray(message.attachments) &&
+                                  message.attachments.length > 0 && (
                                   <div
                                     className={`mb-2 grid gap-2 ${
                                       message.attachments.length === 1
@@ -852,21 +864,22 @@ const Messages = () => {
                                 ) && (
                                   <p className="text-sm text-wrap">{message.content}</p>
                                 )}
-                              <p
-                                className={`text-xs mt-1 ${
-                                  isOwnMessage
-                                    ? "text-primary-foreground/70"
-                                    : "text-muted-foreground"
-                                }`}
-                              >
-                                {formatDistanceToNow(
-                                  new Date(message.created_at),
-                                  { addSuffix: true }
-                                )}
-                              </p>
-                            </div>
+                                <p
+                                  className={`text-xs mt-1 ${
+                                    isOwnMessage
+                                      ? "text-primary-foreground/70"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {formatDistanceToNow(
+                                    new Date(message.created_at),
+                                    { addSuffix: true }
+                                  )}
+                                </p>
+                              </div>
+                            )}
 
-                            {isOwnMessage && (
+                            {isOwnMessage && !isStoryReply(message.content) && (
                               <div className="flex items-center gap-1 mt-1">
                                 {message.is_read ? (
                                   <>
@@ -984,7 +997,6 @@ const Messages = () => {
                       value={newMessage}
                       onChange={(e) => {
                         setNewMessage(e.target.value);
-                        // Auto-resize textarea
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = "auto";
                         target.style.height = `${Math.min(

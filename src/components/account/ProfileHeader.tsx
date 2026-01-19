@@ -15,6 +15,7 @@ import { uploadFile } from "@/api/files.api";
 import { toast as sonnerToast } from "sonner";
 import { FollowersFollowingModal } from "./FollowersFollowingModal";
 import { UpdatePasswordModal } from "./UpdatePasswordModal";
+import { FeedbackModal } from "./FeedbackModal";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaces } from "@/api/spaces.api";
 import { getDepartmentsBySpace } from "@/api/departments.api";
@@ -57,6 +58,7 @@ export const ProfileHeader = ({
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -132,7 +134,9 @@ export const ProfileHeader = ({
   const handleSave = async () => {
     try {
       setIsUploadingAvatar(true);
+      setIsUploadingCover(true);
       let avatarUrl = user.avatar;
+      let coverImageUrl = user.cover_image || "";
 
       if (selectedAvatarFile) {
         const uploadedFile = await uploadFile({
@@ -145,6 +149,17 @@ export const ProfileHeader = ({
         sonnerToast.success("Avatar uploaded successfully");
       }
 
+      if (selectedCoverFile) {
+        const uploadedFile = await uploadFile({
+          file: selectedCoverFile,
+          moduleType: "users",
+          moduleId: user.id,
+          accessLevel: "public",
+        });
+        coverImageUrl = uploadedFile.url;
+        sonnerToast.success("Cover image uploaded successfully");
+      }
+
       onUserUpdate({
         ...user,
         displayName: editForm.displayName,
@@ -152,16 +167,20 @@ export const ProfileHeader = ({
         level: editForm.level,
         department_id: editForm.departmentId,
         avatar: avatarUrl,
+        cover_image: coverImageUrl,
       });
 
       setIsEditing(false);
       setAvatarPreview(null);
       setSelectedAvatarFile(null);
+      setCoverPreview(null);
+      setSelectedCoverFile(null);
     } catch (error) {
       console.error("Error saving profile:", error);
       sonnerToast.error("Failed to save profile");
     } finally {
       setIsUploadingAvatar(false);
+      setIsUploadingCover(false);
     }
   };
 
@@ -175,6 +194,8 @@ export const ProfileHeader = ({
     setIsEditing(false);
     setAvatarPreview(null);
     setSelectedAvatarFile(null);
+    setCoverPreview(null);
+    setSelectedCoverFile(null);
     if (avatarInputRef.current) {
       avatarInputRef.current.value = "";
     }
@@ -238,18 +259,46 @@ export const ProfileHeader = ({
   return (
     <div className="relative">
       {/* Cover Image */}
-      <div className="h-48 md:h-48 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
-        {/* Back button overlay - optional */}
-        <div className="absolute top-4 left-4 z-10">
-          {/* Add back button here if needed */}
-        </div>
+      <div className="h-48 md:h-52 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
+        {/* Cover Image */}
+        {(coverPreview || user.cover_image) && (
+          <img
+            src={coverPreview || user.cover_image}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        )}
+
+        {/* Edit cover button - only visible when editing */}
+        {isEditing && isOwnProfile && (
+          <>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoverSelect}
+              className="hidden"
+            />
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm text-foreground rounded-full p-2 shadow-lg hover:bg-background transition-colors z-10"
+              disabled={isUploadingCover}
+            >
+              {isUploadingCover ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5" />
+              )}
+            </button>
+          </>
+        )}
 
         {/* Gradient overlay at bottom of cover for smooth transition */}
         <div className="absolute -bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       {/* Avatar positioned outside cover container to avoid clipping */}
-      <div className="absolute top-36 md:top-32 left-4 md:left-6 z-10">
+      <div className="absolute top-36 md:top-36 left-4 md:left-6 z-10">
         <div className="relative">
           <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background  rounded-3xl md:rounded-[28px] shadow-md">
             <AvatarImage
@@ -313,14 +362,24 @@ export const ProfileHeader = ({
           {/* Action buttons */}
           <div className="flex items-center gap-2 ml-3">
             {isOwnProfile ? (
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                variant="outline"
-                size="sm"
-                className="rounded-full font-medium border-muted-foreground/30"
-              >
-                {isEditing ? "Cancel" : "Edit profile"}
-              </Button>
+              <>
+                <Button
+                  onClick={() => setShowFeedbackModal(true)}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full font-medium border-muted-foreground/30"
+                >
+                  Submit Feedback
+                </Button>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full font-medium border-muted-foreground/30"
+                >
+                  {isEditing ? "Cancel" : "Edit profile"}
+                </Button>
+              </>
             ) : (
               <>
                 <Button
@@ -570,6 +629,12 @@ export const ProfileHeader = ({
           onPasswordUpdated={onRefreshUserData}
         />
       )}
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+      />
     </div>
   );
 };

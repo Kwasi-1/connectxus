@@ -2,7 +2,6 @@ import { Story, StoryGroup } from '@/types/story';
 
 const STORAGE_KEY = 'user_stories';
 
-// Save user stories to localStorage
 export const saveUserStories = (stories: Story[]) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
@@ -11,7 +10,6 @@ export const saveUserStories = (stories: Story[]) => {
   }
 };
 
-// Get user stories from localStorage
 export const getUserStories = (): Story[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -19,7 +17,6 @@ export const getUserStories = (): Story[] => {
     
     const stories: Story[] = JSON.parse(stored);
     
-    // Filter out expired stories
     const now = new Date();
     return stories.filter(story => new Date(story.expires_at) > now);
   } catch (error) {
@@ -28,7 +25,6 @@ export const getUserStories = (): Story[] => {
   }
 };
 
-// Add a new story
 export const addUserStory = (
   userId: string,
   username: string,
@@ -37,7 +33,7 @@ export const addUserStory = (
   mediaType: 'image' | 'video'
 ): Story => {
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); 
 
   const newStory: Story = {
     id: `story_${Date.now()}`,
@@ -57,20 +53,17 @@ export const addUserStory = (
   return newStory;
 };
 
-// Delete a story
 export const deleteUserStory = (storyId: string) => {
   const existingStories = getUserStories();
   const updatedStories = existingStories.filter(story => story.id !== storyId);
   saveUserStories(updatedStories);
 };
 
-// Clear all expired stories
 export const clearExpiredStories = () => {
   const validStories = getUserStories();
   saveUserStories(validStories);
 };
 
-// Get user's story group
 export const getUserStoryGroup = (
   userId: string,
   username: string,

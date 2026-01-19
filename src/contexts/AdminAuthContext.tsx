@@ -135,7 +135,6 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await adminApi.googleSignIn(idToken);
 
-      // Response should be an existing user with admin privileges
       if ("access_token" in response && "user" in response) {
         const apiUser = response.user;
 

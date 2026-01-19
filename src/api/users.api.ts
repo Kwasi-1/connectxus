@@ -37,6 +37,7 @@ export interface UserProfile {
 export interface UpdateUserRequest {
   full_name?: string;
   avatar?: string | null;
+  cover_image?: string | null;
   bio?: string | null;
   level?: string | null;
   department_id?: string | null;

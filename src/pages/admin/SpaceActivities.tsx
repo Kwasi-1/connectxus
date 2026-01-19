@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { SpaceSwitcher } from "@/components/admin/SpaceSwitcher";
 import { CreateSpaceModal } from "@/components/admin/CreateSpaceModal";
+import { AddDepartmentModal } from "@/components/admin/AddDepartmentModal";
 import { adminApi } from "@/api/admin.api";
 
 interface Space {
@@ -73,6 +74,7 @@ const SpaceActivities = () => {
   const [currentSpaceId, setCurrentSpaceId] = useState<string>("");
   const [activityFilter, setActivityFilter] = useState("all");
   const [createSpaceModalOpen, setCreateSpaceModalOpen] = useState(false);
+  const [addDepartmentModalOpen, setAddDepartmentModalOpen] = useState(false);
 
   const { data: spacesResponse, isLoading: loadingSpaces } = useQuery({
     queryKey: ["spaces"],
@@ -324,6 +326,15 @@ const SpaceActivities = () => {
       title="Space Activities"
     >
       <div className="space-y-3">
+        {currentSpaceId && (
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setAddDepartmentModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Department
+            </Button>
+          </div>
+        )}
+
         {/* Stats Grid */}
         {currentSpaceId && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
@@ -583,6 +594,13 @@ const SpaceActivities = () => {
           onOpenChange={setCreateSpaceModalOpen}
           onSuccess={handleSpaceCreated}
         />
+        {currentSpaceId && (
+          <AddDepartmentModal
+            open={addDepartmentModalOpen}
+            onOpenChange={setAddDepartmentModalOpen}
+            spaceId={currentSpaceId}
+          />
+        )}
       </div>
     </AdminPageLayout>
   );

@@ -57,11 +57,9 @@ export function SystemSettings() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            Access Denied
+Something went wrong
           </h1>
-          <p className="text-muted-foreground">
-            You need Super Admin privileges to access this page.
-          </p>
+          
         </div>
       </div>
     );

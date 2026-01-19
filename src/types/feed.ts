@@ -79,4 +79,4 @@ export interface FeedResponse {
 }
 
 export type FeedTab = 'following' | 'university';
-export type FeedType = 'home' | 'user' | 'community' | 'group' | 'liked' | 'trending' | 'media' | 'replies';
+export type FeedType = 'home' | 'user' | 'community' | 'group' | 'liked' | 'trending';

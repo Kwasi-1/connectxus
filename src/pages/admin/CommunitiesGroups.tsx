@@ -68,6 +68,8 @@ import {
   Ban,
   Activity,
   Loader2,
+  Upload,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Community } from "@/types/communities";
@@ -79,6 +81,7 @@ import { type AdminGroup } from "@/data/mockAdminCommunitiesData";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { uploadFile } from "@/api/files.api";
 
 interface CreateCommunityModalProps {
   open: boolean;
@@ -387,7 +390,7 @@ function GroupDetailsModal({
             <div>
               <Label className="text-sm text-muted-foreground">Type</Label>
               <p className="text-sm font-medium capitalize">
-                {group.groupType}
+                {group.group_type}
               </p>
             </div>
             <div>
@@ -443,7 +446,7 @@ function GroupDetailsModal({
             <div>
               <Label className="text-sm text-muted-foreground">Created</Label>
               <p className="text-sm font-medium">
-                {new Date(group.createdAt).toLocaleDateString()}
+                {new Date(group.created_at).toLocaleDateString()}
               </p>
             </div>
             <div>
@@ -524,7 +527,7 @@ export function CommunitiesGroups() {
   const [showAssignModeratorModal, setShowAssignModeratorModal] =
     useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
-    null
+    null,
   );
 
   const [groups, setGroups] = useState<AdminGroup[]>([]);
@@ -548,8 +551,17 @@ export function CommunitiesGroups() {
     description: "",
     category: "",
     coverImage: "",
+    avatar: "",
     isPublic: true,
   });
+
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(
+    null,
+  );
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [isUploadingEdit, setIsUploadingEdit] = useState(false);
 
   const fetchCommunities = useCallback(async () => {
     try {
@@ -564,7 +576,7 @@ export function CommunitiesGroups() {
         statusParam,
         currentPage,
         pageSize,
-        selectedSpaceId
+        selectedSpaceId,
       );
 
       setCommunities(response.communities || []);
@@ -579,7 +591,14 @@ export function CommunitiesGroups() {
     } finally {
       setLoading(false);
     }
-  }, [toast, categoryFilter, statusFilter, currentPage, pageSize, selectedSpaceId]);
+  }, [
+    toast,
+    categoryFilter,
+    statusFilter,
+    currentPage,
+    pageSize,
+    selectedSpaceId,
+  ]);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -590,7 +609,7 @@ export function CommunitiesGroups() {
         status,
         currentPage,
         pageSize,
-        selectedSpaceId
+        selectedSpaceId,
       );
       setGroups(response.groups as AdminGroup[]);
       setTotalGroups(response.total);
@@ -620,7 +639,7 @@ export function CommunitiesGroups() {
         (user: any) =>
           user.full_name?.toLowerCase().includes(query.toLowerCase()) ||
           user.username?.toLowerCase().includes(query.toLowerCase()) ||
-          user.email?.toLowerCase().includes(query.toLowerCase())
+          user.email?.toLowerCase().includes(query.toLowerCase()),
       );
       setSearchUsers(filteredUsers as User[]);
     } catch (error) {
@@ -650,7 +669,6 @@ export function CommunitiesGroups() {
   const handleCreateCommunity = useCallback(
     async (communityData: Partial<Community>) => {
       try {
-
         const payload = {
           name: communityData.name || "",
           description: communityData.description || "",
@@ -659,7 +677,6 @@ export function CommunitiesGroups() {
           is_public: communityData.isPublic ?? true,
           settings: communityData.settings || [],
         };
-
 
         await adminApi.createCommunity(payload);
 
@@ -688,13 +705,104 @@ export function CommunitiesGroups() {
         });
       }
     },
-    [toast, fetchCommunities]
+    [toast, fetchCommunities],
   );
+
+  const handleEditAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Avatar must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setEditAvatarPreview(previewUrl);
+    setEditAvatarFile(file);
+  };
+
+  const handleEditCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Cover image must be less than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setEditCoverPreview(previewUrl);
+    setEditCoverFile(file);
+  };
+
+  const handleRemoveEditAvatar = () => {
+    if (editAvatarPreview) {
+      URL.revokeObjectURL(editAvatarPreview);
+    }
+    setEditAvatarPreview(null);
+    setEditAvatarFile(null);
+  };
+
+  const handleRemoveEditCover = () => {
+    if (editCoverPreview) {
+      URL.revokeObjectURL(editCoverPreview);
+    }
+    setEditCoverPreview(null);
+    setEditCoverFile(null);
+  };
 
   const handleEditCommunity = useCallback(async () => {
     if (!selectedCommunity) return;
 
     try {
+      setIsUploadingEdit(true);
+      let avatarUrl = editFormData.avatar;
+      let coverImageUrl = editFormData.coverImage;
+
+      if (editAvatarFile) {
+        const uploaded = await uploadFile({
+          file: editAvatarFile,
+          moduleType: "communities",
+          accessLevel: "public",
+        });
+        avatarUrl = uploaded.url;
+      }
+
+      if (editCoverFile) {
+        const uploaded = await uploadFile({
+          file: editCoverFile,
+          moduleType: "communities",
+          accessLevel: "public",
+        });
+        coverImageUrl = uploaded.url;
+      }
       const settings = {
         theme: {
           accent_color: "#3B82F6",
@@ -726,12 +834,24 @@ export function CommunitiesGroups() {
         name: editFormData.name,
         description: editFormData.description,
         category: editFormData.category,
-        cover_image: editFormData.coverImage,
+        avatar: avatarUrl,
+        cover_image: coverImageUrl,
         is_public: editFormData.isPublic,
         settings: Array.from(settingsBytes),
       };
 
       await adminApi.updateCommunity(selectedCommunity.id, payload);
+
+      if (editAvatarPreview) {
+        URL.revokeObjectURL(editAvatarPreview);
+      }
+      if (editCoverPreview) {
+        URL.revokeObjectURL(editCoverPreview);
+      }
+      setEditAvatarFile(null);
+      setEditAvatarPreview(null);
+      setEditCoverFile(null);
+      setEditCoverPreview(null);
 
       toast({
         title: "Success",
@@ -752,8 +872,19 @@ export function CommunitiesGroups() {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingEdit(false);
     }
-  }, [selectedCommunity, editFormData, toast, fetchCommunities]);
+  }, [
+    selectedCommunity,
+    editFormData,
+    editAvatarFile,
+    editCoverFile,
+    editAvatarPreview,
+    editCoverPreview,
+    toast,
+    fetchCommunities,
+  ]);
 
   const handleDeleteCommunity = useCallback(async () => {
     if (!selectedCommunity) return;
@@ -812,7 +943,7 @@ export function CommunitiesGroups() {
         });
       }
     },
-    [toast, fetchCommunities]
+    [toast, fetchCommunities],
   );
 
   const handleExport = useCallback(async () => {
@@ -873,7 +1004,7 @@ export function CommunitiesGroups() {
         });
       }
     },
-    [toast, fetchGroups]
+    [toast, fetchGroups],
   );
 
   const handleRejectGroup = useCallback(
@@ -900,7 +1031,7 @@ export function CommunitiesGroups() {
         });
       }
     },
-    [toast, fetchGroups]
+    [toast, fetchGroups],
   );
 
   const handleDeleteGroup = useCallback(
@@ -926,7 +1057,7 @@ export function CommunitiesGroups() {
         });
       }
     },
-    [toast, fetchGroups]
+    [toast, fetchGroups],
   );
 
   const handleSuspendGroup = useCallback(async () => {
@@ -948,7 +1079,7 @@ export function CommunitiesGroups() {
         variant: "destructive",
       });
     },
-    [toast]
+    [toast],
   );
 
   const filteredCommunities = communities.filter((community) => {
@@ -978,7 +1109,7 @@ export function CommunitiesGroups() {
       setSelectedCommunities([]);
     } else {
       setSelectedCommunities(
-        filteredCommunities.map((community) => community.id)
+        filteredCommunities.map((community) => community.id),
       );
     }
   }, [selectedCommunities, filteredCommunities]);
@@ -987,7 +1118,7 @@ export function CommunitiesGroups() {
     setSelectedCommunities((prev) =>
       prev.includes(communityId)
         ? prev.filter((id) => id !== communityId)
-        : [...prev, communityId]
+        : [...prev, communityId],
     );
   }, []);
 
@@ -1003,7 +1134,7 @@ export function CommunitiesGroups() {
     setSelectedGroups((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        : [...prev, groupId],
     );
   }, []);
 
@@ -1097,7 +1228,7 @@ export function CommunitiesGroups() {
     departments: communities.filter((c) => c.category === "Department").length,
     totalMembers: communities.reduce(
       (acc, community) => acc + community.memberCount,
-      0
+      0,
     ),
   };
 
@@ -1286,7 +1417,7 @@ export function CommunitiesGroups() {
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={community.coverImage} />
+                      <AvatarImage src={community.avatar} />
                       <AvatarFallback>
                         {community.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -1324,9 +1455,14 @@ export function CommunitiesGroups() {
                             name: community.name,
                             description: community.description,
                             category: community.category,
+                            avatar: community.avatar || "",
                             coverImage: community.coverImage || "",
                             isPublic: community.isPublic ?? true,
                           });
+                          setEditAvatarFile(null);
+                          setEditAvatarPreview(null);
+                          setEditCoverFile(null);
+                          setEditCoverPreview(null);
                           setShowEditModal(true);
                         }}
                       >
@@ -1463,19 +1599,23 @@ export function CommunitiesGroups() {
                         {group.description}
                       </div>
                       <div className="flex gap-1 mt-1">
-                        {group.tags.slice(0, 2).map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                        {group.tags.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{group.tags.length - 2}
-                          </Badge>
+                        {group.tags && (
+                          <>
+                            {group.tags.slice(0, 2).map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                            {group.tags.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{group.tags.length - 2}
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1485,17 +1625,13 @@ export function CommunitiesGroups() {
                 <TableCell>
                   <div className="flex items-center space-x-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={group.creatorInfo.avatar} />
                       <AvatarFallback className="text-xs">
-                        {group.creatorInfo.name.substring(0, 2).toUpperCase()}
+                        {group.creator_name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="text-sm font-medium">
-                        {group.creatorInfo.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {group.creatorInfo.email}
+                        {group.creator_name}
                       </div>
                     </div>
                   </div>
@@ -1714,18 +1850,111 @@ export function CommunitiesGroups() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-coverImage">Cover Image URL</Label>
-              <Input
-                id="edit-coverImage"
-                type="url"
-                value={editFormData.coverImage}
-                onChange={(e) =>
-                  setEditFormData({
-                    ...editFormData,
-                    coverImage: e.target.value,
-                  })
-                }
-              />
+              <Label htmlFor="edit-avatar">Avatar (Optional)</Label>
+              <div className="space-y-2">
+                {(editAvatarPreview || editFormData.avatar) && (
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden">
+                    <img
+                      src={editAvatarPreview || editFormData.avatar}
+                      alt="Avatar preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditAvatarSelect}
+                    className="hidden"
+                    id="edit-avatar-upload"
+                    aria-label="Upload avatar"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("edit-avatar-upload")?.click()
+                      }
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {editAvatarFile || editFormData.avatar
+                        ? "Change Avatar"
+                        : "Upload Avatar"}
+                    </Button>
+                    {(editAvatarFile || editFormData.avatar) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveEditAvatar}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 5MB. JPG, PNG, or GIF. Recommended: 400x400px (square)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-coverImage">Cover Image (Optional)</Label>
+              <div className="space-y-2">
+                {(editCoverPreview || editFormData.coverImage) && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden">
+                    <img
+                      src={editCoverPreview || editFormData.coverImage}
+                      alt="Cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditCoverSelect}
+                    className="hidden"
+                    id="edit-cover-upload"
+                    aria-label="Upload cover image"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("edit-cover-upload")?.click()
+                      }
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {editCoverFile || editFormData.coverImage
+                        ? "Change Cover"
+                        : "Upload Cover"}
+                    </Button>
+                    {(editCoverFile || editFormData.coverImage) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveEditCover}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 10MB. JPG, PNG, or GIF. Recommended: 1200x400px
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1734,11 +1963,22 @@ export function CommunitiesGroups() {
               type="button"
               variant="outline"
               onClick={() => setShowEditModal(false)}
+              disabled={isUploadingEdit}
             >
               Cancel
             </Button>
-            <Button onClick={handleEditCommunity} disabled={!editFormData.name}>
-              Save Changes
+            <Button
+              onClick={handleEditCommunity}
+              disabled={!editFormData.name || isUploadingEdit}
+            >
+              {isUploadingEdit ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
