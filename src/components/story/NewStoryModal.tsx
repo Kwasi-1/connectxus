@@ -566,49 +566,90 @@ export const NewStoryModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleReset}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center">Create Story</DialogTitle>
+          <DialogTitle>Create Story</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-3 gap-4 py-6">
-          <button
-            onClick={() => setStoryType("text")}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <Type className="w-8 h-8 text-primary" />
-            </div>
-            <span className="font-semibold text-sm">Text</span>
-          </button>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <ImageIcon className="w-8 h-8 text-primary" />
+        <div className="py-4">
+          {/* User info */}
+          <div className="flex items-center gap-3 mb-6">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={user?.avatar} alt={user?.name} />
+              <AvatarFallback>
+                {user?.name?.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                Story visible for 24 hours
+              </p>
             </div>
-            <span className="font-semibold text-sm">Image</span>
-          </button>
+          </div>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <Video className="w-8 h-8 text-primary" />
-            </div>
-            <span className="font-semibold text-sm">Video</span>
-          </button>
+          {/* Story Type Options */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          <div className="gap-y-3 flex flex-row md:flex-col gap-x-2">
+            <button
+              onClick={() => setStoryType("text")}
+              className="w-full p-4 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <Type className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-semibold text-lg">Text <span className="hidden md:block">Story</span></p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Share your thoughts with custom backgrounds
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <ImageIcon className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-semibold text-lg">Image <span className="hidden md:block">Story</span></p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Upload a photo with caption & filters
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <Video className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-semibold text-lg">Video <span className="hidden md:block">Story</span></p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Upload a video with caption & filters
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
       </DialogContent>
     </Dialog>
   );

@@ -41,19 +41,22 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* Right Section - Auth Form */}
-        <div className="flex items-center justify-center p-6 lg:p-12 lg:px-6 bg-background h-full">
+        <div className="flex items-center justify-center p-2 sm:p-6 lg:p-12 lg:px-6 bg-background h-full">
           <div className="w-full max-w-lg">
             {/* Back Button */}
             <button
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-12 transition-colors"
+              className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-12 transition-colors"
               onClick={() => window.history.back()}
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
 
+            {/* <img src={logo} alt="Logo" className="w-7 h-7" /> */}
+            <Logo className="w-14 h-14 mb-6 lg:hidden mx-auto" />
+
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-8 text-center md:text-left">
               <h1 className="text-2xl font-semibold mb-3">
                 {isSignUp ? "Create Account" : "Welcome Back"}
               </h1>
