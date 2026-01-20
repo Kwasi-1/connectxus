@@ -24,7 +24,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'signIn' }) =>
           <Logo className="w-auto mx-auto h-16 block"/>
         </div>
         
-        <Card className="border border-border/40 shadow-lg customfonts rounded-none">
+        <Card className="border border-border/40 customfonts">
           <CardContent className="p-8">
             {isSignUp ? (
               <SignUpForm onToggleMode={toggleMode} />
