@@ -149,9 +149,6 @@ export function AddDepartmentModal({ open, onOpenChange, spaceId }: AddDepartmen
           if (!dept.name) {
             throw new Error(`Row ${index + 1}: name is required`);
           }
-          if (!dept.college) {
-            throw new Error(`Row ${index + 1}: college is required`);
-          }
         });
 
         setBulkData(parsedData);

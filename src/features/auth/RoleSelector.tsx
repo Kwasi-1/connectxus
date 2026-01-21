@@ -22,7 +22,7 @@ interface RoleSelectorProps {
 
 const roleOptions = [
   { value: "student", label: "Student" },
-  { value: "staff", label: "Not a Student" },
+  { value: "not-student", label: "Not a Student" },
 ];
 
 export const RoleSelector: React.FC<RoleSelectorProps> = ({
