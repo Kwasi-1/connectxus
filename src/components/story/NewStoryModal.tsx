@@ -607,7 +607,7 @@ export const NewStoryModal = ({
                   <Type className="w-7 h-7 text-primary" />
                 </div>
                 <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Text <span className="hidden md:block">Story</span></p>
+                  <p className="font-semibold text-lg">Text <span className="hidden md:inline-block">Story</span></p>
                   <p className="hidden md:block text-sm text-muted-foreground">
                     Share your thoughts with custom backgrounds
                   </p>
@@ -624,7 +624,7 @@ export const NewStoryModal = ({
                   <ImageIcon className="w-7 h-7 text-primary" />
                 </div>
                 <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Image <span className="hidden md:block">Story</span></p>
+                  <p className="font-semibold text-lg">Image <span className="hidden md:inline-block">Story</span></p>
                   <p className="hidden md:block text-sm text-muted-foreground">
                     Upload a photo with caption & filters
                   </p>
@@ -641,7 +641,7 @@ export const NewStoryModal = ({
                   <Video className="w-7 h-7 text-primary" />
                 </div>
                 <div className="text-left flex-1">
-                  <p className="font-semibold text-lg">Video <span className="hidden md:block">Story</span></p>
+                  <p className="font-semibold text-lg">Video <span className="hidden md:inline-block">Story</span></p>
                   <p className="hidden md:block text-sm text-muted-foreground">
                     Upload a video with caption & filters
                   </p>
