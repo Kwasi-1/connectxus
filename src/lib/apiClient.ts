@@ -3,8 +3,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { toast } from 'sonner';
 import { variables } from '@/utils/env';
 
-const API_BASE_URL = variables().API_BASE_URL || 'http://localhost:8000';
-const API_URL = variables().API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -183,5 +182,5 @@ export const isAuthenticated = (): boolean => {
   return !!getAccessToken();
 };
 
-export { apiClient, API_BASE_URL, API_URL };
+export { apiClient,API_URL };
 export default apiClient;
