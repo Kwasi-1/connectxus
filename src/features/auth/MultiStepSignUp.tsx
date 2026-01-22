@@ -21,14 +21,25 @@ import { StudentFields } from "./StudentFields";
 import { StaffFields } from "./StaffFields";
 import { InterestsSelector } from "./InterestsSelector";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { UniversitySelector } from "./UniversitySelector";
 import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 
 const signUpSchema = z
   .object({
     role: z.enum(["student", "not-student"]),
-    username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username must be at most 30 characters"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(30, "Username must be at most 30 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
@@ -81,16 +92,48 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
   const watchedRole = form.watch("role");
   const watchedUsername = form.watch("username");
 
-  const { status: usernameStatus, message: usernameMessage, isChecking: isCheckingUsername, isAvailable: isUsernameAvailable } = useUsernameAvailability(watchedUsername);
+  const {
+    status: usernameStatus,
+    message: usernameMessage,
+    isChecking: isCheckingUsername,
+    isAvailable: isUsernameAvailable,
+  } = useUsernameAvailability(watchedUsername);
 
   React.useEffect(() => {
     form.setValue("is_student", watchedRole === "student");
   }, [watchedRole, form]);
 
-
   let totalSteps = 5;
 
+  // Define which fields need validation for each step
+  const getStepFields = (step: number): (keyof SignUpFormData)[] => {
+    switch (step) {
+      case 1:
+        return ["role"];
+      case 2:
+        return ["username", "email", "phoneNumber"];
+      case 3:
+        return ["space_id"]; // department_id and level are optional
+      case 4:
+        return ["interests"];
+      case 5:
+        return ["password", "confirmPassword"];
+      default:
+        return [];
+    }
+  };
+
   const nextStep = async () => {
+    // Validate current step fields before proceeding
+    const fieldsToValidate = getStepFields(currentStep);
+    const isValid = await form.trigger(fieldsToValidate);
+
+    if (!isValid) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+
+    // Additional validation for step 2 (username availability)
     if (currentStep === 2) {
       const username = form.getValues("username");
 
@@ -110,7 +153,9 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
       }
 
       if (isUsernameAvailable === null && username.length >= 3) {
-        toast.error("Could not verify username availability. Please try again.");
+        toast.error(
+          "Could not verify username availability. Please try again.",
+        );
         return;
       }
     }
@@ -133,7 +178,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
       navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to create account"
+        error instanceof Error ? error.message : "Failed to create account",
       );
     }
   };
@@ -179,25 +224,31 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
                           {isCheckingUsername && (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           )}
-                          {usernameStatus === 'available' && (
+                          {usernameStatus === "available" && (
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                           )}
-                          {usernameStatus === 'taken' && (
+                          {usernameStatus === "taken" && (
                             <XCircle className="h-4 w-4 text-destructive" />
                           )}
                         </div>
                       )}
                     </div>
                   </FormControl>
-                  {field.value && field.value.length >= 3 && usernameMessage && (
-                    <FormDescription className={
-                      usernameStatus === 'available' ? 'text-green-600' :
-                      usernameStatus === 'taken' ? 'text-destructive' :
-                      'text-muted-foreground'
-                    }>
-                      {usernameMessage}
-                    </FormDescription>
-                  )}
+                  {field.value &&
+                    field.value.length >= 3 &&
+                    usernameMessage && (
+                      <FormDescription
+                        className={
+                          usernameStatus === "available"
+                            ? "text-green-600"
+                            : usernameStatus === "taken"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                        }
+                      >
+                        {usernameMessage}
+                      </FormDescription>
+                    )}
                   <FormMessage />
                 </FormItem>
               )}

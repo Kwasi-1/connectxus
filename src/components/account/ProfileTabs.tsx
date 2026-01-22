@@ -85,7 +85,10 @@ export const ProfileTabs = ({
       if (activeTab === "replies" && user.id) {
         setCommentsLoading(true);
         try {
-          const comments = await getUserComments(user.id, { page: 1, limit: 50 });
+          const comments = await getUserComments(user.id, {
+            page: 1,
+            limit: 50,
+          });
           setUserComments(comments);
         } catch (error) {
           console.error("Error fetching user comments:", error);
@@ -272,7 +275,7 @@ export const ProfileTabs = ({
                           <span className="text-muted-foreground">·</span>
                           <span className="text-muted-foreground text-sm">
                             {new Date(
-                              comment.comment_created_at
+                              comment.comment_created_at,
                             ).toLocaleDateString()}
                           </span>
                         </div>
