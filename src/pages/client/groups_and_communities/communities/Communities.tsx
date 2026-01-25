@@ -484,7 +484,6 @@ const Communities = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -513,7 +512,6 @@ const Communities = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as HubTab)}
@@ -535,7 +533,6 @@ const Communities = () => {
 
           <TabsContent value="my" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -547,7 +544,6 @@ const Communities = () => {
                 />
               </div>
 
-              {/* Communities Grid */}
               <div className="space-y-3">
                 {myCommunitiesList.length === 0 ? (
                   <div className="text-center py-12">
@@ -576,7 +572,6 @@ const Communities = () => {
 
           <TabsContent value="explore" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search and Filters */}
               <div className="flex items-center gap-2 ">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -608,7 +603,6 @@ const Communities = () => {
                     </SheetHeader>
 
                     <div className="space-y-6 py-6">
-                      {/* Category Filter */}
                       <div className="space-y-3">
                         <Label>Category</Label>
                         <Select
@@ -634,7 +628,6 @@ const Communities = () => {
                         </Select>
                       </div>
 
-                      {/* Level Filter */}
                       <div className="space-y-3">
                         <Label>Level</Label>
                         <Select
@@ -661,7 +654,6 @@ const Communities = () => {
                           </SelectContent>
                         </Select>
 
-                        {/* Level And Below Checkbox */}
                         {pendingFilters.level && (
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -684,11 +676,9 @@ const Communities = () => {
                         )}
                       </div>
 
-                      {/* Department Filter */}
                       <div className="space-y-3">
                         <Label>Department</Label>
 
-                        {/* Selected Department Display */}
                         {selectedDepartment && (
                           <div className="flex items-center justify-between p-3 border rounded-md bg-secondary/50">
                             <div className="flex-1">
@@ -712,7 +702,6 @@ const Communities = () => {
                           </div>
                         )}
 
-                        {/* Department Search */}
                         {!selectedDepartment && (
                           <>
                             <div className="relative">
@@ -725,7 +714,6 @@ const Communities = () => {
                               />
                             </div>
 
-                            {/* Department List */}
                             <div className="border rounded-md max-h-[200px] overflow-y-auto">
                               {loadingDepartments ? (
                                 <div className="flex justify-center p-4">
@@ -748,7 +736,6 @@ const Communities = () => {
                                     </button>
                                   ))}
 
-                                  {/* Load More Button */}
                                   {departments.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
                                     <Button
                                       variant="ghost"
@@ -783,7 +770,6 @@ const Communities = () => {
                 </Sheet>
               </div>
 
-              {/* Active Filters Display */}
               {hasActiveFilters && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-muted-foreground">
@@ -829,7 +815,6 @@ const Communities = () => {
                 </div>
               )}
 
-              {/* Communities Grid */}
               <div className="space-y-3">
                 {exploreCommunitiesList.length === 0 ? (
                   <div className="text-center py-12">
@@ -873,7 +858,6 @@ const Communities = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Create Community Modal */}
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>

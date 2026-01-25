@@ -110,7 +110,6 @@ export const UpdatePasswordModal = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Only show old password field for email-based users */}
           {authProvider === "email" && (
             <div className="space-y-2">
               <Label htmlFor="oldPassword">Current Password</Label>

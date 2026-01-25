@@ -335,7 +335,6 @@ const SpaceActivities = () => {
           </div>
         )}
 
-        {/* Stats Grid */}
         {currentSpaceId && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
             <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
@@ -466,7 +465,6 @@ const SpaceActivities = () => {
           </div>
         )}
 
-        {/* Activity Feed */}
         {currentSpaceId && (
           <Card className="border-border/50">
             <CardHeader>

@@ -258,9 +258,7 @@ export const ProfileHeader = ({
 
   return (
     <div className="relative">
-      {/* Cover Image */}
       <div className="h-48 md:h-52 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
-        {/* Cover Image */}
         {(coverPreview || user.cover_image) && (
           <img
             src={coverPreview || user.cover_image}
@@ -269,7 +267,6 @@ export const ProfileHeader = ({
           />
         )}
 
-        {/* Edit cover button - only visible when editing */}
         {isEditing && isOwnProfile && (
           <>
             <input
@@ -293,11 +290,9 @@ export const ProfileHeader = ({
           </>
         )}
 
-        {/* Gradient overlay at bottom of cover for smooth transition */}
         <div className="absolute -bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      {/* Avatar positioned outside cover container to avoid clipping */}
       <div className="absolute top-36 md:top-36 left-4 md:left-6 z-10">
         <div className="relative">
           <Avatar className="h-[85px] w-[85px] md:h-24 md:w-24 lg:h-28 lg:w-28 border-4 border-background  rounded-3xl md:rounded-[28px] shadow-md">
@@ -336,7 +331,6 @@ export const ProfileHeader = ({
 
       <div className="pt-14 md:pt-16 px-4 md:px-6 pb-4">
         <div className="flex items-start justify-between mb-1">
-          {/* Name and username */}
           <div className="flex-1 min-w-0">
             {isEditing && isOwnProfile ? (
               <Input
@@ -359,7 +353,6 @@ export const ProfileHeader = ({
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="flex items-center gap-2 ml-3">
             {isOwnProfile ? (
               <>
@@ -544,7 +537,6 @@ export const ProfileHeader = ({
           </div>
         ) : (
           <div className="space-y-3 mt-3">
-            {/* Stats row */}
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowFollowingModal(true)}
@@ -566,14 +558,12 @@ export const ProfileHeader = ({
               </button>
             </div>
 
-            {/* Bio */}
             {user.bio && (
               <p className="text-sm text-foreground leading-relaxed">
                 {user.bio}
               </p>
             )}
 
-            {/* Additional info with icons */}
             {(user.space_name || user.department_name || user.level) && (
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {user.space_name && (
@@ -597,7 +587,6 @@ export const ProfileHeader = ({
         )}
       </div>
 
-      {/* Followers Modal */}
       <FollowersFollowingModal
         isOpen={showFollowersModal}
         onClose={() => setShowFollowersModal(false)}
@@ -608,7 +597,6 @@ export const ProfileHeader = ({
         type="followers"
       />
 
-      {/* Following Modal */}
       <FollowersFollowingModal
         isOpen={showFollowingModal}
         onClose={() => setShowFollowingModal(false)}
@@ -619,7 +607,6 @@ export const ProfileHeader = ({
         type="following"
       />
 
-      {/* Password Update Modal */}
       {isOwnProfile && (
         <UpdatePasswordModal
           isOpen={showPasswordModal}
@@ -630,7 +617,6 @@ export const ProfileHeader = ({
         />
       )}
 
-      {/* Feedback Modal */}
       <FeedbackModal
         isOpen={showFeedbackModal}
         onClose={() => setShowFeedbackModal(false)}

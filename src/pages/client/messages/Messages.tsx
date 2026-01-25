@@ -196,11 +196,6 @@ const Messages = () => {
 
         const messageHandler = (message: any) => {
           if (message.conversation_id) {
-            if (message.sender_id === user?.id) {
-              queryClient.invalidateQueries({ queryKey: ["conversations"] });
-              return;
-            }
-
             queryClient.setQueryData(
               ["conversation-messages", message.conversation_id],
               (old: any) => {
@@ -213,7 +208,7 @@ const Messages = () => {
 
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
-            if (message.conversation_id !== selectedConversationId) {
+            if (message.sender_id !== user?.id && message.conversation_id !== selectedConversationId) {
               toast.info("New message received");
             }
           }
@@ -248,7 +243,11 @@ const Messages = () => {
 
     wsClient.current.subscribe(conversationChannel);
 
+    wsClient.current.setActiveConversation(selectedConversationId);
+
     return () => {
+      wsClient.current.clearActiveConversation(selectedConversationId);
+
       wsClient.current.unsubscribe(conversationChannel);
     };
   }, [selectedConversationId, wsConnected]);
@@ -276,6 +275,24 @@ const Messages = () => {
       }, 100);
     }
   }, [selectedConversationId, loadingMessages, messages.length]);
+
+  useEffect(() => {
+    if (!selectedConversationId || !wsConnected) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        wsClient.current.clearActiveConversation(selectedConversationId);
+      } else {
+        wsClient.current.setActiveConversation(selectedConversationId);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedConversationId, wsConnected]);
 
   useEffect(() => {
     if (selectedConversationId && location.state?.prefillMessage) {
@@ -957,7 +974,6 @@ const Messages = () => {
                   </div>
                 )}
 
-                {/* Telegram-style message input */}
                 <div className="flex items-end gap-2">
                   <input
                     ref={fileInputRef}
@@ -968,7 +984,6 @@ const Messages = () => {
                     className="hidden"
                   />
 
-                  {/* Attach button */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1016,7 +1031,6 @@ const Messages = () => {
                     />
                   </div>
 
-                  {/* Send button (or mic when empty) */}
                   {newMessage.trim() || selectedFiles.length > 0 ? (
                     <Button
                       onClick={handleSendMessage}

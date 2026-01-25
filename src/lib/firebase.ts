@@ -41,9 +41,7 @@ export const signInWithGoogle = async (): Promise<string> => {
   }
 };
 
-/**
- * Sign out from Firebase
- */
+
 export const signOutFromFirebase = async (): Promise<void> => {
   try {
     await auth.signOut();

@@ -198,7 +198,6 @@ export function FollowersFollowingModal({
                           )}
                         </div>
 
-                        {/* Follow/Unfollow Button */}
                         <Button
                           size="sm"
                           variant={followingState[user.id] ? 'outline' : 'default'}

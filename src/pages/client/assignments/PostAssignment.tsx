@@ -123,7 +123,6 @@ export default function PostAssignment() {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 max-w-4xl mx-auto custom-fonts">
-        {/* Header */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -140,10 +139,8 @@ export default function PostAssignment() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-card border rounded-lg p-6 space-y-6">
-            {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">
                 Assignment Title <span className="text-destructive">*</span>
@@ -165,7 +162,6 @@ export default function PostAssignment() {
               </p>
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">
                 Description <span className="text-destructive">*</span>
@@ -187,7 +183,6 @@ export default function PostAssignment() {
               </p>
             </div>
 
-            {/* Subject and Subject Type */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject / Course Code</Label>
@@ -219,7 +214,6 @@ export default function PostAssignment() {
               </div>
             </div>
 
-            {/* Price and Gift */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="price">
@@ -259,7 +253,6 @@ export default function PostAssignment() {
               </div>
             </div>
 
-            {/* Deadline */}
             <div className="space-y-2">
               <Label htmlFor="deadline">
                 Deadline <span className="text-destructive">*</span>
@@ -279,7 +272,6 @@ export default function PostAssignment() {
               </p>
             </div>
 
-            {/* File Attachments */}
             <div className="space-y-2">
               <Label>
                 Attachments <span className="text-muted-foreground">(Optional)</span>
@@ -341,7 +333,6 @@ export default function PostAssignment() {
             </div>
           </div>
 
-          {/* Submit Buttons */}
           <div className="flex justify-end gap-4">
             <Button
               type="button"

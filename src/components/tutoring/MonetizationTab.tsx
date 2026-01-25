@@ -1,26 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { getTutorServices } from "@/api/tutoring.api";
+import { getTutorServices, requestPayout } from "@/api/tutoring.api";
 import {
   DollarSign,
   CreditCard,
   TrendingUp,
   BookOpen,
   Eye,
+  Wallet,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { toast } from "sonner";
 
 export const MonetizationTab = () => {
   const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
+  const queryClient = useQueryClient();
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ["tutor-services"],
     queryFn: getTutorServices,
+  });
+
+  const payoutMutation = useMutation({
+    mutationFn: requestPayout,
+    onSuccess: () => {
+      toast.success("Payout request submitted successfully");
+      queryClient.invalidateQueries({ queryKey: ["tutor-services"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to request payout");
+    },
   });
 
   if (isLoading) {
@@ -54,30 +70,98 @@ export const MonetizationTab = () => {
 
   const uniqueRequests = allRequests ? Array.from(allRequests.values()) : [];
 
-  const overallEarnings = uniqueRequests.reduce((total, req) => {
-    return total + parseFloat(req.amount || "0");
-  }, 0);
+  const isEligibleForPayout = (req: any) => {
+    if (req.session_status !== "completed" || req.money_credited) return false;
+    if (!req.completed_at) return false;
 
-  const overallAvailableForPayout = uniqueRequests
-    .filter((req) => req.session_status === "completed")
-    .reduce((total, req) => total + parseFloat(req.amount || "0"), 0);
+    const completedDate = new Date(req.completed_at);
+    const hoursSinceCompletion = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceCompletion >= 36;
+  };
 
-  const overallSessions =uniqueRequests ? uniqueRequests.length: 0
+  const calculateTutorShare = (amount: string) => {
+    return parseFloat(amount || "0") * 0.75;
+  };
+
+  const pendingPayoutsAmount = uniqueRequests
+    .filter(isEligibleForPayout)
+    .reduce((total, req) => total + calculateTutorShare(req.amount || "0"), 0);
+
+  const payoutsReceivedAmount = uniqueRequests
+    .filter(req => req.money_credited)
+    .reduce((total, req) => total + calculateTutorShare(req.amount || "0"), 0);
+
+  const completedTutoringsCount = uniqueRequests.filter(
+    req => req.session_status === "completed"
+  ).length;
+
+  const pendingTutoringsCount = uniqueRequests.filter(
+    req => ["pending", "accepted", "ongoing"].includes(req.session_status)
+  ).length;
+
+  const hasPendingPayouts = services.some(s => s.payout_requested);
+  const hasEligiblePayouts = pendingPayoutsAmount > 0;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {hasEligiblePayouts && !hasPendingPayouts && (
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-green-900">
+                  You have {formatCurrency(pendingPayoutsAmount)} available for payout!
+                </h3>
+                <p className="text-sm text-green-700 mt-1">
+                  Earnings from completed sessions (&gt;36 hours ago). Platform fee: 25%
+                </p>
+              </div>
+              <Button
+                onClick={() => payoutMutation.mutate()}
+                disabled={payoutMutation.isPending}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                {payoutMutation.isPending ? "Requesting..." : "Request Payout"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasPendingPayouts && (
+        <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-900">
+                  Payout Request Pending
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Your payout request is being processed by the admin team
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Overall Earnings
+              Pending Payouts
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(overallEarnings)}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(pendingPayoutsAmount)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              From all sessions
+              Ready for payout (&gt;36hrs)
             </p>
           </CardContent>
         </Card>
@@ -85,16 +169,16 @@ export const MonetizationTab = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Available for Payout
+              Payouts Received
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(overallAvailableForPayout)}
+              {formatCurrency(payoutsReceivedAmount)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Completed sessions
+              Already paid out
             </p>
           </CardContent>
         </Card>
@@ -102,13 +186,34 @@ export const MonetizationTab = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Overall Sessions
+              Completed Sessions
             </CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overallSessions}</div>
-            <p className="text-xs text-muted-foreground mt-1">Paid sessions</p>
+            <div className="text-2xl font-bold text-blue-600">
+              {completedTutoringsCount}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              All completed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Pending Sessions
+            </CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {pendingTutoringsCount}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Not yet completed
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -116,15 +221,14 @@ export const MonetizationTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {services && services.map((service) => {
           const totalEarnings = service.paid_requests
-            ? service.paid_requests.reduce(
-                (sum, req) => sum + parseFloat(req.amount || "0"),
-                0
-              )
+            ? service.paid_requests
+                .filter(req => req.money_credited)
+                .reduce((sum, req) => sum + calculateTutorShare(req.amount || "0"), 0)
             : 0;
           const availableForPayout = service.paid_requests
             ? service.paid_requests
-                .filter((req) => req.session_status === "completed")
-                .reduce((sum, req) => sum + parseFloat(req.amount || "0"), 0)
+                .filter(isEligibleForPayout)
+                .reduce((sum, req) => sum + calculateTutorShare(req.amount || "0"), 0)
             : 0;
           const totalSessions = service.paid_requests
             ? service.paid_requests.length

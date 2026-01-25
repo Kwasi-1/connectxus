@@ -124,7 +124,6 @@ export function MobilePostPage({ onPost, quotedPost }: MobilePostPageProps) {
               autoFocus
             />
 
-            {/* Quoted Post Preview */}
             {quotedPost && (
               <Card className="p-4 border border-border rounded-lg mt-4">
                 <div className="flex gap-3">

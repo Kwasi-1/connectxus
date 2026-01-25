@@ -272,7 +272,6 @@ export function AdminSidebar() {
           )}
         </nav>
 
-        {/* User Profile Section - Fixed at Bottom */}
         <div className="mt-auto border mx-3 mb-3 py-1 rounded-md border-border p-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -326,7 +325,6 @@ export function AdminSidebar() {
                 )}
                 <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
               </DropdownMenuItem>
-              {/* <DropdownMenuSeparator /> */}
               <DropdownMenuItem
                 onClick={signOut}
                 className="text-destructive focus:text-destructive"

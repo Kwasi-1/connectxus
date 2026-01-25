@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { adminApi } from "@/api/admin.api";
 import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 import { useToast } from "@/hooks/use-toast";
@@ -73,79 +75,126 @@ export function TutoringBusinessPayouts() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
-  const [pendingPayouts, setPendingPayouts] = useState<PendingPayout[]>([]);
-  const [payoutHistory, setPayoutHistory] = useState<PayoutHistory[]>([]);
+  const [allPendingPayouts, setAllPendingPayouts] = useState<PendingPayout[]>([]);
+  const [allPayoutHistory, setAllPayoutHistory] = useState<PayoutHistory[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 20;
   const [selectedPayout, setSelectedPayout] = useState<
     PendingPayout | PayoutHistory | null
   >(null);
   const [payoutToPay, setPayoutToPay] = useState<PendingPayout | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     loadData();
-  }, [selectedSpaceId, activeTab]);
+  }, [offset, debouncedSearch, selectedSpaceId, activeTab]);
+
+  useEffect(() => {
+    setOffset(0);
+    setAllPendingPayouts([]);
+    setAllPayoutHistory([]);
+  }, [debouncedSearch, selectedSpaceId, activeTab]);
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (offset === 0) {
+        setLoading(true);
+      } else {
+        setIsFetching(true);
+      }
       setError(null);
 
-      if (activeTab === "pending") {
-        const pending = await adminApi.getTutoringBusinessPendingPayouts(
-          selectedSpaceId
-        );
+      const search = debouncedSearch || undefined;
 
-        const transformedPending: PendingPayout[] = pending.map((p, idx) => ({
+      if (activeTab === "pending") {
+        const result = await adminApi.getTutoringBusinessPendingPayouts({
+          space_id: selectedSpaceId,
+          search,
+          limit,
+          offset,
+        });
+
+        const transformedPending: PendingPayout[] = result.payouts.map((p, idx) => ({
           id: `PO-${Date.now()}-${idx}`,
           tutorId: p.tutor_id,
           applicantId: p.applicant_id,
-          tutorName: p.tutor_name,
+          tutorName: p.full_name || p.username,
           amount: parseFloat(p.pending_amount),
           sessionsCount: p.pending_sessions,
-          dueDate: p.oldest_request_date,
+          dueDate: p.oldest_request_date || new Date().toISOString(),
           status: "pending",
         }));
 
-        setPendingPayouts(transformedPending);
-      } else {
-        const history = await adminApi.getTutoringBusinessPayoutHistory(
-          selectedSpaceId,
-          50
-        );
+        if (offset === 0) {
+          setAllPendingPayouts(transformedPending);
+        } else {
+          setAllPendingPayouts(prev => [...prev, ...transformedPending]);
+        }
 
-        const transformedHistory: PayoutHistory[] = history.payouts.map(
+        setTotalCount(result.total);
+        setHasMore(result.payouts.length === limit);
+      } else {
+        const result = await adminApi.getTutoringBusinessPayoutHistory({
+          space_id: selectedSpaceId,
+          search,
+          limit,
+          offset,
+        });
+
+        const transformedHistory: PayoutHistory[] = result.payouts.map(
           (p) => ({
             id: p.id,
             tutorId: p.tutor_id,
             applicantId: p.applicant_id,
-            tutorName: p.tutor_name,
+            tutorName: p.tutor_full_name || p.tutor_username,
             amount: parseFloat(p.amount),
-            paymentMethod: p.payment_method,
-            paidDate: p.completed_at || p.created_at,
+            paymentMethod: p.payment_method || "N/A",
+            paidDate: p.created_at,
             status: p.status,
-            referenceNumber: p.transaction_reference,
+            referenceNumber: p.provider_reference,
           })
         );
 
-        setPayoutHistory(transformedHistory);
+        if (offset === 0) {
+          setAllPayoutHistory(transformedHistory);
+        } else {
+          setAllPayoutHistory(prev => [...prev, ...transformedHistory]);
+        }
+
+        setTotalCount(result.total);
+        setHasMore(result.payouts.length === limit);
       }
     } catch (err: any) {
       console.error("Failed to load payouts:", err);
       setError(err.message || "Failed to load payouts");
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
-  const totalPendingAmount = pendingPayouts.reduce(
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore,
+    onLoadMore: () => setOffset(prev => prev + limit),
+    threshold: 300,
+  });
+
+  const totalPendingAmount = allPendingPayouts.reduce(
     (sum, p) => sum + p.amount,
     0
   );
-  const totalPendingPayouts = pendingPayouts.length;
-  const totalCompletedPayouts = payoutHistory.length;
-  const totalPaidAmount = payoutHistory.reduce((sum, p) => sum + p.amount, 0);
+  const totalPendingPayouts = activeTab === "pending" ? totalCount : allPendingPayouts.length;
+  const totalCompletedPayouts = activeTab === "history" ? totalCount : allPayoutHistory.length;
+  const totalPaidAmount = allPayoutHistory.reduce((sum, p) => sum + p.amount, 0);
 
   const incomingCommission = totalPendingAmount * 0.15;
   const totalCommission = totalPaidAmount * 0.15;
@@ -249,16 +298,26 @@ export function TutoringBusinessPayouts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold custom-font">Payouts</h1>
-        <Button
-          onClick={() => navigate("/admin/tutoring-business/payout-schedule")}
-          variant="outline"
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          Payout Schedule
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <input
+              type="text"
+              placeholder="Search tutors..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+            />
+          </div>
+          <Button
+            onClick={() => navigate("/admin/tutoring-business/payout-schedule")}
+            variant="outline"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Payout Schedule
+          </Button>
+        </div>
       </div>
 
-      {/* Metrics Cards - Dynamic based on active tab */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -411,7 +470,7 @@ export function TutoringBusinessPayouts() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingPayouts.map((payout) => (
+                    {allPendingPayouts.map((payout) => (
                       <TableRow
                         key={payout.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -462,9 +521,8 @@ export function TutoringBusinessPayouts() {
                 </Table>
               </div>
 
-              {/* Mobile View */}
               <div className="md:hidden space-y-4">
-                {pendingPayouts.map((payout) => (
+                {allPendingPayouts.map((payout) => (
                   <Card
                     key={payout.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
@@ -513,6 +571,18 @@ export function TutoringBusinessPayouts() {
                   </Card>
                 ))}
               </div>
+
+              <div ref={loadMoreRef} className="h-4" />
+              {isFetching && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              )}
+              {totalCount > 0 && (
+                <div className="text-sm text-muted-foreground text-center py-2">
+                  Showing {allPendingPayouts.length} of {totalCount} payouts
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -538,7 +608,7 @@ export function TutoringBusinessPayouts() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payoutHistory.map((payout) => (
+                    {allPayoutHistory.map((payout) => (
                       <TableRow
                         key={payout.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -575,9 +645,8 @@ export function TutoringBusinessPayouts() {
                 </Table>
               </div>
 
-              {/* Mobile View */}
               <div className="md:hidden space-y-4">
-                {payoutHistory.map((payout) => (
+                {allPayoutHistory.map((payout) => (
                   <Card
                     key={payout.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
@@ -615,12 +684,23 @@ export function TutoringBusinessPayouts() {
                   </Card>
                 ))}
               </div>
+
+              <div ref={loadMoreRef} className="h-4" />
+              {isFetching && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              )}
+              {totalCount > 0 && (
+                <div className="text-sm text-muted-foreground text-center py-2">
+                  Showing {allPayoutHistory.length} of {totalCount} payouts
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Payout Detail Sheet */}
       <Sheet
         open={!!selectedPayout}
         onOpenChange={() => setSelectedPayout(null)}
@@ -721,7 +801,6 @@ export function TutoringBusinessPayouts() {
         </SheetContent>
       </Sheet>
 
-      {/* Payment Confirmation Dialog */}
       <Dialog open={!!payoutToPay} onOpenChange={() => setPayoutToPay(null)}>
         <DialogContent>
           <DialogHeader>

@@ -143,7 +143,6 @@ export function StudentRequestCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Subject */}
         {request.subject && (
           <div>
             <h4 className="font-medium text-sm mb-1">Subject:</h4>
@@ -151,7 +150,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Message */}
         {request.message && (
           <div>
             <h4 className="font-medium text-sm mb-1">Message:</h4>
@@ -159,7 +157,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Schedule */}
         {request.preferred_schedule &&
           request.preferred_schedule.length > 0 && (
             <div>
@@ -175,7 +172,6 @@ export function StudentRequestCard({
             </div>
           )}
 
-        {/* Session Type */}
         {request.session_type && (
           <div className="flex items-center text-sm">
             <span className="text-muted-foreground mr-2">Session Type:</span>
@@ -187,7 +183,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Created Date */}
         {request.created_at && (
           <div className="flex items-center text-sm text-muted-foreground">
             <Calendar className="h-4 w-4 mr-2" />
@@ -195,7 +190,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Payment Details */}
         {request.payment_details && (
           <div className="rounded-lg bg-muted p-3 space-y-1 text-sm">
             <div className="flex justify-between">
@@ -218,7 +212,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Rating */}
         {request.rating && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Your Rating:</span>
@@ -237,7 +230,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Response Message */}
         {request.response_message && (
           <div className="rounded-lg bg-muted p-3">
             <h4 className="font-medium text-sm mb-1">Tutor's Response:</h4>
@@ -247,7 +239,6 @@ export function StudentRequestCard({
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex flex-wrap gap-2 pt-4">
           {request.status === "approved" &&
             request.payment_status === "not_paid" &&

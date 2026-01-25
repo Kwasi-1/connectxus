@@ -102,45 +102,25 @@ export function TutoringRequestCard({
 
   
   const isRefundEligible = (): boolean => {
-    if (!request.schedules || request.schedules.length === 0) {
-      return true; 
+    if (request.session_status !== "completed" || request.payment_status !== "paid") {
+      return false;
+    }
+
+    if (request.payment_status === "refunded" || request.refund_request) {
+      return false;
+    }
+
+    if (!request.completed_at) {
+      return false;
     }
 
     try {
-      
-      const scheduleDates = request.schedules
-        .map((s) => {
-          try {
-            return parseISO(s);
-          } catch {
-            return null;
-          }
-        })
-        .filter((d): d is Date => d !== null);
+      const completedDate = parseISO(request.completed_at);
+      const hoursSinceCompletion = differenceInHours(new Date(), completedDate);
 
-      if (scheduleDates.length === 0) {
-        return true; 
-      }
-
-      
-      const lastSchedule = scheduleDates.reduce((latest, current) =>
-        current > latest ? current : latest
-      );
-
-      const now = new Date();
-
-      if (request.session_type === "single") {
-        
-        const hoursDiff = differenceInHours(lastSchedule, now);
-        return hoursDiff >= -24 && hoursDiff <= 24;
-      } else {
-        
-        const daysDiff = differenceInDays(lastSchedule, now);
-        return daysDiff >= -14 && daysDiff <= 14;
-      }
+      return hoursSinceCompletion >= 0 && hoursSinceCompletion <= 24;
     } catch (error) {
-      
-      return true;
+      return false;
     }
   };
 
@@ -371,7 +351,9 @@ export function TutoringRequestCard({
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <DollarSign className="h-4 w-4 mr-2" />
-                      Pay Now
+                      {request.session_rate === "0" || request.payment_details?.amount === 0
+                        ? "Book Now"
+                        : "Pay Now"}
                     </Button>
                   )}
 
@@ -392,7 +374,9 @@ export function TutoringRequestCard({
                         <Phone className="h-4 w-4 mr-2" />
                         Call
                       </Button>
-                      {onRequestRefund && isRefundEligible() && (
+                      {onRequestRefund && isRefundEligible() &&
+                       request.session_rate !== "0" &&
+                       request.payment_details?.amount !== 0 && (
                         <>
                           {request.payment_status === "refunded" ? (
                             <Button
@@ -444,31 +428,19 @@ export function TutoringRequestCard({
                           Request Again
                         </Button>
                       )}
-                      {onRate && (
-                        <>
-                          {request.rating ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled
-                              className="text-purple-600"
-                            >
-                              <Star className="h-4 w-4 mr-2" />
-                              Reviewed
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => onRate(request)}
-                              className="bg-purple-600 hover:bg-purple-700"
-                            >
-                              <Star className="h-4 w-4 mr-2" />
-                              Review Session
-                            </Button>
-                          )}
-                        </>
+                      {onRate && !request.is_rated && (
+                        <Button
+                          size="sm"
+                          onClick={() => onRate(request)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Star className="h-4 w-4 mr-2" />
+                          Review Session
+                        </Button>
                       )}
-                      {onRequestRefund && (
+                      {onRequestRefund &&
+                       request.session_rate !== "0" &&
+                       request.payment_details?.amount !== 0 && (
                         <>
                           {request.payment_status === "refunded" ? (
                             <Button

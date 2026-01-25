@@ -416,7 +416,6 @@ const GroupsNew = () => {
           </div>
           {showJoinButton && (
             <>
-              {/* Only show Join/Leave button for public groups and already joined groups */}
               {(group.group_type === "public" || group.is_member) && (
                 <Button
                   onClick={(e) => {
@@ -438,7 +437,6 @@ const GroupsNew = () => {
                   {group.is_member ? "Leave" : "Join"}
                 </Button>
               )}
-              {/* For private and project groups, show View Details button */}
               {!group.is_member && (group.group_type === "private" || group.group_type === "project") && (
                 <Button
                   onClick={(e) => {
@@ -475,7 +473,6 @@ const GroupsNew = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -501,7 +498,6 @@ const GroupsNew = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as HubTab)}
@@ -523,7 +519,6 @@ const GroupsNew = () => {
 
           <TabsContent value="my-groups" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -535,7 +530,6 @@ const GroupsNew = () => {
                 />
               </div>
 
-              {/* Groups Grid */}
               <div className="space-y-3">
                 {myGroups.length === 0 ? (
                   <div className="text-center py-12">
@@ -560,7 +554,6 @@ const GroupsNew = () => {
 
           <TabsContent value="explore" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search and Filters */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -588,7 +581,6 @@ const GroupsNew = () => {
                 </Button>
               </div>
 
-              {/* Active Filters */}
               {getActiveFilterCount() > 0 && (
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-sm text-muted-foreground">Filters:</span>
@@ -643,7 +635,6 @@ const GroupsNew = () => {
                 </div>
               )}
 
-              {/* Groups Grid */}
               <div className="space-y-3">
                 {exploreGroups.length === 0 ? (
                   <div className="text-center py-12">
@@ -684,7 +675,6 @@ const GroupsNew = () => {
         </Tabs>
       </div>
 
-      {/* Filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
@@ -692,7 +682,6 @@ const GroupsNew = () => {
           </SheetHeader>
 
           <div className="space-y-6 py-6">
-            {/* Category Filter */}
             <div className="space-y-3">
               <Label>Category</Label>
               <Select
@@ -718,7 +707,6 @@ const GroupsNew = () => {
               </Select>
             </div>
 
-            {/* Level Filter */}
             <div className="space-y-3">
               <Label>Level</Label>
               <Select
@@ -765,7 +753,6 @@ const GroupsNew = () => {
               )}
             </div>
 
-            {/* Group Type Filter */}
             <div className="space-y-3">
               <Label>Group Type</Label>
               <Select
@@ -791,11 +778,9 @@ const GroupsNew = () => {
               </Select>
             </div>
 
-            {/* Department Filter */}
             <div className="space-y-3">
               <Label>Department</Label>
 
-              {/* Selected Department */}
               {selectedDepartment ? (
                 <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
                   <span className="text-sm font-medium">{selectedDepartment.name}</span>
@@ -817,7 +802,6 @@ const GroupsNew = () => {
                 </div>
               ) : (
                 <>
-                  {/* Department Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
@@ -831,7 +815,6 @@ const GroupsNew = () => {
                     />
                   </div>
 
-                  {/* Department List */}
                   <div className="border rounded-md max-h-[200px] overflow-y-auto">
                     {loadingDepartments ? (
                       <div className="flex items-center justify-center p-4">
@@ -852,7 +835,6 @@ const GroupsNew = () => {
                           </div>
                         ))}
 
-                        {/* See More Button */}
                         {departmentsData.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
                           <Button
                             variant="ghost"
@@ -886,7 +868,6 @@ const GroupsNew = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Create Group Modal */}
       <CreateGroupModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

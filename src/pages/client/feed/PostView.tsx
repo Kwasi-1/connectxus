@@ -65,7 +65,7 @@ const PostView = () => {
       repliesCount: apiComment.replies_count || 0,
       isLiked: apiComment.is_liked || false,
       createdAt: new Date(apiComment.created_at),
-      depth: apiComment.parent_comment_id ? 1 : 0, // 0 = top-level, 1 = reply
+      depth: apiComment.parent_comment_id ? 1 : 0,
     };
   };
 

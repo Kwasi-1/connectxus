@@ -156,7 +156,6 @@ export function Comment({ comment, onLike, onReply, depth = 0 }: CommentProps) {
           </div>
           <p className="text-foreground whitespace-pre-wrap">{comment.content}</p>
           <div className="flex items-center space-x-6 mt-3 text-muted-foreground">
-            {/* Only allow replies on top-level comments (depth = 0) */}
             {depth === 0 && (
               <Button
                 variant="ghost"
@@ -228,7 +227,6 @@ export function Comment({ comment, onLike, onReply, depth = 0 }: CommentProps) {
             </div>
           )}
 
-          {/* View Replies Button (only for top-level comments with replies) */}
           {depth === 0 && comment.repliesCount && comment.repliesCount > 0 && (
             <Button
               variant="ghost"
@@ -250,7 +248,6 @@ export function Comment({ comment, onLike, onReply, depth = 0 }: CommentProps) {
             </Button>
           )}
 
-          {/* Render loaded replies */}
           {depth === 0 && showReplies && (
             <div className="mt-3 ml-6 space-y-0 border-l-2 border-border/50 pl-4">
               {loadingReplies && replies.length === 0 ? (
@@ -269,7 +266,6 @@ export function Comment({ comment, onLike, onReply, depth = 0 }: CommentProps) {
                     />
                   ))}
 
-                  {/* Load More Replies Button */}
                   {hasMoreReplies && (
                     <Button
                       variant="ghost"
@@ -295,7 +291,6 @@ export function Comment({ comment, onLike, onReply, depth = 0 }: CommentProps) {
         </div>
       </div>
 
-      {/* Comment Likes Modal */}
       <CommentLikesModal
         isOpen={showLikesModal}
         onClose={() => setShowLikesModal(false)}

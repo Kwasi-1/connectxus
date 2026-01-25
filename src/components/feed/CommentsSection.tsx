@@ -100,7 +100,6 @@ export function CommentsSection({ postId, onReply }: CommentsSectionProps) {
 
   return (
     <div className="space-y-0">
-      {/* Comments List */}
       <div className="divide-y divide-border">
         {comments.map((comment) => (
           <Comment
@@ -126,7 +125,6 @@ export function CommentsSection({ postId, onReply }: CommentsSectionProps) {
         ))}
       </div>
 
-      {/* Load More Button */}
       {hasMore && (
         <div className="pt-4 pb-2 border-t border-border">
           <Button

@@ -21,7 +21,7 @@ import CommunityDetail from "./pages/client/groups_and_communities/communities/C
 import GroupsNew from "./pages/client/groups_and_communities/groups/GroupsNew";
 import GroupDetail from "./pages/client/groups_and_communities/groups/GroupDetail";
 import Tutoring from "./pages/client/tutoring/Tutoring";
-import MonetizationDetails from "./pages/client/tutoring/MonetizationDetails";
+import { ServiceMonetization } from "./pages/client/tutoring/ServiceMonetization";
 import { TutorDetails } from "./pages/client/tutoring/TutorDetails";
 import HelpRequests from "./pages/client/help/HelpRequests";
 import HelpRequestDetails from "./pages/client/help/HelpRequestDetails";
@@ -80,7 +80,6 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                {/* Public Routes */}
                 <Route
                   path="/"
                   element={
@@ -89,14 +88,7 @@ const App = () => (
                     </PublicRoute>
                   }
                 />
-                {/* <Route
-                  path="/landing"
-                  element={
-                    <PublicRoute>
-                      <LandingPageV2 />
-                    </PublicRoute>
-                  }
-                /> */}
+                
                 <Route path="/about" element={<About />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
@@ -125,7 +117,6 @@ const App = () => (
                   element={<ResetPasswordPage />}
                 />
 
-                {/* Protected Routes */}
                 <Route
                   path="/feed"
                   element={
@@ -282,7 +273,7 @@ const App = () => (
                   path="/tutoring/monetization/:serviceId"
                   element={
                     <ProtectedRoute>
-                      <MonetizationDetails />
+                      <ServiceMonetization />
                     </ProtectedRoute>
                   }
                 />
@@ -336,7 +327,6 @@ const App = () => (
                   }
                 />
 
-                {/* Admin Routes */}
                 <Route
                   path="/admin/*"
                   element={
@@ -469,7 +459,6 @@ const App = () => (
                   }
                 />
 
-                {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -71,7 +71,6 @@ export const ResetPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Back Button */}
         <Button
           variant="ghost"
           size="sm"
@@ -82,7 +81,6 @@ export const ResetPasswordPage: React.FC = () => {
           Back
         </Button>
 
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-foreground/10 rounded-full flex items-center justify-center">
@@ -95,10 +93,8 @@ export const ResetPasswordPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6 bg-card p-8 rounded-lg border border-border">
           <div className="space-y-4">
-            {/* OTP Input */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Verification Code
@@ -121,7 +117,6 @@ export const ResetPasswordPage: React.FC = () => {
               </div>
             </div>
 
-            {/* New Password */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">New Password</label>
               <div className="relative">
@@ -145,7 +140,6 @@ export const ResetPasswordPage: React.FC = () => {
               <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
             </div>
 
-            {/* Confirm Password */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Confirm Password</label>
               <div className="relative">
@@ -184,7 +178,6 @@ export const ResetPasswordPage: React.FC = () => {
             )}
           </Button>
 
-          {/* Info */}
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <p className="text-xs text-muted-foreground">
               • Check your spam folder if you don't see the email

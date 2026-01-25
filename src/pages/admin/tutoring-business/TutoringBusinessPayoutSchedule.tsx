@@ -216,7 +216,6 @@ export function TutoringBusinessPayoutSchedule() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Settings className="h-8 w-8" />
@@ -228,7 +227,6 @@ export function TutoringBusinessPayoutSchedule() {
       </div>
 
       <div className="grid gap-6">
-        {/* Payout Schedule Options - Only ONE can be active */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -240,7 +238,6 @@ export function TutoringBusinessPayoutSchedule() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Option 1: Automatic Payouts */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="space-y-0.5">
                 <Label htmlFor="automatic-payouts" className="text-base font-medium flex items-center gap-2">
@@ -258,7 +255,6 @@ export function TutoringBusinessPayoutSchedule() {
               />
             </div>
 
-            {/* Option 2: Payout Frequency */}
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-0.5">
@@ -277,7 +273,6 @@ export function TutoringBusinessPayoutSchedule() {
                 />
               </div>
 
-              {/* Frequency Selection - Only shown when this option is active */}
               {settings.active_mode === "frequency" && (
                 <div className="space-y-3 pl-4">
                   <Label htmlFor="frequency-select" className="text-base font-medium">
@@ -306,7 +301,6 @@ export function TutoringBusinessPayoutSchedule() {
               )}
             </div>
 
-            {/* Option 3: Payout Days */}
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-0.5">
@@ -325,7 +319,6 @@ export function TutoringBusinessPayoutSchedule() {
                 />
               </div>
 
-              {/* Day Selection - Only shown when this option is active */}
               {settings.active_mode === "days" && (
                 <div className="space-y-3 pl-4">
                   <Label className="text-base font-medium">
@@ -358,7 +351,6 @@ export function TutoringBusinessPayoutSchedule() {
           </CardContent>
         </Card>
 
-        {/* Platform Fees */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -370,7 +362,6 @@ export function TutoringBusinessPayoutSchedule() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Platform Commission */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="platform-fee" className="text-base font-medium">
@@ -399,7 +390,6 @@ export function TutoringBusinessPayoutSchedule() {
               </p>
             </div>
 
-            {/* Refund Fee */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="refund-fee" className="text-base font-medium">
@@ -427,7 +417,6 @@ export function TutoringBusinessPayoutSchedule() {
               </p>
             </div>
 
-            {/* Refund Window */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="refund-window" className="text-base font-medium">
@@ -456,7 +445,6 @@ export function TutoringBusinessPayoutSchedule() {
           </CardContent>
         </Card>
 
-        {/* Summary Card */}
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle className="text-blue-900">Settings Summary</CardTitle>
@@ -506,7 +494,6 @@ export function TutoringBusinessPayoutSchedule() {
           </CardContent>
         </Card>
 
-        {/* Save Button */}
         <div className="flex justify-end">
           <Button
             onClick={saveSettings}

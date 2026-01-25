@@ -82,7 +82,6 @@ export function TutorCard({
     >
       <CardContent className="p-6">
         <div className="flex flex-col lg:flex-row gap-5">
-          {/* Tutor Info */}
           <div className="flex items-start gap-4 flex-1">
             <Avatar className="h-14 w-14 rounded-sm">
               <AvatarImage src={tutor.avatar} alt={tutorName} />
@@ -110,7 +109,6 @@ export function TutorCard({
                 </p>
               )}
 
-              {/* Experience */}
               {tutor.experience && (
                 <div className="flex items-start gap-2 mb-3 -ml-[4.5rem] lg:ml-0">
                   <Award className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -121,7 +119,6 @@ export function TutorCard({
                 </div>
               )}
 
-              {/* Qualifications */}
               {tutor.qualifications && (
                 <div className="flex items-start gap-2 mb-3 -ml-[4.5rem] lg:ml-0">
                   <GraduationCap className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -132,7 +129,6 @@ export function TutorCard({
                 </div>
               )}
 
-              {/* Subject */}
               {tutor.subject && (
                 <div className="flex flex-wrap gap-1 mb-3 -ml-[4.5rem] lg:ml-0">
                   <Badge variant="secondary" className="text-xs">
@@ -141,7 +137,6 @@ export function TutorCard({
                 </div>
               )}
 
-              {/* Pricing */}
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground -ml-[4.5rem] lg:ml-0">
                 {tutor.rating && (
                   <div className="flex items-center">
@@ -167,9 +162,7 @@ export function TutorCard({
             </div>
           </div>
 
-          {/* Availability & Actions */}
           <div className="lg:w-64 space-y-4">
-            {/* Availability */}
             {tutor.availability &&
               Array.isArray(tutor.availability) &&
               tutor.availability.length > 0 && (
@@ -211,7 +204,6 @@ export function TutorCard({
                 </div>
               )}
 
-            {/* Actions */}
             {showRequestButton ? (
               <Button
                 onClick={onRequestTutoring}

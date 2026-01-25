@@ -154,7 +154,6 @@ export function SpaceSwitcher({ className = '' }: SpaceSwitcherProps) {
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 flex flex-col">
-          {/* Search Input */}
           <div className="p-3 border-b border-gray-200 dark:border-gray-700">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -169,7 +168,6 @@ export function SpaceSwitcher({ className = '' }: SpaceSwitcherProps) {
             </div>
           </div>
 
-          {/* Spaces List */}
           <div className="overflow-y-auto flex-1">
             {isSearching && displayedSpaces.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -181,7 +179,6 @@ export function SpaceSwitcher({ className = '' }: SpaceSwitcherProps) {
               </div>
             ) : (
               <>
-                {/* All Spaces Option */}
                 <button
                   onClick={() => handleSpaceChange('all', 'All Spaces')}
                   className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
@@ -231,7 +228,6 @@ export function SpaceSwitcher({ className = '' }: SpaceSwitcherProps) {
                   </button>
                 ))}
 
-                {/* Load More Button */}
                 {hasMore && (
                   <button
                     onClick={handleLoadMore}

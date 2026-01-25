@@ -96,7 +96,6 @@ export function SessionCompletionModal({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
           >
-            {/* Did Session Happen */}
             <FormField
               control={form.control}
               name="sessionHappened"
@@ -134,7 +133,6 @@ export function SessionCompletionModal({
               )}
             />
 
-            {/* If Yes - Rating and Review */}
             {sessionHappened === "yes" && (
               <>
                 <FormField
@@ -204,7 +202,6 @@ export function SessionCompletionModal({
               </>
             )}
 
-            {/* If No - Issue Reporting */}
             {sessionHappened === "no" && (
               <>
                 <FormField
@@ -271,7 +268,6 @@ export function SessionCompletionModal({
               </>
             )}
 
-            {/* Actions */}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"

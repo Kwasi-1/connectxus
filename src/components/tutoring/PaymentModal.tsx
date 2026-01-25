@@ -75,19 +75,30 @@ export function PaymentModal({
 
     setIsInitializing(true);
     try {
-      if (pricing.total === 0) {
-        toast.success("Session activated! (No payment required)");
-        onPayment(sessionType, "free-session");
-        onOpenChange(false);
-        setIsInitializing(false);
-        return;
-      }
-
       const paymentData = await initializeTutoringPayment({
         request_id: request.id,
       });
 
       setPaymentReference(paymentData.reference);
+
+      if (paymentData.is_free) {
+        try {
+          await verifyTutoringPayment({
+            request_id: request.id,
+            reference: paymentData.reference,
+          });
+          toast.success("Session activated! (No payment required)");
+          onPayment(sessionType, paymentData.reference);
+          onOpenChange(false);
+        } catch (error: any) {
+          console.error("Free session verification failed:", error);
+          toast.error(
+            error?.response?.data?.error?.message || "Failed to activate free session"
+          );
+        }
+        setIsInitializing(false);
+        return;
+      }
 
       const width = 600;
       const height = 700;
@@ -107,6 +118,7 @@ export function PaymentModal({
 
           try {
             const verifiedPayment = await verifyTutoringPayment({
+              request_id: request.id,
               reference: paymentData.reference,
             });
 
@@ -144,7 +156,6 @@ export function PaymentModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Session Details */}
           <div className="rounded-lg border p-4 space-y-2">
             <h3 className="font-semibold">Session Details</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -157,11 +168,9 @@ export function PaymentModal({
             </div>
           </div>
 
-          {/* Session Type & Pricing */}
           <div className="space-y-3">
             <h3 className="font-semibold">Payment Details</h3>
 
-            {/* Display session type (read-only) */}
             <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -232,7 +241,6 @@ export function PaymentModal({
             </div>
           </div>
 
-          {/* Important Notices */}
           <div className="space-y-3">
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 flex gap-3">
               <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -262,7 +270,6 @@ export function PaymentModal({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

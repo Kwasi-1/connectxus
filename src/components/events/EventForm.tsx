@@ -132,7 +132,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Information */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
@@ -196,7 +195,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
         </CardContent>
       </Card>
 
-      {/* Date & Time */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
@@ -244,7 +242,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
         </CardContent>
       </Card>
 
-      {/* Location */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
@@ -275,7 +272,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
         </CardContent>
       </Card>
 
-      {/* Registration Settings */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
@@ -343,7 +339,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
         </CardContent>
       </Card>
 
-      {/* Event Image */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
@@ -374,7 +369,6 @@ export const EventForm = ({ event, onSubmit, onCancel, isSubmitting = false }: E
         </CardContent>
       </Card>
 
-      {/* Actions */}
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || isUploadingImage}>
           Cancel

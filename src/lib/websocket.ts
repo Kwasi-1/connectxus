@@ -202,6 +202,34 @@ class WebSocketClient {
     }
   }
 
+
+  setActiveConversation(conversationId: string): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'set_active_conversation',
+          payload: {
+            conversation_id: conversationId,
+          },
+        })
+      );
+    }
+  }
+
+
+  clearActiveConversation(conversationId: string): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'clear_active_conversation',
+          payload: {
+            conversation_id: conversationId,
+          },
+        })
+      );
+    }
+  }
+
     isConnectionOpen(): boolean {
     return this.isConnected && this.ws?.readyState === WebSocket.OPEN;
   }

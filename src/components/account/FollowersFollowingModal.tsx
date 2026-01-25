@@ -198,7 +198,6 @@ export const FollowersFollowingModal = ({
                   </div>
 
                   <div className="flex gap-1.5">
-                    {/* View Profile Button */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -209,7 +208,6 @@ export const FollowersFollowingModal = ({
                       <Eye className="h-4 w-4" />
                     </Button>
 
-                    {/* Message Button - only show if following and not own profile */}
                     {!isOwnProfile && isFollowing && (
                       <Button
                         variant="ghost"
@@ -223,7 +221,6 @@ export const FollowersFollowingModal = ({
                       </Button>
                     )}
 
-                    {/* Follow/Unfollow Button - don't show for own profile */}
                     {!isOwnProfile && (
                       <Button
                         variant={isFollowing ? "outline" : "default"}

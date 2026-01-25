@@ -72,6 +72,8 @@ import {
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import moment from "moment";
 
 interface User {
@@ -112,12 +114,15 @@ export function UserManagement() {
     };
   }, []);
 
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [pageSize] = React.useState(20);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedRole, setSelectedRole] = React.useState<string>("all");
   const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
   const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
+  const [offset, setOffset] = React.useState(0);
+  const [allUsers, setAllUsers] = React.useState<User[]>([]);
+  const [hasMore, setHasMore] = React.useState(true);
+  const limit = 20;
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const [addUserModalOpen, setAddUserModalOpen] = React.useState(false);
   const [editUserModalOpen, setEditUserModalOpen] = React.useState(false);
@@ -142,51 +147,51 @@ export function UserManagement() {
     role: "user" as string,
   });
 
-  const { data: usersData, isLoading } = useQuery({
-    queryKey: ["admin-users", currentPage, pageSize, currentSpaceId],
-    queryFn: () => adminApi.getUsers(currentPage, pageSize, currentSpaceId),
+  const { data: usersData, isLoading, isFetching } = useQuery({
+    queryKey: ["admin-users", currentSpaceId, debouncedSearch, selectedStatus, offset],
+    queryFn: () => adminApi.getUsers(currentSpaceId, debouncedSearch, selectedStatus, limit, offset),
     enabled: !!currentSpaceId && currentSpaceId !== "all",
     staleTime: 30000,
   });
 
-  const users = (usersData?.users || []) as User[];
+  React.useEffect(() => {
+    if (usersData?.users) {
+      if (offset === 0) {
+        setAllUsers(usersData.users as User[]);
+      } else {
+        setAllUsers(prev => [...prev, ...(usersData.users as User[])]);
+      }
+      setHasMore(usersData.users.length === limit);
+    }
+  }, [usersData, offset, limit]);
+
+  React.useEffect(() => {
+    setOffset(0);
+    setAllUsers([]);
+  }, [debouncedSearch, selectedStatus, currentSpaceId]);
+
   const totalUsers = usersData?.total || 0;
-
-  const filteredUsers = React.useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch =
-        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.full_name.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesRole = selectedRole === "all" || user.role === selectedRole;
-      const matchesStatus =
-        selectedStatus === "all" || user.status === selectedStatus;
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchQuery, selectedRole, selectedStatus]);
 
   const userStats = React.useMemo(() => {
     return {
-      total: users.length,
-      active: users.filter((u) => u.status === "active").length,
-      suspended: users.filter((u) => u.status === "suspended").length,
-      banned: users.filter((u) => u.status === "banned").length,
-      admins: users.filter(
+      total: totalUsers,
+      active: allUsers.filter((u) => u.status === "active").length,
+      suspended: allUsers.filter((u) => u.status === "suspended").length,
+      banned: allUsers.filter((u) => u.status === "banned").length,
+      admins: allUsers.filter(
         (u) => u.role === "super_admin" || u.role === "admin"
       ).length,
-      staff: users.filter(
+      staff: allUsers.filter(
         (u) =>
           u.role === "support_staff" ||
           u.role === "content_moderator" ||
           u.role === "finance_officer" ||
           u.role === "operations_manager"
       ).length,
-      developers: users.filter((u) => u.role === "developer_admin").length,
-      regularUsers: users.filter((u) => u.role === "user").length,
+      developers: allUsers.filter((u) => u.role === "developer_admin").length,
+      regularUsers: allUsers.filter((u) => u.role === "user").length,
     };
-  }, [users]);
+  }, [totalUsers, allUsers]);
 
   const createUserMutation = useMutation({
     mutationFn: (data: any) => adminApi.createUser(data),
@@ -389,11 +394,18 @@ export function UserManagement() {
 
   const handleSelectAll = () => {
     setSelectedUsers(
-      selectedUsers.length === filteredUsers.length
+      selectedUsers.length === allUsers.length
         ? []
-        : filteredUsers.map((u) => u.id)
+        : allUsers.map((u) => u.id)
     );
   };
+
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore,
+    onLoadMore: () => setOffset(prev => prev + limit),
+    threshold: 300,
+  });
 
   const handleExportUsers = async () => {
     try {
@@ -535,7 +547,6 @@ export function UserManagement() {
   return (
     <AdminPageLayout title="User Management">
       <div className="space-y-6">
-        {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -632,7 +643,6 @@ export function UserManagement() {
           </Card>
         </div>
 
-        {/* Filters and Actions */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -697,30 +707,6 @@ export function UserManagement() {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="support_staff">Support Staff</SelectItem>
-                  <SelectItem value="content_moderator">
-                    Content Moderator
-                  </SelectItem>
-                  <SelectItem value="finance_officer">
-                    Finance Officer
-                  </SelectItem>
-                  <SelectItem value="operations_manager">
-                    Operations Manager
-                  </SelectItem>
-                  <SelectItem value="developer_admin">
-                    Developer Admin
-                  </SelectItem>
-                </SelectContent>
-              </Select>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="All Statuses" />
@@ -747,39 +733,40 @@ export function UserManagement() {
                   </div>
                 ))}
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : allUsers.length === 0 && !isFetching ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No users found</h3>
                 <p className="text-sm text-muted-foreground max-w-md">
-                  {searchQuery || selectedRole !== "all" || selectedStatus !== "all"
+                  {searchQuery || selectedStatus !== "all"
                     ? "Try adjusting your filters or search query."
                     : "No users are registered in this space yet."}
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={
-                          selectedUsers.length === filteredUsers.length &&
-                          filteredUsers.length > 0
-                        }
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            selectedUsers.length === allUsers.length &&
+                            allUsers.length > 0
+                          }
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <Checkbox
@@ -890,43 +877,24 @@ export function UserManagement() {
                   ))}
                 </TableBody>
               </Table>
+              <div ref={loadMoreRef} className="h-4" />
+              {isFetching && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              )}
+            </>
             )}
           </CardContent>
         </Card>
 
-        {/* Pagination */}
-        {totalUsers > pageSize && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} users
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <div className="text-sm">
-                Page {currentPage} of {Math.ceil(totalUsers / pageSize)}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => p + 1)}
-                disabled={currentPage >= Math.ceil(totalUsers / pageSize)}
-              >
-                Next
-              </Button>
-            </div>
+        {totalUsers > 0 && (
+          <div className="text-sm text-muted-foreground text-center">
+            Showing {allUsers.length} of {totalUsers} users
           </div>
         )}
       </div>
 
-      {/* Add User Modal */}
       <Dialog open={addUserModalOpen} onOpenChange={setAddUserModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -1057,7 +1025,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Modal */}
       <Dialog open={editUserModalOpen} onOpenChange={setEditUserModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -1190,7 +1157,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Suspend User Modal */}
       <Dialog open={suspendModalOpen} onOpenChange={setSuspendModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1229,7 +1195,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Ban User Modal */}
       <Dialog open={banModalOpen} onOpenChange={setBanModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1266,7 +1231,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Modal */}
       <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1289,7 +1253,6 @@ export function UserManagement() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reset Password Modal */}
       <Dialog
         open={resetPasswordModalOpen}
         onOpenChange={setResetPasswordModalOpen}

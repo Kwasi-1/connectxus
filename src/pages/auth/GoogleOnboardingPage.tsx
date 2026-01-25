@@ -19,28 +19,21 @@ import { StudentFields } from "@/features/auth/StudentFields";
 import { StaffFields } from "@/features/auth/StaffFields";
 import { InterestsSelector } from "@/features/auth/InterestsSelector";
 import { toast } from "sonner";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { completeGoogleOnboarding } from "@/api/auth.api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 
 const googleOnboardingSchema = z.object({
   role: z.enum(["student", "not-student"]),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be at most 30 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username must be at most 30 characters"),
   space_id: z.string().min(1, "Please select a space"),
   department_id: z.string().min(1, "Please select a department"),
   phoneNumber: z.string().min(10).max(10),
   level: z.string().optional(),
-  interests: z.array(z.string()).min(1, "Please select at least one interest"),
+  interests: z
+    .array(z.string())
+    .min(1, "Please select at least one interest"),
   is_student: z.boolean(),
 });
 
@@ -58,9 +51,7 @@ export const GoogleOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { setAuthUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [googleData, setGoogleData] = useState<GoogleOnboardingData | null>(
-    null,
-  );
+  const [googleData, setGoogleData] = useState<GoogleOnboardingData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<GoogleOnboardingFormData>({
@@ -80,12 +71,7 @@ export const GoogleOnboardingPage: React.FC = () => {
   const watchedRole = form.watch("role");
   const watchedUsername = form.watch("username");
 
-  const {
-    status: usernameStatus,
-    message: usernameMessage,
-    isChecking: isCheckingUsername,
-    isAvailable: isUsernameAvailable,
-  } = useUsernameAvailability(watchedUsername);
+  const { status: usernameStatus, message: usernameMessage, isChecking: isCheckingUsername, isAvailable: isUsernameAvailable } = useUsernameAvailability(watchedUsername);
 
   useEffect(() => {
     form.setValue("is_student", watchedRole === "student");
@@ -110,33 +96,7 @@ export const GoogleOnboardingPage: React.FC = () => {
 
   const totalSteps = 4;
 
-  // Define which fields need validation for each step
-  const getStepFields = (step: number): (keyof GoogleOnboardingFormData)[] => {
-    switch (step) {
-      case 1:
-        return ["role"];
-      case 2:
-        return ["username", "phoneNumber"];
-      case 3:
-        return ["space_id", "department_id"];
-      case 4:
-        return ["interests"];
-      default:
-        return [];
-    }
-  };
-
   const nextStep = async () => {
-    // Validate current step fields before proceeding
-    const fieldsToValidate = getStepFields(currentStep);
-    const isValid = await form.trigger(fieldsToValidate);
-
-    if (!isValid) {
-      toast.error("Please fill in all required fields correctly");
-      return;
-    }
-
-    // Additional validation for step 2 (username availability)
     if (currentStep === 2) {
       const username = form.getValues("username");
 
@@ -156,9 +116,7 @@ export const GoogleOnboardingPage: React.FC = () => {
       }
 
       if (isUsernameAvailable === null && username.length >= 3) {
-        toast.error(
-          "Could not verify username availability. Please try again.",
-        );
+        toast.error("Could not verify username availability. Please try again.");
         return;
       }
     }
@@ -201,9 +159,7 @@ export const GoogleOnboardingPage: React.FC = () => {
       navigate("/feed");
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.message ||
-          error.message ||
-          "Failed to complete onboarding",
+        error?.response?.data?.message || error.message || "Failed to complete onboarding"
       );
     } finally {
       setIsLoading(false);
@@ -219,16 +175,14 @@ export const GoogleOnboardingPage: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <div className="flex gap-2">
-                <h2 className="text-2xl font-semibold">
-                  Welcome, {googleData.full_name}!
-                </h2>
-                {googleData.avatar && (
-                  <img
-                    src={googleData.avatar}
-                    alt={"logo"}
-                    className="w-10 h-10 rounded-full mx-auto hidden"
-                  />
-                )}
+              <h2 className="text-2xl font-semibold">Welcome, {googleData.full_name}!</h2>
+              {googleData.avatar && (
+                <img
+                  src={googleData.avatar}
+                  alt={"logo"}
+                  className="w-10 h-10 rounded-full mx-auto hidden"
+                />
+              )}
               </div>
               <p className="text-muted-foreground">
                 Let's complete your profile
@@ -244,10 +198,7 @@ export const GoogleOnboardingPage: React.FC = () => {
                 />
               )}
               <p className="text-sm text-muted-foreground">
-                Signing in with:{" "}
-                <span className="font-medium text-foreground">
-                  {googleData.email}
-                </span>
+                Signing in with: <span className="font-medium text-foreground">{googleData.email}</span>
               </p>
             </div>
 
@@ -286,31 +237,25 @@ export const GoogleOnboardingPage: React.FC = () => {
                           {isCheckingUsername && (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           )}
-                          {usernameStatus === "available" && (
+                          {usernameStatus === 'available' && (
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                           )}
-                          {usernameStatus === "taken" && (
+                          {usernameStatus === 'taken' && (
                             <XCircle className="h-4 w-4 text-destructive" />
                           )}
                         </div>
                       )}
                     </div>
                   </FormControl>
-                  {field.value &&
-                    field.value.length >= 3 &&
-                    usernameMessage && (
-                      <FormDescription
-                        className={
-                          usernameStatus === "available"
-                            ? "text-green-600"
-                            : usernameStatus === "taken"
-                              ? "text-destructive"
-                              : "text-muted-foreground"
-                        }
-                      >
-                        {usernameMessage}
-                      </FormDescription>
-                    )}
+                  {field.value && field.value.length >= 3 && usernameMessage && (
+                    <FormDescription className={
+                      usernameStatus === 'available' ? 'text-green-600' :
+                      usernameStatus === 'taken' ? 'text-destructive' :
+                      'text-muted-foreground'
+                    }>
+                      {usernameMessage}
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

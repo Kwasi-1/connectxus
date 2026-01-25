@@ -36,7 +36,6 @@ export const ForgotPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Back Button */}
         <Button
           variant="ghost"
           size="sm"
@@ -47,7 +46,6 @@ export const ForgotPasswordPage: React.FC = () => {
           Back to Sign In
         </Button>
 
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-foreground/10 rounded-full flex items-center justify-center">
@@ -60,7 +58,6 @@ export const ForgotPasswordPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6 bg-card p-8 rounded-lg border border-border">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Email Address</label>
@@ -90,7 +87,6 @@ export const ForgotPasswordPage: React.FC = () => {
             )}
           </Button>
 
-          {/* Info */}
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <p className="text-xs text-muted-foreground">
               • The code will be sent to your email address

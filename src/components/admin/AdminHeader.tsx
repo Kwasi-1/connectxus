@@ -101,7 +101,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Centralized Space Switcher */}
           <SpaceSwitcher />
 
           <Popover>

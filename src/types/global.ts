@@ -38,6 +38,7 @@ export interface Post {
   author: User;
   content: string;
   images?: string[];
+  media?: string[];
   video?: string;
   likes: number;
   comments: number;

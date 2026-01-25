@@ -154,7 +154,6 @@ export function TutoringBusinessAnalytics() {
         <h1 className="text-3xl font-bold custom-font">Business Analytics</h1>
       </div>
 
-      {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -214,9 +213,7 @@ export function TutoringBusinessAnalytics() {
         </Card>
       </div>
 
-      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Conversion Funnel */}
         <Card>
           <CardHeader>
             <CardTitle>Conversion Funnel</CardTitle>
@@ -251,7 +248,6 @@ export function TutoringBusinessAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Revenue by Subject */}
         <Card>
           <CardHeader>
             <CardTitle>Revenue by Subject</CardTitle>
@@ -299,7 +295,6 @@ export function TutoringBusinessAnalytics() {
         </Card>
       </div>
 
-      {/* Top Tutors */}
       <Card>
         <CardHeader>
           <CardTitle>Top Performing Tutors</CardTitle>

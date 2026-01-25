@@ -1,6 +1,4 @@
-/**
- * Image optimization and CDN utilities for the Connect platform
- */
+
 
 export interface ImageOptimizationOptions {
   width?: number;
@@ -10,10 +8,7 @@ export interface ImageOptimizationOptions {
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
 }
 
-/**
- * Get optimized image URL with transformation parameters
- * Works with Google Cloud CDN and other CDN providers
- */
+
 export const getOptimizedImageUrl = (
   url: string,
   options: ImageOptimizationOptions = {}
@@ -35,9 +30,7 @@ export const preloadImage = (url: string): Promise<void> => {
   });
 };
 
-/**
- * Lazy load images with Intersection Observer
- */
+
 export const lazyLoadImage = (
   imageElement: HTMLImageElement,
   src: string,
@@ -100,9 +93,7 @@ export const getThumbnailUrl = (url: string, size: number = 200): string => {
   });
 };
 
-/**
- * Progressive image loading with blur effect
- */
+
 export class ProgressiveImage {
   private container: HTMLElement;
   private placeholder: string;
@@ -140,18 +131,13 @@ export class ProgressiveImage {
   }
 }
 
-/**
- * Cache busting for CDN
- */
+
 export const addCacheBuster = (url: string): string => {
   if (!url) return '';
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}v=${Date.now()}`;
 };
 
-/**
- * Get video thumbnail from video URL
- */
 export const getVideoThumbnail = async (
   videoUrl: string,
   timeInSeconds: number = 1

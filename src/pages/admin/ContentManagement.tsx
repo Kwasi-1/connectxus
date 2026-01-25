@@ -1595,7 +1595,6 @@ export function ContentManagement() {
           </Card>
         </TabsContent>
 
-        {/* Feedback Tab */}
         <TabsContent value="feedback" className="space-y-4">
           <Card>
             <CardHeader>

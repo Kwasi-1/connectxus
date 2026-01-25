@@ -216,7 +216,6 @@ export function AdminDashboard() {
   return (
     <AdminPageLayout title="Admin Dashboard">
       <div className="space-y-6">
-        {/* Current Space Info */}
         <Card className="border-l-4 border-l-primary">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -235,7 +234,6 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickStats.map((stat) => (
             <Card
@@ -276,7 +274,6 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {/* System Status */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -305,7 +302,6 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

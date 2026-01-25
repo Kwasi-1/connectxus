@@ -278,7 +278,6 @@ export function RightSidebar() {
                 Catch up on what's happening around campus!
               </p>
 
-              {/* Story preview avatars */}
               <div className="flex items-center -space-x-4">
                 {mockCampusHighlightStories.slice(0, 3).map((story, index) => (
                   <Avatar

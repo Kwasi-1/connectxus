@@ -102,7 +102,6 @@ export function RequestTutoringModal({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
           >
-            {/* Session Type */}
             <FormField
               control={form.control}
               name="sessionType"
@@ -167,7 +166,6 @@ export function RequestTutoringModal({
               )}
             />
 
-            {/* Schedule Selection from Availability */}
             <FormField
               control={form.control}
               name="schedules"
@@ -242,7 +240,6 @@ export function RequestTutoringModal({
               )}
             />
 
-            {/* Message/Description */}
             <FormField
               control={form.control}
               name="message"
@@ -261,7 +258,6 @@ export function RequestTutoringModal({
               )}
             />
 
-            {/* Info Notice */}
             <div className="rounded-lg bg-muted p-4 text-sm">
               <p className="font-medium mb-2">What happens next?</p>
               <ul className="space-y-1 text-muted-foreground">
@@ -277,7 +273,6 @@ export function RequestTutoringModal({
               </ul>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"

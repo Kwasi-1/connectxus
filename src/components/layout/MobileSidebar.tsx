@@ -30,7 +30,7 @@ import TutoringIcon from "@/assets/icons/Tutoring.svg?react";
 import HelpIcon from "@/assets/icons/Help.svg?react";
 import AccountIcon from "@/assets/icons/AccountIcon.svg?react";
 import { navigationItems } from "./Sidebar";
-import Logo from "@/components/shared/Logo";
+
 
 const navItems = navigationItems;
 
@@ -58,9 +58,11 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         <div className="flex flex-col h-full">
           <SheetHeader className="p-6 borderb border-border custom-font">
             <div className="flex items-center space-x-3">
-              <Logo className="w-8 h-8" />
+              <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
+                <span className="text-background font-bold text-sm">CV</span>
+              </div>
               <SheetTitle className="font-semibold text-xl text-foreground">
-                Connectxus
+                Campus Vibe
               </SheetTitle>
             </div>
           </SheetHeader>
@@ -77,15 +79,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   className={cn(
                     "w-fit xl:w-full justify-start text-left xl:ml-0 px-3 my-2 xl:my-0 xl:px-4 py-3 text-xl font-medium rounded-full flex items-center transition-colors",
                     "hover:bg-muted font-[300] gap-4",
-                    isActive && "font-bold",
+                    isActive && "font-bold"
                   )}
                 >
                   <Icon
                     className={cn(
                       "h-5 w-5 text-3xl xl:h-[22px] xl:w-[22px] transtion duration-300",
-                      isActive
-                        ? "fill-transparent scale-110"
-                        : "stroke-current",
+                      isActive ? "fill-transparent scale-110" : "stroke-current"
                     )}
                   />
                   {item.label}

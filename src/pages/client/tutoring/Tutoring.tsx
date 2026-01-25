@@ -73,7 +73,7 @@ import {
   deleteTutorApplication,
   getMyTutorApplications,
 } from "@/api/tutoring.api";
-import { getOrCreateDirectConversation } from "@/api/messaging.api";
+import { getOrCreateDirectConversation, getConversationById } from "@/api/messaging.api";
 import {
   followUser,
   unfollowUser,
@@ -465,7 +465,6 @@ const TutoringContent = () => {
     mutationFn: (data: {
       request_id: string;
       reference: string;
-      amount: string;
     }) => verifyTutoringPayment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -639,8 +638,25 @@ const TutoringContent = () => {
 
   const messageTutorMutation = useMutation({
     mutationFn: (userId: string) => getOrCreateDirectConversation(userId),
-    onSuccess: (response) => {
-      navigate(`/messages/${response.conversation_id}`);
+    onSuccess: async (response) => {
+      try {
+        const conversation = await getConversationById(response.conversation_id);
+
+        queryClient.setQueryData(["conversations"], (oldData: any) => {
+          if (!oldData) return [conversation];
+          const exists = oldData.some((c: any) => c.id === conversation.id);
+          if (exists) {
+            return oldData.map((c: any) =>
+              c.id === conversation.id ? conversation : c
+            );
+          }
+          return [conversation, ...oldData];
+        });
+
+        navigate(`/messages/${response.conversation_id}`);
+      } catch (error) {
+        navigate(`/messages/${response.conversation_id}`);
+      }
     },
     onError: (error) => {
       const message =
@@ -858,7 +874,6 @@ const TutoringContent = () => {
     verifyPaymentMutation.mutate({
       request_id: selectedRequest.id,
       reference,
-      amount: total.toString(),
     });
   };
 
@@ -1014,7 +1029,6 @@ const TutoringContent = () => {
             )}
           </TabsList>
 
-          {/* Available Tutors Tab */}
           <TabsContent value="available" className="space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -1219,9 +1233,7 @@ const TutoringContent = () => {
             )}
           </TabsContent>
 
-          {/* Requests Tab */}
           <TabsContent value="requests" className="space-y-4">
-            {/* Filter for requests (Sent, Received, All) */}
             {isApprovedTutor && (
               <div className="flex gap-2">
                 <Select
@@ -1277,7 +1289,6 @@ const TutoringContent = () => {
                   })}
                 </div>
 
-                {/* Infinite scroll triggers based on filter */}
                 {requestsFilter === "sent" || requestsFilter === "all"
                   ? hasNextSentRequestsPage && (
                       <div
@@ -1319,7 +1330,6 @@ const TutoringContent = () => {
             )}
           </TabsContent>
 
-          {/* My Services Tab (only for approved tutors) */}
           {showServicesTab && (
             <TabsContent value="services" className="space-y-4">
               {loadingTutorServices ? (
@@ -1422,7 +1432,6 @@ const TutoringContent = () => {
                       </div>
                     ))}
 
-                    {/* Infinite Scroll Trigger */}
                     {hasNextTutorServicesPage && (
                       <div
                         ref={loadMoreTutorServicesRef}
@@ -1450,7 +1459,6 @@ const TutoringContent = () => {
           )}
 
 
-          {/* Monetization Tab (only for approved tutors) */}
           {showMonetizationTab && (
             <TabsContent value="monetization">
               <MonetizationTab />
@@ -1693,6 +1701,7 @@ const TutoringContent = () => {
               "Tutor"
             }
             refundAmount={selectedRequest.payment_details?.amount || 0}
+            completedAt={selectedRequest.completed_at}
             onSubmit={handleSubmitRefund}
             isLoading={refundRequestMutation.isPending}
           />
@@ -1712,7 +1721,6 @@ const TutoringContent = () => {
         </>
       )}
 
-      {/* Delete Service Confirmation Dialog */}
       <Dialog open={deleteServiceModalOpen} onOpenChange={setDeleteServiceModalOpen}>
         <DialogContent>
           <DialogHeader>

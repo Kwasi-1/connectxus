@@ -124,7 +124,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
       <div>
         <Button
           variant="ghost"
@@ -145,7 +144,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
@@ -158,7 +156,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">
                 Title <span className="text-destructive">*</span>
@@ -177,7 +174,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
               />
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">
                 Description <span className="text-destructive">*</span>
@@ -201,7 +197,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Type */}
               <div className="space-y-2">
                 <Label htmlFor="type">
                   Type <span className="text-destructive">*</span>
@@ -224,7 +219,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
                 </Select>
               </div>
 
-              {/* Subject */}
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject (Optional)</Label>
                 <Input
@@ -239,7 +233,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
               </div>
             </div>
 
-            {/* Level - Only show for course type */}
             {formData.type === "course" && (
               <div className="space-y-2">
                 <Label htmlFor="level">
@@ -280,7 +273,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Deadline */}
               <div className="space-y-2">
                 <Label htmlFor="deadline">
                   Deadline <span className="text-destructive">*</span>
@@ -297,7 +289,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
                 />
               </div>
 
-              {/* Visibility */}
               <div className="space-y-2">
                 <Label htmlFor="status">Visibility</Label>
                 <Select
@@ -349,7 +340,6 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
           </Card>
         )}
 
-        {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4">
           <Button
             type="button"

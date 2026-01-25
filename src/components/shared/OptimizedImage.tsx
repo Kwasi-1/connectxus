@@ -14,9 +14,7 @@ export interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageEl
   onError?: () => void;
 }
 
-/**
- * OptimizedImage component with CDN support, lazy loading, and progressive enhancement
- */
+
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
@@ -90,7 +88,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       className={`optimized-image-container ${className}`}
       style={{ position: 'relative', overflow: 'hidden' }}
     >
-      {/* Thumbnail for progressive loading */}
       {progressive && thumbnailUrl && isInView && !isLoaded && (
         <img
           src={thumbnailUrl}
@@ -110,7 +107,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         />
       )}
 
-      {/* Main image */}
       <img
         ref={imgRef}
         src={displayUrl}
@@ -130,7 +126,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         {...props}
       />
 
-      {/* Loading placeholder */}
       {!isLoaded && !error && (
         <div
           style={{
