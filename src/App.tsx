@@ -67,12 +67,14 @@ import { TutoringBusinessDisputes } from "./pages/admin/tutoring-business/Tutori
 import { TutoringBusinessAnalytics } from "./pages/admin/tutoring-business/TutoringBusinessAnalytics";
 import { HeroUIProvider } from "@heroui/react";
 import { LandingPage as LandingPageV2 } from "@/LandingPageV2";
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <HeroUIProvider>
+      <SpeedInsights />
       <TooltipProvider>
         <AdminAuthProvider>
           <AuthProvider>
