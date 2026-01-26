@@ -83,10 +83,13 @@ export const ProfileTabs = ({
 
   useEffect(() => {
     const fetchUserComments = async () => {
-      if (activeTab === "replies" && user.id) {
+      if (activeTab === "replies" && user.username) {
         setCommentsLoading(true);
         try {
-          const comments = await getUserComments(user.id, { page: 1, limit: 50 });
+          const comments = await getUserComments(user.username, {
+            page: 1,
+            limit: 50,
+          });
           setUserComments(comments);
         } catch (error) {
           console.error("Error fetching user comments:", error);
@@ -97,7 +100,7 @@ export const ProfileTabs = ({
     };
 
     fetchUserComments();
-  }, [activeTab, user.id]);
+  }, [activeTab, user.username]);
 
   const handleComment = (postId: string) => {
     navigate(`/post/${postId}`);
@@ -268,7 +271,7 @@ export const ProfileTabs = ({
                           <span className="text-muted-foreground">·</span>
                           <span className="text-muted-foreground text-sm">
                             {new Date(
-                              comment.comment_created_at
+                              comment.comment_created_at,
                             ).toLocaleDateString()}
                           </span>
                         </div>

@@ -259,11 +259,11 @@ export function CreateCommunityModal({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Academic">Academic</SelectItem>
-                <SelectItem value="Department">Department</SelectItem>
-                <SelectItem value="Level">Level</SelectItem>
-                <SelectItem value="Hostel">Hostel</SelectItem>
-                <SelectItem value="Faculty">Faculty</SelectItem>
+                <SelectItem value="academic">Academic</SelectItem>
+                <SelectItem value="department">Department</SelectItem>
+                <SelectItem value="level">Level</SelectItem>
+                <SelectItem value="hostel">Hostel</SelectItem>
+                <SelectItem value="faculty">Faculty</SelectItem>
               </SelectContent>
             </Select>
           </div>

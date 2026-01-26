@@ -47,6 +47,7 @@ export interface TutorApplication {
   availability?: any;
   session_rate?: number;
   semester_rate?: number;
+  department_id?: string;
   status: "pending" | "approved" | "rejected";
   reviewed_by?: string;
   reviewer_notes?: string;
@@ -234,6 +235,7 @@ export const submitTutorApplication = async (data: {
   motivation: string;
   reference_letters?: string;
   availability: string[];
+  department_id?: string;
 }): Promise<ApplicationStatusResponse> => {
   const response = await apiClient.post<ApiResponse<ApplicationStatusResponse>>(
     "/tutoring/tutors/applications",
@@ -244,6 +246,7 @@ export const submitTutorApplication = async (data: {
       discount: data.discount,
       subject_type: data.subject_type,
       level: data.level,
+      department_id: data.department_id,
       experience: data.experience,
       qualifications: data.qualifications,
       teaching_style: data.teaching_style,

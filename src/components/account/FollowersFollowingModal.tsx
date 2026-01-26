@@ -13,8 +13,8 @@ import { MessageCircle, UserPlus, UserMinus, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  getUserFollowers,
-  getUserFollowing,
+  getUserFollowersByUsername,
+  getUserFollowingByUsername,
   followUser,
   unfollowUser,
   checkFollowingStatus,
@@ -44,8 +44,12 @@ export const FollowersFollowingModal = ({
 }: FollowersFollowingModalProps) => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [followingStates, setFollowingStates] = useState<Record<string, boolean>>({});
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [followingStates, setFollowingStates] = useState<
+    Record<string, boolean>
+  >({});
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
+    {},
+  );
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
 
@@ -61,16 +65,23 @@ export const FollowersFollowingModal = ({
       let fetchedUsers: UserProfile[];
 
       if (type === "followers") {
-        fetchedUsers = await getUserFollowers(userId, { page: 1, limit: 100 });
+        fetchedUsers = await getUserFollowersByUsername(username, {
+          page: 1,
+          limit: 100,
+        });
       } else {
-        fetchedUsers = await getUserFollowing(userId, { page: 1, limit: 100 });
+        fetchedUsers = await getUserFollowingByUsername(username, {
+          page: 1,
+          limit: 100,
+        });
       }
 
       setUsers(fetchedUsers);
 
       if (authUser) {
         const statusPromises = fetchedUsers.map(async (user) => {
-          if (user.id === authUser.id) return { userId: user.id, isFollowing: false };
+          if (user.id === authUser.id)
+            return { userId: user.id, isFollowing: false };
           try {
             const isFollowing = await checkFollowingStatus(user.id);
             return { userId: user.id, isFollowing };
@@ -94,7 +105,10 @@ export const FollowersFollowingModal = ({
     }
   };
 
-  const handleFollow = async (targetUserId: string, currentlyFollowing: boolean) => {
+  const handleFollow = async (
+    targetUserId: string,
+    currentlyFollowing: boolean,
+  ) => {
     if (!authUser || targetUserId === authUser.id) return;
 
     setLoadingStates((prev) => ({ ...prev, [targetUserId]: true }));
@@ -111,7 +125,9 @@ export const FollowersFollowingModal = ({
       }
     } catch (error) {
       console.error("Error following/unfollowing user:", error);
-      toast.error(currentlyFollowing ? "Failed to unfollow" : "Failed to follow");
+      toast.error(
+        currentlyFollowing ? "Failed to unfollow" : "Failed to follow",
+      );
     } finally {
       setLoadingStates((prev) => ({ ...prev, [targetUserId]: false }));
     }
@@ -125,7 +141,10 @@ export const FollowersFollowingModal = ({
   const handleMessage = async (targetUserId: string) => {
     if (!authUser || targetUserId === authUser.id) return;
 
-    setLoadingStates((prev) => ({ ...prev, [`message-${targetUserId}`]: true }));
+    setLoadingStates((prev) => ({
+      ...prev,
+      [`message-${targetUserId}`]: true,
+    }));
 
     try {
       const response = await getOrCreateDirectConversation(targetUserId);
@@ -135,7 +154,10 @@ export const FollowersFollowingModal = ({
       console.error("Error creating conversation:", error);
       toast.error("Failed to start conversation");
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [`message-${targetUserId}`]: false }));
+      setLoadingStates((prev) => ({
+        ...prev,
+        [`message-${targetUserId}`]: false,
+      }));
     }
   };
 
@@ -171,7 +193,8 @@ export const FollowersFollowingModal = ({
               const isOwnProfile = authUser?.id === user.id;
               const isFollowing = followingStates[user.id] || false;
               const isFollowLoading = loadingStates[user.id] || false;
-              const isMessageLoading = loadingStates[`message-${user.id}`] || false;
+              const isMessageLoading =
+                loadingStates[`message-${user.id}`] || false;
 
               return (
                 <div
@@ -179,14 +202,19 @@ export const FollowersFollowingModal = ({
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={user.avatar || undefined} alt={user.username} />
+                    <AvatarImage
+                      src={user.avatar || undefined}
+                      alt={user.username}
+                    />
                     <AvatarFallback>
                       {user.username.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{user.full_name}</div>
+                    <div className="font-semibold truncate">
+                      {user.full_name}
+                    </div>
                     <div className="text-sm text-muted-foreground truncate">
                       @{user.username}
                     </div>

@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserProfile } from "@/types/global";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { followUser, unfollowUser } from "@/api/users.api";
+import { followUser, unfollowUser, updateUser } from "@/api/users.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import { uploadFile } from "@/api/files.api";
+import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 import { toast as sonnerToast } from "sonner";
 import { FollowersFollowingModal } from "./FollowersFollowingModal";
 import { UpdatePasswordModal } from "./UpdatePasswordModal";
@@ -52,13 +53,15 @@ export const ProfileHeader = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(
-    null
+    null,
   );
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showDept2, setShowDept2] = useState(false);
+  const [showDept3, setShowDept3] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -70,14 +73,38 @@ export const ProfileHeader = ({
 
   const [editForm, setEditForm] = useState({
     displayName: user.username,
+    username: user.username, 
     bio: user.bio || "",
-    level: user.level || "",
+    level: user.level?.toString() || "", 
     departmentId: user.department_id || "",
+    departmentId2: user.department_id_2 || "",
+    departmentId3: user.department_id_3 || "",
   });
+
+  useEffect(() => {
+    setEditForm({
+      displayName: user.displayName || user.username, 
+      username: user.username,
+      bio: user.bio || "",
+      level: user.level?.toString() || "",
+      departmentId: user.department_id || "",
+      departmentId2: user.department_id_2 || "",
+      departmentId3: user.department_id_3 || "",
+    });
+    setShowDept2(!!user.department_id_2);
+    setShowDept3(!!user.department_id_3);
+  }, [user, isEditing]);
+
+  const {
+    status: usernameStatus,
+    message: usernameMessage,
+    isChecking: isCheckingUsername,
+    isAvailable: isUsernameAvailable,
+  } = useUsernameAvailability(editForm.username);
 
   const { data: spacesData, isLoading: isLoadingSpaces } = useQuery({
     queryKey: ["spaces"],
-    queryFn: getSpaces,
+    queryFn: () => getSpaces(),
     enabled: isEditing && isOwnProfile,
     staleTime: 5 * 60 * 1000,
   });
@@ -90,6 +117,18 @@ export const ProfileHeader = ({
   });
 
   const spaces = (spacesData as any)?.spaces || [];
+
+  const getFilteredDepartments = (currentValue: string | undefined) => {
+    const selectedValues = [
+      editForm.departmentId,
+      editForm.departmentId2,
+      editForm.departmentId3,
+    ].filter(Boolean);
+    return (departments || []).filter(
+      (dept: any) =>
+        dept.id === currentValue || !selectedValues.includes(dept.id),
+    );
+  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,15 +199,25 @@ export const ProfileHeader = ({
         sonnerToast.success("Cover image uploaded successfully");
       }
 
-      onUserUpdate({
-        ...user,
-        displayName: editForm.displayName,
+      const updatedUser = await updateUser({
+        full_name: editForm.displayName,
         bio: editForm.bio,
         level: editForm.level,
         department_id: editForm.departmentId,
+        department_id_2: editForm.departmentId2 || null,
+        department_id_3: editForm.departmentId3 || null,
         avatar: avatarUrl,
         cover_image: coverImageUrl,
       });
+
+      
+      onUserUpdate({
+        ...user,
+        ...updatedUser,
+        username: editForm.username,
+      });
+
+      sonnerToast.success("Profile saved successfully");
 
       setIsEditing(false);
       setAvatarPreview(null);
@@ -185,12 +234,6 @@ export const ProfileHeader = ({
   };
 
   const handleCancel = () => {
-    setEditForm({
-      displayName: user.username,
-      bio: user.bio || "",
-      level: user.level || "",
-      departmentId: user.department_id || "",
-    });
     setIsEditing(false);
     setAvatarPreview(null);
     setSelectedAvatarFile(null);
@@ -230,7 +273,7 @@ export const ProfileHeader = ({
     } catch (err: any) {
       console.error("Error following/unfollowing user:", err);
       sonnerToast.error(
-        isFollowing ? "Failed to unfollow user" : "Failed to follow user"
+        isFollowing ? "Failed to unfollow user" : "Failed to follow user",
       );
 
       setIsFollowing(previousFollowState);
@@ -333,14 +376,64 @@ export const ProfileHeader = ({
         <div className="flex items-start justify-between mb-1">
           <div className="flex-1 min-w-0">
             {isEditing && isOwnProfile ? (
-              <Input
-                value={editForm.displayName}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, displayName: e.target.value })
-                }
-                placeholder="Display Name"
-                className="text-xl font-bold mb-1"
-              />
+              <div className="space-y-3 mb-2">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="display-name"
+                    className="text-xs text-muted-foreground ml-1"
+                  >
+                    Full Name
+                  </Label>
+                  <Input
+                    id="display-name"
+                    value={editForm.displayName}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, displayName: e.target.value })
+                    }
+                    placeholder="Full Name"
+                    className="text-lg font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="username"
+                    className="text-xs text-muted-foreground ml-1"
+                  >
+                    Username
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="username"
+                      value={editForm.username}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, username: e.target.value })
+                      }
+                      placeholder="Username"
+                    />
+                    {editForm.username !== user.username &&
+                      editForm.username.length >= 3 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          {isCheckingUsername && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          {!isCheckingUsername &&
+                            isUsernameAvailable === true && (
+                              <span className="text-green-600 text-xs">
+                                ✓ Available
+                              </span>
+                            )}
+                          {!isCheckingUsername &&
+                            isUsernameAvailable === false && (
+                              <span className="text-destructive text-xs">
+                                ✗ Taken
+                              </span>
+                            )}
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">
@@ -394,8 +487,8 @@ export const ProfileHeader = ({
                   {isFollowLoading
                     ? "Loading..."
                     : isFollowing
-                    ? "Following"
-                    : "Follow"}
+                      ? "Following"
+                      : "Follow"}
                 </Button>
               </>
             )}
@@ -463,15 +556,101 @@ export const ProfileHeader = ({
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments?.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))}
+                      {getFilteredDepartments(editForm.departmentId).map(
+                        (dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 )}
               </div>
+
+              <div>
+                {showDept2 ? (
+                  <>
+                    <Label
+                      htmlFor="department2"
+                      className="text-sm font-medium"
+                    >
+                      Second Department (Optional)
+                    </Label>
+                    <Select
+                      value={editForm.departmentId2}
+                      onValueChange={(value) =>
+                        setEditForm({ ...editForm, departmentId2: value })
+                      }
+                      disabled={!departments || departments.length === 0}
+                    >
+                      <SelectTrigger id="department2" className="mt-1.5">
+                        <SelectValue placeholder="Select second department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none_selection">None</SelectItem>
+                        {getFilteredDepartments(editForm.departmentId2).map(
+                          (dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowDept2(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    + Add second department
+                  </button>
+                )}
+              </div>
+
+              {(showDept2 || editForm.departmentId2) && (
+                <div>
+                  {showDept3 ? (
+                    <>
+                      <Label
+                        htmlFor="department3"
+                        className="text-sm font-medium"
+                      >
+                        Third Department (Optional)
+                      </Label>
+                      <Select
+                        value={editForm.departmentId3}
+                        onValueChange={(value) =>
+                          setEditForm({ ...editForm, departmentId3: value })
+                        }
+                        disabled={!departments || departments.length === 0}
+                      >
+                        <SelectTrigger id="department3" className="mt-1.5">
+                          <SelectValue placeholder="Select third department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none_selection">None</SelectItem>
+                          {getFilteredDepartments(editForm.departmentId3).map(
+                            (dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowDept3(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      + Add third department
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="level" className="text-sm font-medium">
@@ -564,8 +743,13 @@ export const ProfileHeader = ({
               </p>
             )}
 
-            {(user.space_name || user.department_name || user.level) && (
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            {user.space_name ||
+            user.department_name ||
+            user.level ||
+            user.department_id_2 ||
+            user.department_id_3 ||
+            isOwnProfile ? (
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground items-center">
                 {user.space_name && (
                   <span className="flex items-center gap-1">
                     🏫 {user.space_name}
@@ -576,13 +760,23 @@ export const ProfileHeader = ({
                     🎓 {user.department_name}
                   </span>
                 )}
+                {user.department_id_2 && (
+                  <span className="flex items-center gap-1">
+                    🎓 {user.department_name_2 || "2nd Dept"}
+                  </span>
+                )}
+                {user.department_id_3 && (
+                  <span className="flex items-center gap-1">
+                    🎓 {user.department_name_3 || "3rd Dept"}
+                  </span>
+                )}
                 {user.level && (
                   <span className="flex items-center gap-1">
                     📚 Level {user.level}
                   </span>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

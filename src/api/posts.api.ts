@@ -426,11 +426,11 @@ export interface UserComment {
 }
 
 export const getUserComments = async (
-  userId: string,
+  username: string,
   params?: PaginationParams
 ): Promise<UserComment[]> => {
   const response = await apiClient.get<ApiResponse<UserComment[]>>(
-    `/users/${userId}/comments`,
+    `/users/${username}/comments`,
     {
       params: {
         page: params?.page || 1,

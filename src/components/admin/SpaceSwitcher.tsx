@@ -110,7 +110,9 @@ export function SpaceSwitcher({ className = '' }: SpaceSwitcherProps) {
   }, [searchQuery, isOpen, fetchSpaces]);
 
   const handleSpaceChange = (spaceId: string, spaceName: string) => {
+    console.log('[DEBUG] SpaceSwitcher - Changing to space:', spaceId, spaceName);
     setSelectedSpaceId(spaceId);
+    console.log('[DEBUG] SpaceSwitcher - Stored in localStorage:', localStorage.getItem('admin-current-space-id'));
     setIsOpen(false);
     setSearchQuery('');
     toast.success(`Switched to ${spaceName}`);

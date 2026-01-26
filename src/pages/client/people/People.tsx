@@ -8,12 +8,17 @@ import { Search, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PeopleFilters } from "@/components/people/PeopleFilters";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getAllPeopleInSpace,
   getPeopleInDepartment,
   getPeopleYouMayKnow,
-  getUserFollowing,
+  getMyFollowing,
   searchUsers,
   followUser,
   unfollowUser,
@@ -96,7 +101,7 @@ export function People() {
   } = useInfiniteQuery({
     queryKey: ["people", "following"],
     queryFn: ({ pageParam = 1 }) =>
-      getUserFollowing(user?.id || "", { page: pageParam, limit: 20 }),
+      getMyFollowing({ page: pageParam, limit: 20 }),
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 20 ? allPages.length + 1 : undefined;
     },

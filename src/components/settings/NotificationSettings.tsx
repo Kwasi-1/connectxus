@@ -1,12 +1,26 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { usePushNotificationPrompt } from '@/components/notifications/PushNotificationPrompt';
-import { Bell, BellOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { usePushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
+import {
+  Bell,
+  BellOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiClient } from "@/lib/apiClient";
 
 export const NotificationSettings = () => {
   const {
@@ -31,25 +45,31 @@ export const NotificationSettings = () => {
     setTestingNotification(true);
 
     try {
-      const response = await fetch('/api/push/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
+      const response = await apiClient.post("/push/test");
 
-      if (response.ok) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Test Notification', {
-            body: 'Push notifications are working!',
-            icon: '/logo.png',
-            tag: 'test-notification',
-          });
+      if (response.status === 200) {
+        toast.success("Test notification sent from server!");
+
+        if ("Notification" in window) {
+          if (Notification.permission === "granted") {
+            try {
+              new Notification("Test Notification", {
+                body: "Push notifications are working!",
+                icon: "/logo.png",
+                tag: "test-notification",
+              });
+            } catch (e) {
+              console.error("Browser notification error:", e);
+              toast.error("Browser blocked the notification popup.");
+            }
+          } else {
+            toast.warning("Notification permission not granted in browser.");
+          }
         }
       }
     } catch (error) {
-      console.error('Error sending test notification:', error);
+      console.error("Error sending test notification:", error);
+      toast.error("Failed to send test notification request.");
     } finally {
       setTestingNotification(false);
     }
@@ -63,14 +83,16 @@ export const NotificationSettings = () => {
             <Bell className="w-5 h-5" />
             Push Notifications
           </CardTitle>
-          <CardDescription>Receive notifications even when the app is closed</CardDescription>
+          <CardDescription>
+            Receive notifications even when the app is closed
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Push notifications are not supported in this browser. Please use a modern browser
-              like Chrome, Firefox, or Safari.
+              Push notifications are not supported in this browser. Please use a
+              modern browser like Chrome, Firefox, or Safari.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -85,32 +107,37 @@ export const NotificationSettings = () => {
           <Bell className="w-5 h-5" />
           Push Notifications
         </CardTitle>
-        <CardDescription>Receive notifications even when the app is closed</CardDescription>
+        <CardDescription>
+          Receive notifications even when the app is closed
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {permission === 'denied' && (
+        {permission === "denied" && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Notification permission was denied. Please enable notifications in your browser
-              settings to use this feature.
+              Notification permission was denied. Please enable notifications in
+              your browser settings to use this feature.
             </AlertDescription>
           </Alert>
         )}
 
-        {permission === 'granted' && isSubscribed && (
+        {permission === "granted" && isSubscribed && (
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription>
-              Push notifications are enabled. You'll receive notifications even when the app is
-              closed.
+              Push notifications are enabled. You'll receive notifications even
+              when the app is closed.
             </AlertDescription>
           </Alert>
         )}
 
         <div className="flex items-center justify-between space-x-4">
           <div className="flex-1 space-y-1">
-            <Label htmlFor="push-notifications" className="text-base font-medium">
+            <Label
+              htmlFor="push-notifications"
+              className="text-base font-medium"
+            >
               Enable Push Notifications
             </Label>
             <p className="text-sm text-muted-foreground">
@@ -128,7 +155,7 @@ export const NotificationSettings = () => {
                 markAsDisabled();
               }
             }}
-            disabled={isLoading || permission === 'denied'}
+            disabled={isLoading || permission === "denied"}
           />
         </div>
 
@@ -137,7 +164,7 @@ export const NotificationSettings = () => {
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-muted-foreground">
-                {isSubscribed ? 'Disabling...' : 'Enabling...'}
+                {isSubscribed ? "Disabling..." : "Enabling..."}
               </span>
             </>
           ) : isSubscribed ? (
@@ -176,8 +203,13 @@ export const NotificationSettings = () => {
 
         <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
           <p>• You can disable notifications at any time</p>
-          <p>• Notifications will only be sent when you're not actively viewing the app</p>
-          <p>• You can manage notification preferences in your browser settings</p>
+          <p>
+            • Notifications will only be sent when you're not actively viewing
+            the app
+          </p>
+          <p>
+            • You can manage notification preferences in your browser settings
+          </p>
         </div>
       </CardContent>
     </Card>

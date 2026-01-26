@@ -18,8 +18,8 @@ interface UpdatePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  authProvider?: string; 
-  onPasswordUpdated?: () => void; 
+  authProvider?: string;
+  onPasswordUpdated?: () => void;
 }
 
 export const UpdatePasswordModal = ({
@@ -65,8 +65,8 @@ export const UpdatePasswordModal = ({
     setIsLoading(true);
 
     try {
-      await updatePassword(userId, {
-        old_password: oldPassword || undefined, 
+      await updatePassword({
+        old_password: oldPassword || undefined,
         new_password: newPassword,
       });
 

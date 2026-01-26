@@ -140,7 +140,7 @@ const CommunityDetail = () => {
   });
   const { data: members = [], isLoading: membersLoading } = useCommunityMembers(
     id || "",
-    { page: 1, limit: 100 }
+    { page: 1, limit: 100 },
   );
 
   const { data: announcements = [] } = useQuery({
@@ -162,8 +162,7 @@ const CommunityDetail = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["community-posts", id],
-        refetchType: "active",
+        queryKey: ["community-posts"], 
       });
       toast({
         title: "Post created",
@@ -399,7 +398,7 @@ const CommunityDetail = () => {
             moduleType: "posts",
             moduleId: id,
             accessLevel: "public",
-          })
+          }),
         );
         const uploadedFiles = await Promise.all(uploadPromises);
         imageUrls = uploadedFiles.map((file) => file.url);
@@ -498,7 +497,7 @@ const CommunityDetail = () => {
 
   const handlePostAction = (
     postId: string,
-    action: "like" | "repost" | "comment"
+    action: "like" | "repost" | "comment",
   ) => {
     if (action === "comment") {
       navigate(`/post/${postId}`);
@@ -587,7 +586,6 @@ const CommunityDetail = () => {
           </div>
         </div>
 
-       
         {(coverImageUrl || community.cover_image) && (
           <div className="h-48 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 relative overflow-hidden">
             <img
@@ -838,8 +836,8 @@ const CommunityDetail = () => {
                               {isUploadingPostImages
                                 ? "Uploading..."
                                 : createPostMutation.isPending
-                                ? "Posting..."
-                                : "Post"}
+                                  ? "Posting..."
+                                  : "Post"}
                             </Button>
                           </div>
                         </div>
@@ -1038,7 +1036,7 @@ const CommunityDetail = () => {
                                   onClick={() =>
                                     handlePinAnnouncement(
                                       announcement.id,
-                                      announcement.is_pinned
+                                      announcement.is_pinned,
                                     )
                                   }
                                 >
@@ -1075,7 +1073,7 @@ const CommunityDetail = () => {
                             <span>•</span>
                             <span>
                               {new Date(
-                                announcement.created_at
+                                announcement.created_at,
                               ).toLocaleDateString()}
                             </span>
                           </div>
@@ -1111,7 +1109,7 @@ const CommunityDetail = () => {
                           .includes(searchQuery.toLowerCase()) ||
                         member.username
                           .toLowerCase()
-                          .includes(searchQuery.toLowerCase())
+                          .includes(searchQuery.toLowerCase()),
                     )
                     .map((member) => {
                       const isMemberAdmin = member.role === "admin";
@@ -1292,7 +1290,7 @@ const CommunityDetail = () => {
                               onClick={() => {
                                 setIsEditingSettings(false);
                                 setCommunityDescription(
-                                  community?.description || ""
+                                  community?.description || "",
                                 );
                               }}
                             >
@@ -1370,7 +1368,7 @@ const CommunityDetail = () => {
                             onClick={() => {
                               if (
                                 confirm(
-                                  "Are you sure you want to delete this community? This action cannot be undone."
+                                  "Are you sure you want to delete this community? This action cannot be undone.",
                                 )
                               ) {
                                 toast({

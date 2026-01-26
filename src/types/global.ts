@@ -23,7 +23,11 @@ export interface User {
   space_id?: string;
   space_name?: string;
   department_id?: string;
+  department_id_2?: string;
+  department_id_3?: string;
   department_name?: string;
+  department_name_2?: string;
+  department_name_3?: string;
   department?: string;
   level?: string;
   createdAt: Date;

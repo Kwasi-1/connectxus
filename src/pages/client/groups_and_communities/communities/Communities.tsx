@@ -9,7 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search, Users, ArrowLeft, Filter, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getCommunities,
   getUserCommunities,
@@ -52,6 +57,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDebounce } from "@/hooks/useDebounce";
+import { DepartmentSelect } from "@/components/shared/DepartmentSelect";
 
 type CommunityCategory =
   | "Academic"
@@ -97,7 +103,8 @@ const Communities = () => {
 
   const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
   const [departmentsPage, setDepartmentsPage] = useState(1);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null);
   const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
@@ -108,7 +115,8 @@ const Communities = () => {
     category: "",
     is_public: true,
     cover_image: null,
-    level: 0, 
+    level: 0,
+    department_id: "",
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -125,7 +133,11 @@ const Communities = () => {
     isLoading: loadingDepartments,
     refetch: refetchDepartments,
   } = useQuery({
-    queryKey: ["departments-filter", debouncedDepartmentSearch, departmentsPage],
+    queryKey: [
+      "departments-filter",
+      debouncedDepartmentSearch,
+      departmentsPage,
+    ],
     queryFn: () =>
       getDepartmentsPaginated({
         query: debouncedDepartmentSearch,
@@ -133,7 +145,7 @@ const Communities = () => {
         limit: departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10,
       }),
     enabled: filterSheetOpen,
-    staleTime: 300000, 
+    staleTime: 300000,
   });
 
   const departments = departmentsData || [];
@@ -184,14 +196,13 @@ const Communities = () => {
     retry: 2,
   });
 
-  const recommendedCommunities = recommendedCommunitiesData?.pages.flatMap(page => page) ?? [];
+  const recommendedCommunities =
+    recommendedCommunitiesData?.pages.flatMap((page) => page) ?? [];
 
-  const {
-    data: searchResults = [],
-    isLoading: loadingSearch,
-  } = useQuery({
+  const { data: searchResults = [], isLoading: loadingSearch } = useQuery({
     queryKey: ["search-communities", debouncedSearchQuery],
-    queryFn: () => searchCommunities({ query: debouncedSearchQuery, page: 1, limit: 50 }),
+    queryFn: () =>
+      searchCommunities({ query: debouncedSearchQuery, page: 1, limit: 50 }),
     enabled: debouncedSearchQuery.length > 0,
     staleTime: 30000,
   });
@@ -210,7 +221,7 @@ const Communities = () => {
 
       if (node) observerRef.current.observe(node);
     },
-    [isFetchingNextPage, hasNextPage, fetchNextPage]
+    [isFetchingNextPage, hasNextPage, fetchNextPage],
   );
 
   const isLoading = loadingRecommended || loadingMy || loadingSearch;
@@ -255,7 +266,9 @@ const Communities = () => {
       });
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error?.message || "Failed to create community");
+      toast.error(
+        error?.response?.data?.error?.message || "Failed to create community",
+      );
     },
   });
 
@@ -263,7 +276,9 @@ const Communities = () => {
     if (activeTab === "my") {
       return debouncedSearchQuery.length > 0 ? searchResults : myCommunities;
     } else {
-      return debouncedSearchQuery.length > 0 ? searchResults : recommendedCommunities;
+      return debouncedSearchQuery.length > 0
+        ? searchResults
+        : recommendedCommunities;
     }
   };
 
@@ -278,9 +293,10 @@ const Communities = () => {
 
   const myCommunitiesList = activeTab === "my" ? displayList : myCommunities;
 
-  const exploreCommunitiesList = activeTab === "explore"
-    ? displayList.filter((c) => !myCommunitiesIds.has(c.id))
-    : recommendedCommunities.filter((c) => !myCommunitiesIds.has(c.id));
+  const exploreCommunitiesList =
+    activeTab === "explore"
+      ? displayList.filter((c) => !myCommunitiesIds.has(c.id))
+      : recommendedCommunities.filter((c) => !myCommunitiesIds.has(c.id));
 
   const handleJoinCommunity = (communityId: string, isJoined: boolean) => {
     if (isJoined) {
@@ -355,7 +371,12 @@ const Communities = () => {
         setSelectedDepartment(dept);
       }
     }
-  }, [filterSheetOpen, pendingFilters.department, selectedDepartment, departments]);
+  }, [
+    filterSheetOpen,
+    pendingFilters.department,
+    selectedDepartment,
+    departments,
+  ]);
 
   if (isLoading) {
     return (
@@ -594,7 +615,10 @@ const Communities = () => {
                       <Filter className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                  <SheetContent
+                    side="right"
+                    className="w-full sm:max-w-md overflow-y-auto"
+                  >
                     <SheetHeader>
                       <SheetTitle>Filter Communities</SheetTitle>
                       <SheetDescription>
@@ -682,8 +706,12 @@ const Communities = () => {
                         {selectedDepartment && (
                           <div className="flex items-center justify-between p-3 border rounded-md bg-secondary/50">
                             <div className="flex-1">
-                              <p className="font-medium text-sm">{selectedDepartment.name}</p>
-                              <p className="text-xs text-muted-foreground">{selectedDepartment.code}</p>
+                              <p className="font-medium text-sm">
+                                {selectedDepartment.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {selectedDepartment.code}
+                              </p>
                             </div>
                             <Button
                               variant="ghost"
@@ -709,7 +737,9 @@ const Communities = () => {
                               <Input
                                 placeholder="Search departments..."
                                 value={departmentSearchQuery}
-                                onChange={(e) => setDepartmentSearchQuery(e.target.value)}
+                                onChange={(e) =>
+                                  setDepartmentSearchQuery(e.target.value)
+                                }
                                 className="pl-10"
                               />
                             </div>
@@ -721,22 +751,34 @@ const Communities = () => {
                                 </div>
                               ) : departments.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
-                                  {departmentSearchQuery ? "No departments found" : "No departments available"}
+                                  {departmentSearchQuery
+                                    ? "No departments found"
+                                    : "No departments available"}
                                 </div>
                               ) : (
                                 <>
                                   {departments.map((dept) => (
                                     <button
                                       key={dept.id}
-                                      onClick={() => handleSelectDepartment(dept)}
+                                      onClick={() =>
+                                        handleSelectDepartment(dept)
+                                      }
                                       className="w-full text-left p-3 hover:bg-secondary transition-colors border-b last:border-b-0"
                                     >
-                                      <p className="font-medium text-sm">{dept.name}</p>
-                                      <p className="text-xs text-muted-foreground">{dept.code}</p>
+                                      <p className="font-medium text-sm">
+                                        {dept.name}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {dept.code}
+                                      </p>
                                     </button>
                                   ))}
 
-                                  {departments.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
+                                  {departments.length >=
+                                    (departmentsPage === 1 &&
+                                    !debouncedDepartmentSearch
+                                      ? 3
+                                      : 10) && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -830,22 +872,21 @@ const Communities = () => {
                   </div>
                 ) : (
                   <>
-                    {exploreCommunitiesList.map(
-                      (community, index) => {
-                        const isLastItem = index === exploreCommunitiesList.length - 1;
-                        return (
-                          <div
-                            key={community.id}
-                            ref={isLastItem ? lastCommunityRef : null}
-                          >
-                            <CommunityCard
-                              community={community}
-                              showJoinButton={true}
-                            />
-                          </div>
-                        );
-                      }
-                    )}
+                    {exploreCommunitiesList.map((community, index) => {
+                      const isLastItem =
+                        index === exploreCommunitiesList.length - 1;
+                      return (
+                        <div
+                          key={community.id}
+                          ref={isLastItem ? lastCommunityRef : null}
+                        >
+                          <CommunityCard
+                            community={community}
+                            showJoinButton={true}
+                          />
+                        </div>
+                      );
+                    })}
                     {isFetchingNextPage && (
                       <div className="flex justify-center py-4">
                         <LoadingSpinner />
@@ -881,6 +922,17 @@ const Communities = () => {
                   placeholder="Enter community name"
                 />
               </div>
+
+              <div>
+                <DepartmentSelect
+                  value={newCommunity.department_id || ""}
+                  onChange={(val) =>
+                    setNewCommunity((prev) => ({ ...prev, department_id: val }))
+                  }
+                  label="Department (Optional)"
+                />
+              </div>
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -898,6 +950,7 @@ const Communities = () => {
               </div>
               <div>
                 <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="category">Category *</Label>
                 <Select
                   value={newCommunity.category}
                   onValueChange={(value) =>
@@ -911,14 +964,17 @@ const Communities = () => {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Academic">Academic</SelectItem>
-                    <SelectItem value="Department">Department</SelectItem>
-                    <SelectItem value="Level">Level</SelectItem>
-                    <SelectItem value="Hostel">Hostel</SelectItem>
-                    <SelectItem value="Faculty">Faculty</SelectItem>
+                    <SelectItem value="academic">Academic</SelectItem>
+                    <SelectItem value="department">Department</SelectItem>
+                    <SelectItem value="level">Level</SelectItem>
+                    <SelectItem value="hostel">Hostel</SelectItem>
+                    <SelectItem value="faculty">Faculty</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              
+
               <div>
                 <Label htmlFor="level">Level *</Label>
                 <Select
@@ -936,7 +992,9 @@ const Communities = () => {
                   <SelectContent>
                     <SelectItem value="0">All Levels</SelectItem>
                     {[100, 200, 300, 400].map((lvl) => {
-                      const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                      const userLevelNum = user?.level
+                        ? parseInt(user.level)
+                        : 0;
                       if (userLevelNum === 0 || lvl <= userLevelNum) {
                         return (
                           <SelectItem key={lvl} value={lvl.toString()}>

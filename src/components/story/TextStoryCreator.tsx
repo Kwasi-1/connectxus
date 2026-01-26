@@ -23,7 +23,7 @@ export const TextStoryCreator = ({
   onAudienceSelect,
 }: TextStoryCreatorProps) => {
   const [caption, setCaption] = useState("");
-  const [selectedBg, setSelectedBg] = useState(TEXT_BACKGROUNDS[4].value); // Blue default
+  const [selectedBg, setSelectedBg] = useState(TEXT_BACKGROUNDS[4].value); 
   const [bgType, setBgType] = useState<"solid" | "gradient">("solid");
   const [showShareToSelector, setShowShareToSelector] = useState(false);
 

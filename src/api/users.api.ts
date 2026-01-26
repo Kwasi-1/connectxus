@@ -21,7 +21,11 @@ export interface UserProfile {
   roles?: string[];
   level?: string | null;
   department_id?: string | null;
+  department_id_2?: string | null;
+  department_id_3?: string | null;
   department_name?: string | null;
+  department_name_2?: string | null;
+  department_name_3?: string | null;
   department?: string | null;
   major?: string | null;
   year?: number | null;
@@ -41,6 +45,8 @@ export interface UpdateUserRequest {
   bio?: string | null;
   level?: string | null;
   department_id?: string | null;
+  department_id_2?: string | null;
+  department_id_3?: string | null;
   interests?: string[];
 }
 
@@ -60,6 +66,13 @@ export const getUserById = async (userId: string): Promise<UserProfile> => {
   return response.data.data;
 };
 
+export const getCurrentUser = async (): Promise<UserProfile> => {
+  const response = await apiClient.get<ApiResponse<UserProfile>>(
+    `/users`
+  );
+  return response.data.data;
+};
+
 export const getUserByUsername = async (
   username: string
 ): Promise<UserProfile> => {
@@ -70,25 +83,23 @@ export const getUserByUsername = async (
 };
 
 export const updateUser = async (
-  userId: string,
   data: UpdateUserRequest
 ): Promise<UserProfile> => {
   const response = await apiClient.put<ApiResponse<UserProfile>>(
-    `/users/${userId}`,
+    `/users`,
     data
   );
   return response.data.data;
 };
 
 export const updatePassword = async (
-  userId: string,
   data: UpdatePasswordRequest
 ): Promise<void> => {
-  await apiClient.put(`/users/${userId}/password`, data);
+  await apiClient.put(`/users/password`, data);
 };
 
-export const deleteUser = async (userId: string): Promise<void> => {
-  await apiClient.delete(`/users/${userId}`);
+export const deleteUser = async (): Promise<void> => {
+  await apiClient.delete(`/users`);
 };
 
 export const searchUsers = async (
@@ -130,23 +141,21 @@ export const checkFollowingStatus = async (userId: string): Promise<boolean> => 
   return response.data.data.is_following;
 };
 
-export const getUserFollowers = async (
-  userId: string,
+export const getMyFollowers = async (
   params?: PaginationParams
 ): Promise<UserProfile[]> => {
   const response = await apiClient.get<ApiResponse<UserProfile[]>>(
-    `/users/${userId}/followers`,
+    `/users/followers`,
     { params }
   );
   return response.data.data;
 };
 
-export const getUserFollowing = async (
-  userId: string,
+export const getMyFollowing = async (
   params?: PaginationParams
 ): Promise<UserProfile[]> => {
   const response = await apiClient.get<ApiResponse<UserProfile[]>>(
-    `/users/${userId}/following`,
+    `/users/following`,
     { params }
   );
   return response.data.data;
@@ -221,6 +230,7 @@ export const getUserFollowingByUsername = async (
 
 export const usersApi = {
   getUserById,
+  getCurrentUser,
   getUserByUsername,
   updateUser,
   updatePassword,
@@ -230,8 +240,8 @@ export const usersApi = {
   followUser,
   unfollowUser,
   checkFollowingStatus,
-  getUserFollowers,
-  getUserFollowing,
+  getMyFollowers,
+  getMyFollowing,
   getAllPeopleInSpace,
   getPeopleInDepartment,
   getPeopleYouMayKnow,

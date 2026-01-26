@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, HelpCircle, BookOpen, Calendar, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowLeft,
+  HelpCircle,
+  BookOpen,
+  Calendar,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createHelpRequest, updateHelpRequest } from "@/api/help_requests.api";
 import { toast } from "sonner";
@@ -17,13 +30,17 @@ import {
 } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { HelpRequest } from "@/types/help_requests";
+import { DepartmentSelect } from "@/components/shared/DepartmentSelect";
 
 interface HelpRequestFormProps {
   initialData?: HelpRequest | null;
   isEditing?: boolean;
 }
 
-export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestFormProps) {
+export function HelpRequestForm({
+  initialData,
+  isEditing = false,
+}: HelpRequestFormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -35,13 +52,14 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
     level: 100 as number | undefined,
     deadline: "",
     status: "public" as "public" | "private",
+    department_id: "",
   });
 
   useEffect(() => {
     if (initialData) {
       const deadlineDate = new Date(initialData.deadline);
       const formattedDeadline = new Date(
-        deadlineDate.getTime() - deadlineDate.getTimezoneOffset() * 60000
+        deadlineDate.getTime() - deadlineDate.getTimezoneOffset() * 60000,
       )
         .toISOString()
         .slice(0, 16);
@@ -50,9 +68,12 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
         title: initialData.title || "",
         description: initialData.description || "",
         subject: initialData.subject || "",
-        type: (initialData.type as "course" | "project" | "general") || "course",
+        type:
+          (initialData.type as "course" | "project" | "general") || "course",
+        level: initialData.level || 100,
         deadline: formattedDeadline,
         status: (initialData.status as "public" | "private") || "public",
+        department_id: initialData.department_id || "",
       });
     }
   }, [initialData]);
@@ -68,7 +89,7 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
     onError: (error: any) => {
       console.error("Error creating help request:", error);
       toast.error(
-        error?.response?.data?.error?.message || "Failed to post help request"
+        error?.response?.data?.error?.message || "Failed to post help request",
       );
     },
   });
@@ -79,14 +100,17 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["available-help-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-help-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["help-request", initialData?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["help-request", initialData?.id],
+      });
       toast.success("Help request updated successfully!");
       navigate("/help");
     },
     onError: (error: any) => {
       console.error("Error updating help request:", error);
       toast.error(
-        error?.response?.data?.error?.message || "Failed to update help request"
+        error?.response?.data?.error?.message ||
+          "Failed to update help request",
       );
     },
   });
@@ -94,7 +118,11 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.description.trim() || !formData.deadline) {
+    if (
+      !formData.title.trim() ||
+      !formData.description.trim() ||
+      !formData.deadline
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -107,6 +135,7 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
       level: formData.type === "course" ? formData.level : undefined,
       deadline: new Date(formData.deadline).toISOString(),
       status: formData.status,
+      department_id: formData.department_id || undefined,
     };
 
     if (isEditing && initialData) {
@@ -156,6 +185,15 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <DepartmentSelect
+                value={formData.department_id}
+                onChange={(val) =>
+                  setFormData({ ...formData, department_id: val })
+                }
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title">
                 Title <span className="text-destructive">*</span>
@@ -355,8 +393,8 @@ export function HelpRequestForm({ initialData, isEditing = false }: HelpRequestF
                 ? "Updating..."
                 : "Posting..."
               : isEditing
-              ? "Update Help Request"
-              : "Post Help Request"}
+                ? "Update Help Request"
+                : "Post Help Request"}
           </Button>
         </div>
       </form>
