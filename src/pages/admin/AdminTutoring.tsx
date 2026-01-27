@@ -78,7 +78,6 @@ export function AdminTutoring() {
       setTotalCount(response.total);
       setHasMore(response.applications.length === limit);
     } catch (error) {
-      console.error("Error loading tutor applications:", error);
       toast({
         title: "Error",
         description: "Failed to load tutor applications",

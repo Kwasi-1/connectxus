@@ -16,6 +16,7 @@ export interface UserProfile {
   email: string;
   full_name: string;
   avatar?: string | null;
+  cover_image?: string | null;
   bio?: string | null;
   verified?: boolean | null;
   roles?: string[];

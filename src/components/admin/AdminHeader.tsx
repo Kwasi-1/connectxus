@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SpaceSwitcher } from "./SpaceSwitcher";
+import { AdminNotificationBell } from "./AdminNotificationBell";
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -37,43 +38,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
       title: "Signed out",
       description: "You have been signed out successfully.",
     });
-  };
-
-  const mockNotifications = [
-    {
-      id: "1",
-      title: "New report submitted",
-      message: "Inappropriate content reported in CS Study Group",
-      priority: "high" as const,
-      time: "5 min ago",
-    },
-    {
-      id: "2",
-      title: "Tutor application",
-      message: "New tutor application for Mathematics",
-      priority: "medium" as const,
-      time: "1 hour ago",
-    },
-    {
-      id: "3",
-      title: "System alert",
-      message: "Server load is above normal",
-      priority: "urgent" as const,
-      time: "2 hours ago",
-    },
-  ];
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "urgent":
-        return "bg-destructive";
-      case "high":
-        return "bg-campus-orange";
-      case "medium":
-        return "bg-primary";
-      default:
-        return "bg-muted";
-    }
   };
 
   return (
@@ -103,54 +67,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         <div className="flex items-center space-x-4">
           <SpaceSwitcher />
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-destructive flex items-center justify-center">
-                  3
-                </Badge>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-4">
-                <h4 className="font-semibold">Notifications</h4>
-                <div className="space-y-2">
-                  {mockNotifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className="p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h5 className="text-sm font-medium">
-                              {notification.title}
-                            </h5>
-                            <Badge
-                              className={cn(
-                                "h-2 w-2 p-0",
-                                getPriorityColor(notification.priority)
-                              )}
-                            />
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {notification.time}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button variant="outline" className="w-full" size="sm">
-                  View all notifications
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <AdminNotificationBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

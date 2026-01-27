@@ -36,21 +36,22 @@ export function Notifications() {
         undefined,
         undefined,
         page,
-        50
+        50,
       );
 
-      const transformedNotifications: AdminNotification[] =
-        data.notifications.map((item: any) => ({
-          id: item.id,
-          type: item.type || "system",
-          title: item.title,
-          message: item.content,
-          priority: item.priority || "low",
-          isRead: item.is_read || false,
-          actionRequired: item.action_url ? true : false,
-          relatedId: item.related_id,
-          createdAt: new Date(item.created_at),
-        }));
+      const transformedNotifications: AdminNotification[] = (
+        data.notifications || []
+      ).map((item: any) => ({
+        id: item.id,
+        type: item.type || "system",
+        title: item.title,
+        message: item.content,
+        priority: item.priority || "low",
+        isRead: item.is_read || false,
+        actionRequired: item.action_url ? true : false,
+        relatedId: item.related_id,
+        createdAt: new Date(item.created_at),
+      }));
 
       setNotifications(transformedNotifications);
     } catch (error) {
@@ -70,8 +71,8 @@ export function Notifications() {
       await adminApi.markNotificationRead(notificationId);
       setNotifications((prev) =>
         prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif
-        )
+          notif.id === notificationId ? { ...notif, isRead: true } : notif,
+        ),
       );
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
@@ -87,7 +88,7 @@ export function Notifications() {
     try {
       await adminApi.markAllNotificationsRead();
       setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, isRead: true }))
+        prev.map((notif) => ({ ...notif, isRead: true })),
       );
       toast({
         title: "All notifications marked as read",
@@ -107,7 +108,7 @@ export function Notifications() {
     try {
       await adminApi.deleteNotification(notificationId);
       setNotifications((prev) =>
-        prev.filter((notif) => notif.id !== notificationId)
+        prev.filter((notif) => notif.id !== notificationId),
       );
       toast({
         title: "Notification deleted",
@@ -126,7 +127,7 @@ export function Notifications() {
   const handleClearAll = async () => {
     try {
       await Promise.all(
-        notifications.map((n) => adminApi.deleteNotification(n.id))
+        notifications.map((n) => adminApi.deleteNotification(n.id)),
       );
       setNotifications([]);
       toast({
@@ -176,7 +177,7 @@ export function Notifications() {
   const getTimeAgo = (date: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
+      (now.getTime() - date.getTime()) / (1000 * 60),
     );
 
     if (diffInMinutes < 60) {
@@ -190,7 +191,7 @@ export function Notifications() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const actionRequiredCount = notifications.filter(
-    (n) => n.actionRequired && !n.isRead
+    (n) => n.actionRequired && !n.isRead,
   ).length;
 
   const filteredNotifications = (filter: string) => {

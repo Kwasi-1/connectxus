@@ -109,7 +109,7 @@ export const getPostById = async (postId: string): Promise<Post> => {
 };
 
 export const createPost = async (
-  data: Omit<CreatePostRequest, "space_id">
+  data: CreatePostRequest
 ): Promise<Post> => {
   const response = await apiClient.post<ApiResponse<Post>>("/posts", data);
   return transformPost(response.data.data);
@@ -471,6 +471,10 @@ export const postsApi = {
   getPostRepostsPaginated,
   getUserComments,
   reportPost,
+  getCampusHighlights: async (): Promise<any[]> => {
+    const response = await apiClient.get<ApiResponse<any[]>>("/campus-highlights");
+    return response.data.data;
+  },
 };
 
 export default postsApi;

@@ -189,44 +189,35 @@ export function useFeed(options: UseFeedOptions) {
     getNextPageParam: (lastPage, allPages) => {
       try {
         if (!lastPage) {
-          console.debug('getNextPageParam: lastPage is null/undefined');
           return undefined;
         }
 
         if (typeof lastPage !== 'object') {
-          console.warn('getNextPageParam: lastPage is not an object', typeof lastPage);
           return undefined;
         }
 
         if (!('nextPage' in lastPage)) {
-          console.debug('getNextPageParam: nextPage property not found');
           return undefined;
         }
 
         if (!('posts' in lastPage)) {
-          console.warn('getNextPageParam: posts property not found');
           return undefined;
         }
 
         if (!('hasMore' in lastPage)) {
-          console.debug('getNextPageParam: hasMore property not found');
           return undefined;
         }
 
         if (!lastPage.hasMore) {
-          console.debug('getNextPageParam: no more pages');
           return undefined;
         }
 
         if (!lastPage.nextPage) {
-          console.debug('getNextPageParam: nextPage is null/undefined');
           return undefined;
         }
 
-        console.debug('getNextPageParam: returning nextPage', lastPage.nextPage);
         return lastPage.nextPage;
       } catch (e) {
-        console.error('Error in getNextPageParam:', e);
         return undefined;
       }
     },

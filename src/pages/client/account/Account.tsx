@@ -7,8 +7,8 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCurrentUser, updateUser, UpdateUserRequest } from "@/api/users.api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentUser } from "@/api/users.api";
 import { toast } from "sonner";
 
 const Account = () => {
@@ -27,20 +27,6 @@ const Account = () => {
     staleTime: 60000,
     retry: 1,
     throwOnError: false,
-  });
-
-  const updateUserMutation = useMutation({
-    mutationFn: (data: UpdateUserRequest) =>
-      authUser ? updateUser(authUser.id, data) : Promise.reject("No user"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user-profile", authUser?.id],
-      });
-      toast.success("Profile updated successfully");
-    },
-    onError: () => {
-      toast.error("Failed to update profile");
-    },
   });
 
   const transformedUser: UserProfile | undefined = userProfile
@@ -65,18 +51,20 @@ const Account = () => {
         following: userProfile.following_count || 0,
         verified: userProfile.verified || false,
         auth_provider: userProfile.auth_provider,
+        email: userProfile.email,
+        createdAt: userProfile.created_at
+          ? new Date(userProfile.created_at)
+          : new Date(),
+        role: userProfile.roles?.[0] || "user",
+        joinedGroups: [],
+        tutoringRequests: [],
         posts: [],
       }
     : undefined;
 
   const handleUserUpdate = (updatedUser: UserProfile) => {
-    updateUserMutation.mutate({
-      full_name: updatedUser.displayName,
-      bio: updatedUser.bio,
-      avatar: updatedUser.avatar,
-      cover_image: updatedUser.cover_image || undefined,
-      level: updatedUser.level,
-      department_id: updatedUser.department_id || undefined,
+    queryClient.invalidateQueries({
+      queryKey: ["user-profile", authUser?.id],
     });
   };
 

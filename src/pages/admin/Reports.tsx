@@ -70,11 +70,11 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { ContentModerationItem } from "@/types/admin";
 import { adminApi } from "@/api/admin.api";
-import { useAdminSpace } from "@/contexts/AdminSpaceContext";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
 export function Reports() {
   const { toast } = useToast();
-  const { selectedSpaceId } = useAdminSpace();
+  const { selectedSpaceId } = useAdminAuth();
   const [allReports, setAllReports] = useState<ContentModerationItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -118,13 +118,16 @@ export function Reports() {
         status,
         contentType,
         limit,
-        offset
+        offset,
       );
 
       if (offset === 0) {
-        setAllReports(response.reports as ContentModerationItem[]);
+        setAllReports(response.reports as unknown as ContentModerationItem[]);
       } else {
-        setAllReports(prev => [...prev, ...(response.reports as ContentModerationItem[])]);
+        setAllReports((prev) => [
+          ...prev,
+          ...(response.reports as unknown as ContentModerationItem[]),
+        ]);
       }
 
       setTotalCount(response.total);
@@ -140,7 +143,15 @@ export function Reports() {
       setIsLoading(false);
       setIsFetching(false);
     }
-  }, [statusFilter, reportTypeTab, debouncedSearch, offset, limit, selectedSpaceId, toast]);
+  }, [
+    statusFilter,
+    reportTypeTab,
+    debouncedSearch,
+    offset,
+    limit,
+    selectedSpaceId,
+    toast,
+  ]);
 
   useEffect(() => {
     loadReports();
@@ -154,7 +165,7 @@ export function Reports() {
   const { loadMoreRef } = useInfiniteScroll({
     loading: isFetching,
     hasMore,
-    onLoadMore: () => setOffset(prev => prev + limit),
+    onLoadMore: () => setOffset((prev) => prev + limit),
     threshold: 300,
   });
 
@@ -164,7 +175,7 @@ export function Reports() {
         await adminApi.resolveContentReport(
           reportId,
           "remove_content",
-          "Content removed by admin"
+          "Content removed by admin",
         );
         await loadReports();
         toast({
@@ -181,7 +192,7 @@ export function Reports() {
         });
       }
     },
-    [toast, loadReports]
+    [toast, loadReports],
   );
 
   const handleRejectReport = useCallback(
@@ -190,7 +201,7 @@ export function Reports() {
         await adminApi.resolveContentReport(
           reportId,
           "no_action",
-          "Report rejected by admin"
+          "Report rejected by admin",
         );
         await loadReports();
         toast({
@@ -207,7 +218,7 @@ export function Reports() {
         });
       }
     },
-    [toast, loadReports]
+    [toast, loadReports],
   );
 
   const handleWarnUser = useCallback(
@@ -216,7 +227,7 @@ export function Reports() {
         await adminApi.resolveContentReport(
           reportId,
           "warn_user",
-          `User warned: ${message}`
+          `User warned: ${message}`,
         );
         await loadReports();
         toast({
@@ -233,7 +244,7 @@ export function Reports() {
         });
       }
     },
-    [toast, loadReports]
+    [toast, loadReports],
   );
 
   const handleViewPost = (report: ContentModerationItem) => {
@@ -243,7 +254,7 @@ export function Reports() {
 
   const handleModerationAction = (
     report: ContentModerationItem,
-    action: "approve" | "reject" | "warn"
+    action: "approve" | "reject" | "warn",
   ) => {
     setSelectedReport(report);
     setActionType(action);
@@ -399,7 +410,11 @@ export function Reports() {
         </Card>
       </div>
 
-      <Tabs value={reportTypeTab} onValueChange={setReportTypeTab} className="space-y-4">
+      <Tabs
+        value={reportTypeTab}
+        onValueChange={setReportTypeTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all">All Reports</TabsTrigger>
           <TabsTrigger value="post">Post Reports</TabsTrigger>
@@ -429,7 +444,10 @@ export function Reports() {
                       className="pl-10"
                     />
                   </div>
-                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <Select
+                    value={priorityFilter}
+                    onValueChange={setPriorityFilter}
+                  >
                     <SelectTrigger className="w-28">
                       <SelectValue placeholder="Priority" />
                     </SelectTrigger>
@@ -456,127 +474,13 @@ export function Reports() {
               </div>
             </CardHeader>
             <CardContent>
-          <div className="block md:hidden space-y-4">
-            {allReports.length > 0 &&
-              allReports.map((report) => (
-                <Card key={report.id} className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage
-                          src={report.content.author.avatar}
-                          alt={report.content.author.displayName}
-                        />
-                        <AvatarFallback>
-                          {report.content.author.displayName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium text-sm">
-                          {report.content.author.displayName}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {report.createdAt.toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleViewPost(report)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        {report.status === "pending" && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleModerationAction(report, "approve")
-                              }
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Approve & Remove
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleModerationAction(report, "reject")
-                              }
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Reject Report
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleModerationAction(report, "warn")
-                              }
-                            >
-                              <UserX className="mr-2 h-4 w-4" />
-                              Warn User
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      {getTypeIcon(report.type)}
-                      <span className="capitalize text-sm">{report.type}</span>
-                      {getPriorityBadge(report.priority)}
-                      {getStatusBadge(report.status)}
-                    </div>
-
-                    <div className="text-sm text-muted-foreground line-clamp-2">
-                      {report.content.text}
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Reported by: {report.reporterName}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {report.reason}
-                      </Badge>
-                    </div>
-
-                    {report.content.images &&
-                      report.content.images.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {report.content.images.length} image(s)
-                        </Badge>
-                      )}
-                  </div>
-                </Card>
-              ))}
-          </div>
-
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">Content</TableHead>
-                  <TableHead className="w-[80px]">Type</TableHead>
-                  <TableHead className="w-[120px]">Reporter</TableHead>
-                  <TableHead className="w-[120px]">Reason</TableHead>
-                  <TableHead className="w-[100px]">Priority</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[100px]">Reported</TableHead>
-                  <TableHead className="text-right w-[80px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+              <div className="block md:hidden space-y-4">
                 {allReports.length > 0 &&
                   allReports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell>
-                        <div className="flex items-start space-x-3">
-                          <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+                    <Card key={report.id} className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="w-8 h-8">
                             <AvatarImage
                               src={report.content.author.avatar}
                               alt={report.content.author.displayName}
@@ -585,47 +489,15 @@ export function Reports() {
                               {report.content.author.displayName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm truncate">
+                          <div>
+                            <div className="font-medium text-sm">
                               {report.content.author.displayName}
                             </div>
-                            <div className="text-sm text-muted-foreground line-clamp-2">
-                              {report.content.text}
+                            <div className="text-xs text-muted-foreground">
+                              {report.createdAt.toLocaleDateString()}
                             </div>
-                            {report.content.images &&
-                              report.content.images.length > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="mt-1 text-xs"
-                                >
-                                  {report.content.images.length} image(s)
-                                </Badge>
-                              )}
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-1">
-                          {getTypeIcon(report.type)}
-                          <span className="capitalize">{report.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="truncate">{report.reporterName}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {report.reason}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{getPriorityBadge(report.priority)}</TableCell>
-                      <TableCell>{getStatusBadge(report.status)}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {report.createdAt.toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -670,23 +542,180 @@ export function Reports() {
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          {getTypeIcon(report.type)}
+                          <span className="capitalize text-sm">
+                            {report.type}
+                          </span>
+                          {getPriorityBadge(report.priority)}
+                          {getStatusBadge(report.status)}
+                        </div>
+
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {report.content.text}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Reported by: {report.reporterName}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {report.reason}
+                          </Badge>
+                        </div>
+
+                        {report.content.images &&
+                          report.content.images.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {report.content.images.length} image(s)
+                            </Badge>
+                          )}
+                      </div>
+                    </Card>
                   ))}
-              </TableBody>
-            </Table>
-            <div ref={loadMoreRef} className="h-4" />
-            {isFetching && (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            )}
-            {totalCount > 0 && (
-              <div className="text-sm text-muted-foreground text-center py-2">
-                Showing {allReports.length} of {totalCount} reports
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px]">Content</TableHead>
+                      <TableHead className="w-[80px]">Type</TableHead>
+                      <TableHead className="w-[120px]">Reporter</TableHead>
+                      <TableHead className="w-[120px]">Reason</TableHead>
+                      <TableHead className="w-[100px]">Priority</TableHead>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Reported</TableHead>
+                      <TableHead className="text-right w-[80px]">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allReports.length > 0 &&
+                      allReports.map((report) => (
+                        <TableRow key={report.id}>
+                          <TableCell>
+                            <div className="flex items-start space-x-3">
+                              <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+                                <AvatarImage
+                                  src={report.content.author.avatar}
+                                  alt={report.content.author.displayName}
+                                />
+                                <AvatarFallback>
+                                  {report.content.author.displayName.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-sm truncate">
+                                  {report.content.author.displayName}
+                                </div>
+                                <div className="text-sm text-muted-foreground line-clamp-2">
+                                  {report.content.text}
+                                </div>
+                                {report.content.images &&
+                                  report.content.images.length > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="mt-1 text-xs"
+                                    >
+                                      {report.content.images.length} image(s)
+                                    </Badge>
+                                  )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              {getTypeIcon(report.type)}
+                              <span className="capitalize">{report.type}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="truncate">
+                              {report.reporterName}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {report.reason}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getPriorityBadge(report.priority)}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(report.status)}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {report.createdAt.toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleViewPost(report)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                {report.status === "pending" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleModerationAction(
+                                          report,
+                                          "approve",
+                                        )
+                                      }
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Approve & Remove
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleModerationAction(report, "reject")
+                                      }
+                                    >
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Reject Report
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleModerationAction(report, "warn")
+                                      }
+                                    >
+                                      <UserX className="mr-2 h-4 w-4" />
+                                      Warn User
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+                <div ref={loadMoreRef} className="h-4" />
+                {isFetching && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                )}
+                {totalCount > 0 && (
+                  <div className="text-sm text-muted-foreground text-center py-2">
+                    Showing {allReports.length} of {totalCount} reports
+                  </div>
+                )}
               </div>
-            )}
-          </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -760,8 +789,8 @@ export function Reports() {
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {selectedReport.content.author.major} • Year{" "}
-                      {selectedReport.content.author.year}
+                      {(selectedReport.content.author as any).major} • Year{" "}
+                      {(selectedReport.content.author as any).year}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {selectedReport.content.createdAt?.toLocaleString()}

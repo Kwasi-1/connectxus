@@ -73,9 +73,9 @@ export const ProfileHeader = ({
 
   const [editForm, setEditForm] = useState({
     displayName: user.username,
-    username: user.username, 
+    username: user.username,
     bio: user.bio || "",
-    level: user.level?.toString() || "", 
+    level: user.level?.toString() || "",
     departmentId: user.department_id || "",
     departmentId2: user.department_id_2 || "",
     departmentId3: user.department_id_3 || "",
@@ -83,7 +83,7 @@ export const ProfileHeader = ({
 
   useEffect(() => {
     setEditForm({
-      displayName: user.displayName || user.username, 
+      displayName: user.displayName || user.username,
       username: user.username,
       bio: user.bio || "",
       level: user.level?.toString() || "",
@@ -204,13 +204,18 @@ export const ProfileHeader = ({
         bio: editForm.bio,
         level: editForm.level,
         department_id: editForm.departmentId,
-        department_id_2: editForm.departmentId2 || null,
-        department_id_3: editForm.departmentId3 || null,
+        department_id_2:
+          editForm.departmentId2 === "none_selection"
+            ? ""
+            : editForm.departmentId2 || null,
+        department_id_3:
+          editForm.departmentId3 === "none_selection"
+            ? ""
+            : editForm.departmentId3 || null,
         avatar: avatarUrl,
         cover_image: coverImageUrl,
       });
 
-      
       onUserUpdate({
         ...user,
         ...updatedUser,
