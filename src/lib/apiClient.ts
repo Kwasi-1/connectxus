@@ -41,13 +41,15 @@ apiClient.interceptors.request.use(
             config.params = {};
           }
           config.params.space_id = spaceId;
-       
-      } 
+        } else {
+        }
+      } else {
+      }
 
     }
 
     return config;
-  }},
+  },
   (error: AxiosError) => {
     return Promise.reject(error);
   }
