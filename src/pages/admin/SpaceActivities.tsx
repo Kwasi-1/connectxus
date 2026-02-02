@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -76,6 +77,9 @@ const SpaceActivities = () => {
   const [addDepartmentModalOpen, setAddDepartmentModalOpen] = useState(false);
   const [createHighlightModalOpen, setCreateHighlightModalOpen] =
     useState(false);
+  const [feedbackSearch, setFeedbackSearch] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState("all");
+  const [feedbackCategory, setFeedbackCategory] = useState("all");
   const queryClient = useQueryClient();
 
   // Queries
@@ -111,6 +115,24 @@ const SpaceActivities = () => {
   const { data: highlights, isLoading: loadingHighlights } = useQuery({
     queryKey: ["admin-highlights", selectedSpaceId],
     queryFn: () => adminApi.getCampusHighlights(selectedSpaceId!),
+    enabled: !!selectedSpaceId,
+  });
+
+  const { data: feedbackData, isLoading: loadingFeedback } = useQuery({
+    queryKey: [
+      "admin-feedback",
+      selectedSpaceId,
+      feedbackSearch,
+      feedbackStatus,
+      feedbackCategory,
+    ],
+    queryFn: () =>
+      adminApi.getFeedback(
+        selectedSpaceId!,
+        feedbackSearch,
+        feedbackStatus,
+        feedbackCategory,
+      ),
     enabled: !!selectedSpaceId,
   });
 
@@ -281,6 +303,7 @@ const SpaceActivities = () => {
             <TabsTrigger value="trending">Trending</TabsTrigger>
             <TabsTrigger value="departments">Departments</TabsTrigger>
             <TabsTrigger value="highlights">Campus Highlights</TabsTrigger>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="spaces" className="space-y-4">
@@ -675,6 +698,138 @@ const SpaceActivities = () => {
                       </div>
                     ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="feedback" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>User Feedback</CardTitle>
+                    <CardDescription>
+                      View and manage feedback from users in this space.
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Search feedback..."
+                      value={feedbackSearch}
+                      onChange={(e) => setFeedbackSearch(e.target.value)}
+                      className="w-full sm:w-[200px]"
+                    />
+                    <Select
+                      value={feedbackStatus}
+                      onValueChange={setFeedbackStatus}
+                    >
+                      <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="reviewed">Reviewed</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={feedbackCategory}
+                      onValueChange={setFeedbackCategory}
+                    >
+                      <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="complaint">Complaint</SelectItem>
+                        <SelectItem value="suggestion">Suggestion</SelectItem>
+                        <SelectItem value="feature_request">
+                          Feature Request
+                        </SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingFeedback ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !feedbackData?.feedback?.length ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No feedback found.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {feedbackData.feedback.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={item.avatar} />
+                                <AvatarFallback>
+                                  {item.username.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="text-sm">{item.full_name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  @{item.username}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {item.category.replace("_", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[300px]">
+                              <div className="font-medium truncate">
+                                {item.title}
+                              </div>
+                              <div className="text-sm text-muted-foreground truncate">
+                                {item.message}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.status === "new"
+                                  ? "destructive"
+                                  : item.status === "resolved"
+                                    ? "default"
+                                    : "secondary"
+                              }
+                              className="capitalize"
+                            >
+                              {item.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatDistanceToNow(new Date(item.created_at), {
+                              addSuffix: true,
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>

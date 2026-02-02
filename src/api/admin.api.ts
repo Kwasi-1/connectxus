@@ -485,6 +485,27 @@ export const adminApi = {
     return response.data.data.setting;
   },
 
+  getFeedback: async (
+    spaceId: string,
+    search?: string,
+    status?: string,
+    category?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ feedback: any[]; page: number; limit: number }> => {
+    const params: any = {
+      space_id: spaceId,
+      limit,
+      offset,
+    };
+    if (search) params.search = search;
+    if (status && status !== "all") params.status = status;
+    if (category && category !== "all") params.category = category;
+
+    const response = await apiClient.get("/admin/feedback", { params });
+    return response.data.data;
+  },
+
   getUserGrowth: async (spaceId: string, since?: Date): Promise<any[]> => {
     const params = new URLSearchParams();
     if (since) {
