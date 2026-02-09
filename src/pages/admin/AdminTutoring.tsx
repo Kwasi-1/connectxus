@@ -27,6 +27,8 @@ import {
   Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { TutorApplication,  } from "@/types/admin";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
@@ -36,29 +38,46 @@ import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 export function AdminTutoring() {
   const { toast } = useToast();
   const { selectedSpaceId } = useAdminSpace();
-  const [tutorApplications, setTutorApplications] = useState<
-    TutorApplication[]
-  >([]);
+  const [allApplications, setAllApplications] = useState<TutorApplication[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [activeTab, setActiveTab] = useState("tutors");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 20;
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const loadTutorApplications = useCallback(async () => {
     try {
-      setIsLoading(true);
+      if (offset === 0) {
+        setIsLoading(true);
+      } else {
+        setIsFetching(true);
+      }
+
       const status = statusFilter === "all" ? undefined : statusFilter;
+      const search = debouncedSearch || undefined;
       const response = await adminApi.getTutorApplications(
+        selectedSpaceId,
+        search,
         status,
-        currentPage,
-        pageSize,
-        selectedSpaceId
+        limit,
+        offset
       );
-      setTutorApplications(response.applications as TutorApplication[]);
+
+      if (offset === 0) {
+        setAllApplications(response.applications as TutorApplication[]);
+      } else {
+        setAllApplications(prev => [...prev, ...(response.applications as TutorApplication[])]);
+      }
+
+      setTotalCount(response.total);
+      setHasMore(response.applications.length === limit);
     } catch (error) {
-      console.error("Error loading tutor applications:", error);
       toast({
         title: "Error",
         description: "Failed to load tutor applications",
@@ -66,21 +85,24 @@ export function AdminTutoring() {
       });
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
-  }, [currentPage, pageSize, statusFilter, selectedSpaceId, toast]);
+  }, [offset, limit, statusFilter, debouncedSearch, selectedSpaceId, toast]);
 
   useEffect(() => {
     loadTutorApplications();
   }, [loadTutorApplications]);
 
-  const filteredTutorApps = tutorApplications.filter((app) => {
-    const matchesSearch =
-      app.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.subjects.some((s) =>
-        s.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  useEffect(() => {
+    setOffset(0);
+    setAllApplications([]);
+  }, [debouncedSearch, statusFilter, selectedSpaceId]);
+
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore,
+    onLoadMore: () => setOffset(prev => prev + limit),
+    threshold: 300,
   });
 
   const handleApproveTutor = async (applicationId: string) => {
@@ -139,23 +161,12 @@ export function AdminTutoring() {
     }
   };
 
-  const tutorStats =
-    tutorApplications.length > 0
-      ? {
-          total: tutorApplications.length,
-          pending: tutorApplications.filter((a) => a.status === "pending")
-            .length,
-          approved: tutorApplications.filter((a) => a.status === "approved")
-            .length,
-          rejected: tutorApplications.filter((a) => a.status === "rejected")
-            .length,
-        }
-      : {
-          total: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-        };
+  const tutorStats = {
+    total: totalCount,
+    pending: allApplications.filter((a) => a.status === "pending").length,
+    approved: allApplications.filter((a) => a.status === "approved").length,
+    rejected: allApplications.filter((a) => a.status === "rejected").length,
+  };
 
 
 
@@ -225,79 +236,92 @@ export function AdminTutoring() {
   ];
 
   const tutorTableContent = (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Applicant</TableHead>
-          <TableHead>Subjects</TableHead>
-          <TableHead>Rate</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Applied</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredTutorApps.map((application) => (
-          <TableRow key={application.id}>
-            <TableCell>
-              <div>
-                <div className="font-medium">{application.full_name}</div>
-                <div className="text-sm text-muted-foreground truncate max-w-xs">
-                  {application.qualifications}
-                </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant="outline" className="text-xs">
-                  {application.subject}
-                </Badge>
-              </div>
-            </TableCell>
-            <TableCell>
-              {application.session_rate
-                ? `$${application.session_rate}/hr`
-                : "Not specified"}
-            </TableCell>
-            <TableCell>{getStatusBadge(application.status)}</TableCell>
-            <TableCell>
-              {moment(application.submitted_at).format("Do MMMM")}
-            </TableCell>
-            <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Users className="mr-2 h-4 w-4" />
-                    View Details
-                  </DropdownMenuItem>
-                  {application.status === "pending" && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => handleApproveTutor(application.id)}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Approve
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleRejectTutor(application.id)}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Reject
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Applicant</TableHead>
+            <TableHead>Subjects</TableHead>
+            <TableHead>Rate</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Applied</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {allApplications.map((application) => (
+            <TableRow key={application.id}>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{application.full_name}</div>
+                  <div className="text-sm text-muted-foreground truncate max-w-xs">
+                    {application.qualifications}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">
+                    {application.subject}
+                  </Badge>
+                </div>
+              </TableCell>
+              <TableCell>
+                {application.session_rate
+                  ? `$${application.session_rate}/hr`
+                  : "Not specified"}
+              </TableCell>
+              <TableCell>{getStatusBadge(application.status)}</TableCell>
+              <TableCell>
+                {moment(application.submitted_at).format("Do MMMM")}
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Users className="mr-2 h-4 w-4" />
+                      View Details
+                    </DropdownMenuItem>
+                    {application.status === "pending" && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => handleApproveTutor(application.id)}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Approve
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleRejectTutor(application.id)}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Reject
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div ref={loadMoreRef} className="h-4" />
+      {isFetching && (
+        <div className="flex items-center justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+      {totalCount > 0 && (
+        <div className="text-sm text-muted-foreground text-center py-2">
+          Showing {allApplications.length} of {totalCount} applications
+        </div>
+      )}
+    </>
   );
 
   const tabs = [

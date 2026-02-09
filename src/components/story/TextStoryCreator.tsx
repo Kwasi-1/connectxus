@@ -23,7 +23,7 @@ export const TextStoryCreator = ({
   onAudienceSelect,
 }: TextStoryCreatorProps) => {
   const [caption, setCaption] = useState("");
-  const [selectedBg, setSelectedBg] = useState(TEXT_BACKGROUNDS[4].value); // Blue default
+  const [selectedBg, setSelectedBg] = useState(TEXT_BACKGROUNDS[4].value); 
   const [bgType, setBgType] = useState<"solid" | "gradient">("solid");
   const [showShareToSelector, setShowShareToSelector] = useState(false);
 
@@ -48,7 +48,6 @@ export const TextStoryCreator = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center bg-gradient-to-br from-black via-gray-900 to-black overflow-hidden">
-      {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
         <Button
           variant="ghost"
@@ -69,9 +68,7 @@ export const TextStoryCreator = ({
         </Button>
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex items-center justify-center gap-6 px-6 mt-20 mb-8 w-full max-w-5xl">
-        {/* Story Preview */}
         <div
           className="w-full max-w-[320px] sm:max-w-sm h-full max-h-[90vh] aspect[9/16] rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center p-8 relative shrink-0"
           style={{
@@ -90,9 +87,7 @@ export const TextStoryCreator = ({
           </div>
         </div>
 
-        {/* Background Controls - Right Side */}
         <div className="flex flex-col gap-3 w-16 sm:w-20 h-[500px]">
-          {/* Background Type Toggle */}
           <div
             className="group relative flex gap2 mb-2 bg-white/10 border border-white/30 rounded-full p-1 w-fit transition duration-500"
           >
@@ -124,7 +119,6 @@ export const TextStoryCreator = ({
             </Button>
           </div>
 
-          {/* Background Selection */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide scrollbar-thumb-white/20 scrollbar-track-transparent px-1 pt-1">
             <div className="flex flex-col gap-2.5">
               {bgType === "solid"
@@ -163,9 +157,7 @@ export const TextStoryCreator = ({
         </div>
       </div>
 
-      {/* Bottom Controls - Constrained Width */}
       <div className="absolute bottom-0 w-full max-w-[320px] sm:max-w-[400px] bg-gradient-to-t from-black/80 to-transparent pb-6 space-y-4 mr-[100px] pl-4 px-5">
-        {/* Caption Input */}
         <Textarea
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
@@ -174,7 +166,6 @@ export const TextStoryCreator = ({
           maxLength={300}
         />
 
-        {/* Create Button */}
         <Button
           onClick={handleCreate}
           disabled={!caption.trim()}
@@ -184,7 +175,6 @@ export const TextStoryCreator = ({
         </Button>
       </div>
 
-      {/* Share To Selector */}
       <ShareToSelector
         isOpen={showShareToSelector}
         onClose={() => setShowShareToSelector(false)}

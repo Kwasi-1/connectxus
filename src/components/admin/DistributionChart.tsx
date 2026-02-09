@@ -164,13 +164,11 @@ export function DistributionChart({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Total */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Total</span>
             <span className="font-semibold">{total.toLocaleString()}</span>
           </div>
 
-          {/* Chart */}
           <div className="h-[300px]">
             {chartType === "bar" ? (
               <ResponsiveContainer width="100%" height="100%">

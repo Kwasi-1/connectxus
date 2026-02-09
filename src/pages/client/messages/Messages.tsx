@@ -92,13 +92,14 @@ const Messages = () => {
     refetch: refetchMessages,
   } = useQuery({
     queryKey: ["conversation-messages", selectedConversationId],
-    queryFn: () =>
-      selectedConversationId
-        ? getConversationMessages(selectedConversationId, {
-            page: 1,
-            limit: 100,
-          })
-        : Promise.resolve([]),
+    queryFn: async () => {
+      if (!selectedConversationId) return [];
+      const data = await getConversationMessages(selectedConversationId, {
+        page: 1,
+        limit: 100,
+      });
+      return [...data].reverse();
+    },
     enabled: !!selectedConversationId,
     staleTime: 5000,
     refetchOnMount: true,
@@ -148,7 +149,7 @@ const Messages = () => {
         ["conversation-messages", conversationId],
         (old: any) => {
           return old ? [...old, optimisticMessage] : [optimisticMessage];
-        }
+        },
       );
 
       return { previousMessages, conversationId };
@@ -159,9 +160,9 @@ const Messages = () => {
         (old: any) => {
           if (!old) return [data];
           return old.map((msg: any) =>
-            msg.id.startsWith("temp-") ? data : msg
+            msg.id.startsWith("temp-") ? data : msg,
           );
-        }
+        },
       );
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -173,7 +174,7 @@ const Messages = () => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           ["conversation-messages", context.conversationId],
-          context.previousMessages
+          context.previousMessages,
         );
       }
       toast.error("Failed to send message");
@@ -189,6 +190,12 @@ const Messages = () => {
   });
 
   useEffect(() => {
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     const initializeWebSocket = async () => {
       try {
         await wsClient.current.connect();
@@ -196,36 +203,99 @@ const Messages = () => {
 
         const messageHandler = (message: any) => {
           if (message.conversation_id) {
-            if (message.sender_id === user?.id) {
-              queryClient.invalidateQueries({ queryKey: ["conversations"] });
-              return;
-            }
-
             queryClient.setQueryData(
               ["conversation-messages", message.conversation_id],
               (old: any) => {
                 if (!old) return [message];
                 const exists = old.some((m: any) => m.id === message.id);
                 if (exists) return old;
+
+                if (message.sender_id === user?.id) {
+                  const hasPending = old.some(
+                    (m: any) =>
+                      m.id.startsWith("temp-") && m.content === message.content,
+                  );
+                  if (hasPending) return old;
+                }
+
                 return [...old, message];
-              }
+              },
             );
 
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.setQueryData(["conversations"], (oldData: any) => {
+              if (!oldData) return oldData;
+              return oldData.map((conv: any) => {
+                if (conv.id === message.conversation_id) {
+                  const isCurrent =
+                    message.conversation_id === selectedConversationId &&
+                    !document.hidden;
+                  return {
+                    ...conv,
+                    last_message: {
+                      content: message.content,
+                      created_at: message.created_at,
+                    },
+                    last_message_content: message.content,
+                    last_message_time: message.created_at,
+                    unread_count: isCurrent
+                      ? conv.unread_count 
+                      : (conv.unread_count || 0) + 1,
+                  };
+                }
+                return conv;
+              });
+            });
 
-            if (message.conversation_id !== selectedConversationId) {
-              toast.info("New message received");
+            if (message.sender_id !== user?.id) {
+              if (document.hidden) {
+                if (Notification.permission === "granted") {
+                  new Notification(message.sender_username || "New Message", {
+                    body: message.content,
+                  });
+                }
+              }
+
+              if (message.conversation_id !== selectedConversationId) {
+                toast.info("New message received");
+              } else if (
+                message.conversation_id === selectedConversationId &&
+                !document.hidden
+              ) {
+                markReadMutation.mutate(message.conversation_id);
+              }
             }
           }
         };
 
         const typingHandler = (data: any) => {};
 
+        const messageReadHandler = (data: any) => {
+          if (data.conversation_id === selectedConversationId) {
+            queryClient.setQueryData(
+              ["conversation-messages", selectedConversationId],
+              (old: any) => {
+                if (!old) return old;
+                return old.map((m: any) => {
+                  if (m.sender_id === user?.id) {
+                    return { ...m, is_read: true };
+                  }
+                  return m;
+                });
+              },
+            );
+            queryClient.invalidateQueries({
+              queryKey: ["conversation-messages", selectedConversationId],
+            });
+          }
+        };
+
         wsClient.current.on("message.created", messageHandler);
+        wsClient.current.on("message.read", messageReadHandler);
         wsClient.current.on("typing.started", typingHandler);
 
         return () => {
           wsClient.current.off("message.created", messageHandler);
+          wsClient.current.off("message.read", messageReadHandler);
           wsClient.current.off("typing.started", typingHandler);
         };
       } catch (error) {
@@ -244,11 +314,15 @@ const Messages = () => {
   useEffect(() => {
     if (!selectedConversationId || !wsConnected) return;
 
-    const conversationChannel = `conv:${selectedConversationId}`;
+    const conversationChannel = `conv:${selectedConversationId.toLowerCase()}`;
 
     wsClient.current.subscribe(conversationChannel);
 
+    wsClient.current.setActiveConversation(selectedConversationId);
+
     return () => {
+      wsClient.current.clearActiveConversation(selectedConversationId);
+
       wsClient.current.unsubscribe(conversationChannel);
     };
   }, [selectedConversationId, wsConnected]);
@@ -278,6 +352,25 @@ const Messages = () => {
   }, [selectedConversationId, loadingMessages, messages.length]);
 
   useEffect(() => {
+    if (!selectedConversationId || !wsConnected) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        wsClient.current.clearActiveConversation(selectedConversationId);
+      } else {
+        wsClient.current.setActiveConversation(selectedConversationId);
+        markReadMutation.mutate(selectedConversationId);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [selectedConversationId, wsConnected]);
+
+  useEffect(() => {
     if (selectedConversationId && location.state?.prefillMessage) {
       setNewMessage(location.state.prefillMessage);
       navigate(location.pathname, { replace: true, state: {} });
@@ -297,7 +390,7 @@ const Messages = () => {
     }
 
     const conversationExists = conversations.some(
-      (c) => c.id === conversationId
+      (c) => c.id === conversationId,
     );
 
     if (!conversationExists && conversations.length >= 0) {
@@ -345,7 +438,7 @@ const Messages = () => {
   ]);
 
   const selectedConversation = conversations.find(
-    (c) => c.id === selectedConversationId
+    (c) => c.id === selectedConversationId,
   );
 
   const handleConversationSelect = (conversationId: string) => {
@@ -412,7 +505,7 @@ const Messages = () => {
             moduleType: "messages",
             moduleId: selectedConversationId,
             accessLevel: "private",
-          })
+          }),
         );
 
         const uploadedFiles = await Promise.all(uploadPromises);
@@ -485,7 +578,7 @@ const Messages = () => {
     if (conversation.conversation_type === "direct") {
       if (conversation.participants && conversation.participants.length > 0) {
         const otherParticipant = conversation.participants.find(
-          (p: any) => p.id !== user?.id
+          (p: any) => p.id !== user?.id,
         );
         if (otherParticipant) {
           return {
@@ -575,7 +668,9 @@ const Messages = () => {
                   variant="default"
                   className="ml-2 h-5 min-w-5 flex items-center justify-center text-xs"
                 >
-                  {conversation.unread_count}
+                  {conversation.unread_count >= 100
+                    ? "99+"
+                    : conversation.unread_count}
                 </Badge>
               )}
             </div>
@@ -752,118 +847,120 @@ const Messages = () => {
                                 {message.attachments &&
                                   Array.isArray(message.attachments) &&
                                   message.attachments.length > 0 && (
-                                  <div
-                                    className={`mb-2 grid gap-2 ${
-                                      message.attachments.length === 1
-                                        ? "grid-cols-1"
-                                        : message.attachments.length === 2
-                                        ? "grid-cols-2"
-                                        : "grid-cols-2"
-                                    }`}
-                                  >
-                                    {message.attachments.map(
-                                      (attachment: any, idx: number) => {
-                                        const fileType =
-                                          attachment.type || "other";
+                                    <div
+                                      className={`mb-2 grid gap-2 ${
+                                        message.attachments.length === 1
+                                          ? "grid-cols-1"
+                                          : message.attachments.length === 2
+                                            ? "grid-cols-2"
+                                            : "grid-cols-2"
+                                      }`}
+                                    >
+                                      {message.attachments.map(
+                                        (attachment: any, idx: number) => {
+                                          const fileType =
+                                            attachment.type || "other";
 
-                                        if (fileType === "image") {
-                                          return (
-                                            <img
-                                              key={idx}
-                                              src={attachment.url}
-                                              alt={
-                                                attachment.filename ||
-                                                `Image ${idx + 1}`
-                                              }
-                                              className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
-                                              onClick={() =>
-                                                window.open(
-                                                  attachment.url,
-                                                  "_blank"
-                                                )
-                                              }
-                                            />
-                                          );
-                                        } else if (fileType === "video") {
-                                          return (
-                                            <video
-                                              key={idx}
-                                              src={attachment.url}
-                                              controls
-                                              className="rounded-md w-full max-w-xs"
-                                            />
-                                          );
-                                        } else if (fileType === "audio") {
-                                          return (
-                                            <div
-                                              key={idx}
-                                              className="flex flex-col gap-2 p-3 rounded-md bg-background/10 max-w-xs"
-                                            >
-                                              <div className="flex items-center gap-2">
-                                                <Music className="h-5 w-5 flex-shrink-0" />
+                                          if (fileType === "image") {
+                                            return (
+                                              <img
+                                                key={idx}
+                                                src={attachment.url}
+                                                alt={
+                                                  attachment.filename ||
+                                                  `Image ${idx + 1}`
+                                                }
+                                                className="rounded-md w-full h-auto max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                                onClick={() =>
+                                                  window.open(
+                                                    attachment.url,
+                                                    "_blank",
+                                                  )
+                                                }
+                                              />
+                                            );
+                                          } else if (fileType === "video") {
+                                            return (
+                                              <video
+                                                key={idx}
+                                                src={attachment.url}
+                                                controls
+                                                className="rounded-md w-full max-w-xs"
+                                              />
+                                            );
+                                          } else if (fileType === "audio") {
+                                            return (
+                                              <div
+                                                key={idx}
+                                                className="flex flex-col gap-2 p-3 rounded-md bg-background/10 max-w-xs"
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <Music className="h-5 w-5 flex-shrink-0" />
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-sm truncate">
+                                                      {attachment.filename ||
+                                                        "Audio"}
+                                                    </p>
+                                                    {attachment.size && (
+                                                      <p className="text-xs opacity-70">
+                                                        {formatFileSize(
+                                                          attachment.size,
+                                                        )}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <audio
+                                                  src={attachment.url}
+                                                  controls
+                                                  className="w-full h-8"
+                                                  preload="metadata"
+                                                />
+                                              </div>
+                                            );
+                                          } else {
+                                            return (
+                                              <a
+                                                key={idx}
+                                                href={attachment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 p-3 rounded-md bg-background/10 hover:bg-background/20 transition-colors"
+                                              >
+                                                {fileType === "document" ? (
+                                                  <FileText className="h-6 w-6 flex-shrink-0" />
+                                                ) : (
+                                                  <FileIcon className="h-6 w-6 flex-shrink-0" />
+                                                )}
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-sm truncate">
                                                     {attachment.filename ||
-                                                      "Audio"}
+                                                      "File"}
                                                   </p>
                                                   {attachment.size && (
                                                     <p className="text-xs opacity-70">
                                                       {formatFileSize(
-                                                        attachment.size
+                                                        attachment.size,
                                                       )}
                                                     </p>
                                                   )}
                                                 </div>
-                                              </div>
-                                              <audio
-                                                src={attachment.url}
-                                                controls
-                                                className="w-full h-8"
-                                                preload="metadata"
-                                              />
-                                            </div>
-                                          );
-                                        } else {
-                                          return (
-                                            <a
-                                              key={idx}
-                                              href={attachment.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="flex items-center gap-2 p-3 rounded-md bg-background/10 hover:bg-background/20 transition-colors"
-                                            >
-                                              {fileType === "document" ? (
-                                                <FileText className="h-6 w-6 flex-shrink-0" />
-                                              ) : (
-                                                <FileIcon className="h-6 w-6 flex-shrink-0" />
-                                              )}
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm truncate">
-                                                  {attachment.filename ||
-                                                    "File"}
-                                                </p>
-                                                {attachment.size && (
-                                                  <p className="text-xs opacity-70">
-                                                    {formatFileSize(
-                                                      attachment.size
-                                                    )}
-                                                  </p>
-                                                )}
-                                              </div>
-                                              <Download className="h-4 w-4 flex-shrink-0" />
-                                            </a>
-                                          );
-                                        }
-                                      }
-                                    )}
-                                  </div>
-                                )}
-                              {message.content &&
-                                !message.content.match(
-                                  /^\((image|video|audio|file)\)$/
-                                ) && (
-                                  <p className="text-sm text-wrap">{message.content}</p>
-                                )}
+                                                <Download className="h-4 w-4 flex-shrink-0" />
+                                              </a>
+                                            );
+                                          }
+                                        },
+                                      )}
+                                    </div>
+                                  )}
+                                {message.content &&
+                                  !message.content.match(
+                                    /^\((image|video|audio|file)\)$/,
+                                  ) && (
+                                    <p className="text-sm text-wrap">
+                                      {message.content}
+                                    </p>
+                                  )}
                                 <p
                                   className={`text-xs mt-1 ${
                                     isOwnMessage
@@ -873,7 +970,7 @@ const Messages = () => {
                                 >
                                   {formatDistanceToNow(
                                     new Date(message.created_at),
-                                    { addSuffix: true }
+                                    { addSuffix: true },
                                   )}
                                 </p>
                               </div>
@@ -957,7 +1054,6 @@ const Messages = () => {
                   </div>
                 )}
 
-                {/* Telegram-style message input */}
                 <div className="flex items-end gap-2">
                   <input
                     ref={fileInputRef}
@@ -968,7 +1064,6 @@ const Messages = () => {
                     className="hidden"
                   />
 
-                  {/* Attach button */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1001,7 +1096,7 @@ const Messages = () => {
                         target.style.height = "auto";
                         target.style.height = `${Math.min(
                           target.scrollHeight,
-                          120
+                          120,
                         )}px`;
                       }}
                       onKeyDown={(e) => {
@@ -1016,7 +1111,6 @@ const Messages = () => {
                     />
                   </div>
 
-                  {/* Send button (or mic when empty) */}
                   {newMessage.trim() || selectedFiles.length > 0 ? (
                     <Button
                       onClick={handleSendMessage}

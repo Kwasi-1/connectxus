@@ -10,7 +10,12 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search, Users, Lock, Plus, ArrowLeft, Filter, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GroupCategory } from "@/types/communities";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getUserGroups,
   getRecommendedGroups,
@@ -91,7 +96,8 @@ const GroupsNew = () => {
 
   const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
   const [departmentsPage, setDepartmentsPage] = useState(1);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null);
   const debouncedDepartmentSearch = useDebounce(departmentSearchQuery, 400);
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
@@ -105,11 +111,12 @@ const GroupsNew = () => {
     staleTime: 60000,
   });
 
-  const {
-    data: departmentsData,
-    isLoading: loadingDepartments,
-  } = useQuery({
-    queryKey: ["departments-filter", debouncedDepartmentSearch, departmentsPage],
+  const { data: departmentsData, isLoading: loadingDepartments } = useQuery({
+    queryKey: [
+      "departments-filter",
+      debouncedDepartmentSearch,
+      departmentsPage,
+    ],
     queryFn: () =>
       getDepartmentsPaginated({
         query: debouncedDepartmentSearch,
@@ -158,14 +165,13 @@ const GroupsNew = () => {
     retry: 2,
   });
 
-  const recommendedGroups = recommendedGroupsData?.pages.flatMap(page => page) ?? [];
+  const recommendedGroups =
+    recommendedGroupsData?.pages.flatMap((page) => page) ?? [];
 
-  const {
-    data: searchResults = [],
-    isLoading: loadingSearch,
-  } = useQuery({
+  const { data: searchResults = [], isLoading: loadingSearch } = useQuery({
     queryKey: ["search-groups", debouncedSearchQuery],
-    queryFn: () => searchGroups({ query: debouncedSearchQuery, page: 1, limit: 50 }),
+    queryFn: () =>
+      searchGroups({ query: debouncedSearchQuery, page: 1, limit: 50 }),
     enabled: debouncedSearchQuery.length > 0,
     staleTime: 30000,
   });
@@ -184,10 +190,11 @@ const GroupsNew = () => {
 
       if (node) observerRef.current.observe(node);
     },
-    [isFetchingNextPage, hasNextPage, fetchNextPage]
+    [isFetchingNextPage, hasNextPage, fetchNextPage],
   );
 
-  const isLoading = loadingUserGroups || loadingRecommendedGroups || loadingSearch;
+  const isLoading =
+    loadingUserGroups || loadingRecommendedGroups || loadingSearch;
 
   const joinGroupMutation = useMutation({
     mutationFn: (groupId: string) => joinGroup(groupId),
@@ -220,7 +227,7 @@ const GroupsNew = () => {
     },
     onError: (error: any) => {
       toast.error(
-        error?.response?.data?.error || "Failed to send join request"
+        error?.response?.data?.error || "Failed to send join request",
       );
     },
   });
@@ -242,7 +249,9 @@ const GroupsNew = () => {
     if (activeTab === "my-groups") {
       return debouncedSearchQuery.length > 0 ? searchResults : userGroups;
     } else {
-      return debouncedSearchQuery.length > 0 ? searchResults : recommendedGroups;
+      return debouncedSearchQuery.length > 0
+        ? searchResults
+        : recommendedGroups;
     }
   };
 
@@ -255,9 +264,10 @@ const GroupsNew = () => {
   const displayList = getDisplayList();
 
   const myGroups = activeTab === "my-groups" ? displayList : userGroups;
-  const exploreGroups = activeTab === "explore"
-    ? displayList.filter((g) => !myGroupsIds.has(g.id))
-    : recommendedGroups.filter((g) => !myGroupsIds.has(g.id));
+  const exploreGroups =
+    activeTab === "explore"
+      ? displayList.filter((g) => !myGroupsIds.has(g.id))
+      : recommendedGroups.filter((g) => !myGroupsIds.has(g.id));
 
   const handleApplyFilters = () => {
     setAppliedFilters({ ...pendingFilters });
@@ -338,6 +348,7 @@ const GroupsNew = () => {
       level: groupData.level,
       allow_invites: groupData.groupType !== "private",
       allow_member_posts: true,
+      department_id: groupData.department_id || undefined,
       ...(groupData.groupType === "project" &&
         groupData.projectRoles && {
           roles: groupData.projectRoles.map((role: any) => ({
@@ -416,7 +427,6 @@ const GroupsNew = () => {
           </div>
           {showJoinButton && (
             <>
-              {/* Only show Join/Leave button for public groups and already joined groups */}
               {(group.group_type === "public" || group.is_member) && (
                 <Button
                   onClick={(e) => {
@@ -438,19 +448,20 @@ const GroupsNew = () => {
                   {group.is_member ? "Leave" : "Join"}
                 </Button>
               )}
-              {/* For private and project groups, show View Details button */}
-              {!group.is_member && (group.group_type === "private" || group.group_type === "project") && (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/groups/${group.id}`);
-                  }}
-                  variant="default"
-                  size="sm"
-                >
-                  View Details
-                </Button>
-              )}
+              {!group.is_member &&
+                (group.group_type === "private" ||
+                  group.group_type === "project") && (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/groups/${group.id}`);
+                    }}
+                    variant="default"
+                    size="sm"
+                  >
+                    View Details
+                  </Button>
+                )}
             </>
           )}
         </div>
@@ -475,7 +486,6 @@ const GroupsNew = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full">
-        {/* Header */}
         <div className="sticky top-16 lg:top-0 z-10 bg-background/90 backdrop-blur-md border-border">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -501,7 +511,6 @@ const GroupsNew = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as HubTab)}
@@ -523,7 +532,6 @@ const GroupsNew = () => {
 
           <TabsContent value="my-groups" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -535,7 +543,6 @@ const GroupsNew = () => {
                 />
               </div>
 
-              {/* Groups Grid */}
               <div className="space-y-3">
                 {myGroups.length === 0 ? (
                   <div className="text-center py-12">
@@ -560,7 +567,6 @@ const GroupsNew = () => {
 
           <TabsContent value="explore" className="mt-0">
             <div className="p-4 space-y-4">
-              {/* Search and Filters */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -588,10 +594,11 @@ const GroupsNew = () => {
                 </Button>
               </div>
 
-              {/* Active Filters */}
               {getActiveFilterCount() > 0 && (
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-sm text-muted-foreground">Filters:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Filters:
+                  </span>
                   {appliedFilters.category && (
                     <Badge
                       variant="secondary"
@@ -608,7 +615,8 @@ const GroupsNew = () => {
                       className="cursor-pointer hover:bg-secondary/80"
                       onClick={() => handleRemoveFilter("level")}
                     >
-                      {appliedFilters.level} Level{appliedFilters.levelIncludeBelow ? " & Below" : ""}
+                      {appliedFilters.level} Level
+                      {appliedFilters.levelIncludeBelow ? " & Below" : ""}
                       <X className="h-3 w-3 ml-1" />
                     </Badge>
                   )}
@@ -618,7 +626,11 @@ const GroupsNew = () => {
                       className="cursor-pointer hover:bg-secondary/80"
                       onClick={() => handleRemoveFilter("groupType")}
                     >
-                      {groupTypeOptions.find(opt => opt.value === appliedFilters.groupType)?.label}
+                      {
+                        groupTypeOptions.find(
+                          (opt) => opt.value === appliedFilters.groupType,
+                        )?.label
+                      }
                       <X className="h-3 w-3 ml-1" />
                     </Badge>
                   )}
@@ -643,7 +655,6 @@ const GroupsNew = () => {
                 </div>
               )}
 
-              {/* Groups Grid */}
               <div className="space-y-3">
                 {exploreGroups.length === 0 ? (
                   <div className="text-center py-12">
@@ -664,10 +675,7 @@ const GroupsNew = () => {
                           key={group.id}
                           ref={isLastItem ? lastGroupRef : null}
                         >
-                          <GroupCard
-                            group={group}
-                            showJoinButton={true}
-                          />
+                          <GroupCard group={group} showJoinButton={true} />
                         </div>
                       );
                     })}
@@ -684,15 +692,16 @@ const GroupsNew = () => {
         </Tabs>
       </div>
 
-      {/* Filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto"
+        >
           <SheetHeader>
             <SheetTitle>Filter Groups</SheetTitle>
           </SheetHeader>
 
           <div className="space-y-6 py-6">
-            {/* Category Filter */}
             <div className="space-y-3">
               <Label>Category</Label>
               <Select
@@ -718,7 +727,6 @@ const GroupsNew = () => {
               </Select>
             </div>
 
-            {/* Level Filter */}
             <div className="space-y-3">
               <Label>Level</Label>
               <Select
@@ -765,7 +773,6 @@ const GroupsNew = () => {
               )}
             </div>
 
-            {/* Group Type Filter */}
             <div className="space-y-3">
               <Label>Group Type</Label>
               <Select
@@ -791,14 +798,14 @@ const GroupsNew = () => {
               </Select>
             </div>
 
-            {/* Department Filter */}
             <div className="space-y-3">
               <Label>Department</Label>
 
-              {/* Selected Department */}
               {selectedDepartment ? (
                 <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
-                  <span className="text-sm font-medium">{selectedDepartment.name}</span>
+                  <span className="text-sm font-medium">
+                    {selectedDepartment.name}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -817,7 +824,6 @@ const GroupsNew = () => {
                 </div>
               ) : (
                 <>
-                  {/* Department Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
@@ -831,7 +837,6 @@ const GroupsNew = () => {
                     />
                   </div>
 
-                  {/* Department List */}
                   <div className="border rounded-md max-h-[200px] overflow-y-auto">
                     {loadingDepartments ? (
                       <div className="flex items-center justify-center p-4">
@@ -845,15 +850,21 @@ const GroupsNew = () => {
                             className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                             onClick={() => handleDepartmentSelect(dept)}
                           >
-                            <div className="font-medium text-sm">{dept.name}</div>
+                            <div className="font-medium text-sm">
+                              {dept.name}
+                            </div>
                             {dept.code && (
-                              <div className="text-xs text-muted-foreground">{dept.code}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {dept.code}
+                              </div>
                             )}
                           </div>
                         ))}
 
-                        {/* See More Button */}
-                        {departmentsData.length >= (departmentsPage === 1 && !debouncedDepartmentSearch ? 3 : 10) && (
+                        {departmentsData.length >=
+                          (departmentsPage === 1 && !debouncedDepartmentSearch
+                            ? 3
+                            : 10) && (
                           <Button
                             variant="ghost"
                             className="w-full text-sm text-primary"
@@ -866,7 +877,9 @@ const GroupsNew = () => {
                       </>
                     ) : (
                       <div className="p-4 text-center text-sm text-muted-foreground">
-                        {departmentSearchQuery ? "No departments found" : "Start typing to search"}
+                        {departmentSearchQuery
+                          ? "No departments found"
+                          : "Start typing to search"}
                       </div>
                     )}
                   </div>
@@ -876,7 +889,11 @@ const GroupsNew = () => {
           </div>
 
           <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={handleResetFilters} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handleResetFilters}
+              className="flex-1"
+            >
               Reset
             </Button>
             <Button onClick={handleApplyFilters} className="flex-1">
@@ -886,7 +903,6 @@ const GroupsNew = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Create Group Modal */}
       <CreateGroupModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

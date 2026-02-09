@@ -55,11 +55,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           }`}
         >
           <div className="flex items-center space-x-2 w-full">
-            {/* <div className="w-10 h-10 lg:w-12 lg:h-12 xl:w-10 xl:h-10 bg-foreground/50 rounded-sm flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground text-sm font-medium">
-                {getInitials(user.name)}
-              </span>
-            </div> */}
+            
             <Avatar className="w-10 h-10 lg:w-12 lg:h-12 xl:w-10 xl:h-10 rounde">
               <AvatarImage
                 src={user.avatar || undefined}

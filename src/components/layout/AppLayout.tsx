@@ -4,6 +4,7 @@ import { RightSidebar } from "./RightSidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileHeader } from "./MobileHeader";
 import { MobileSidebar } from "./MobileSidebar";
+import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
 import { useLocation } from "react-router-dom";
 
 interface AppLayoutProps {
@@ -68,6 +69,8 @@ export function AppLayout({
       </div>
 
       <MobileBottomNav />
+
+      <PushNotificationPrompt />
     </div>
   );
 }

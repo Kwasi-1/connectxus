@@ -35,6 +35,7 @@ export interface CreateCommunityRequest {
   is_public: boolean;
   level?: number | null;
   settings?: any | null;
+  department_id?: string;
 }
 
 export interface UpdateCommunityRequest {

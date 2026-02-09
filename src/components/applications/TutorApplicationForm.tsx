@@ -4,10 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Plus, Clock, Paperclip, FileText, Loader2, Info } from "lucide-react";
+import {
+  X,
+  Plus,
+  Clock,
+  Paperclip,
+  FileText,
+  Loader2,
+  Info,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
-import { submitTutorApplication, updateTutorApplication } from "@/api/tutoring.api";
+import {
+  submitTutorApplication,
+  updateTutorApplication,
+} from "@/api/tutoring.api";
 import { uploadFile } from "@/api/files.api";
 import { toast as sonnerToast } from "sonner";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -20,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { DepartmentSelect } from "@/components/shared/DepartmentSelect";
 
 const subjectTypes = [
   { value: "course", label: "Course (e.g., DCIT 101)" },
@@ -59,6 +71,7 @@ export function TutorApplicationForm() {
   const [discount, setDiscount] = useState("");
   const [subjectType, setSubjectType] = useState("");
   const [level, setLevel] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [experience, setExperience] = useState("");
   const [qualifications, setQualifications] = useState("");
@@ -66,7 +79,8 @@ export function TutorApplicationForm() {
   const [motivation, setMotivation] = useState("");
   const [attachments, setAttachments] = useState("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [isUploadingAttachmentFiles, setIsUploadingAttachmentFiles] = useState(false);
+  const [isUploadingAttachmentFiles, setIsUploadingAttachmentFiles] =
+    useState(false);
   const attachmentFilesInputRef = useRef<HTMLInputElement>(null);
 
   const [newSlot, setNewSlot] = useState<AvailabilitySlot>({
@@ -76,7 +90,7 @@ export function TutorApplicationForm() {
   });
 
   const parseAvailabilityString = (
-    availStr: string
+    availStr: string,
   ): AvailabilitySlot | null => {
     const match = availStr.match(/^(.+?):\s*(\d{2}:\d{2})-(\d{2}:\d{2})$/);
     if (match) {
@@ -101,6 +115,8 @@ export function TutorApplicationForm() {
       if (existingApplication.subject_type)
         setSubjectType(existingApplication.subject_type);
       if (existingApplication.level) setLevel(existingApplication.level);
+      if (existingApplication.department_id)
+        setDepartmentId(existingApplication.department_id);
 
       if (
         existingApplication.availability &&
@@ -131,7 +147,7 @@ export function TutorApplicationForm() {
         (slot) =>
           slot.day === newSlot.day &&
           slot.startTime === newSlot.startTime &&
-          slot.endTime === newSlot.endTime
+          slot.endTime === newSlot.endTime,
       );
 
       if (!slotExists) {
@@ -140,19 +156,23 @@ export function TutorApplicationForm() {
     }
   };
 
-  const handleAttachmentFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAttachmentFilesSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     const validFiles = files.filter((file) => {
       const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'image/',
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/",
       ];
 
-      const isValidType = allowedTypes.some((type) => file.type.startsWith(type));
+      const isValidType = allowedTypes.some((type) =>
+        file.type.startsWith(type),
+      );
       if (!isValidType) {
         sonnerToast.error(`${file.name} is not a supported file type`);
         return false;
@@ -170,7 +190,7 @@ export function TutorApplicationForm() {
 
     const totalFiles = attachmentFiles.length + validFiles.length;
     if (totalFiles > 3) {
-      sonnerToast.error('You can only upload up to 3 attachment files');
+      sonnerToast.error("You can only upload up to 3 attachment files");
       const allowedCount = 3 - attachmentFiles.length;
       validFiles.splice(allowedCount);
     }
@@ -273,17 +293,17 @@ export function TutorApplicationForm() {
         const uploadPromises = attachmentFiles.map((file) =>
           uploadFile({
             file,
-            moduleType: 'tutoring',
-            accessLevel: 'public',
-          })
+            moduleType: "tutoring",
+            accessLevel: "public",
+          }),
         );
         const uploadedFiles = await Promise.all(uploadPromises);
-        attachmentUrls = uploadedFiles.map((file) => file.url).join('\n');
+        attachmentUrls = uploadedFiles.map((file) => file.url).join("\n");
         setIsUploadingAttachmentFiles(false);
       }
 
       const availabilityStrings = availability.map(
-        (slot) => `${slot.day}: ${slot.startTime}-${slot.endTime}`
+        (slot) => `${slot.day}: ${slot.startTime}-${slot.endTime}`,
       );
 
       const applicationData = {
@@ -294,6 +314,7 @@ export function TutorApplicationForm() {
         discount: discount || "0",
         subject_type: subjectType,
         level: level || undefined,
+        department_id: departmentId || undefined,
         experience: experience || undefined,
         qualifications: qualifications || undefined,
         teaching_style: teachingStyle || undefined,
@@ -305,8 +326,7 @@ export function TutorApplicationForm() {
       if (existingApplication && existingApplication.id) {
         await updateTutorApplication(existingApplication.id, applicationData);
         sonnerToast.success("Application Updated!", {
-          description:
-            "Your tutor application has been updated successfully.",
+          description: "Your tutor application has been updated successfully.",
         });
       } else {
         await submitTutorApplication(applicationData);
@@ -320,13 +340,15 @@ export function TutorApplicationForm() {
     } catch (err: any) {
       console.error("Error submitting tutor application:", err);
       sonnerToast.error(
-        existingApplication ? "Failed to update application" : "Failed to submit application",
+        existingApplication
+          ? "Failed to update application"
+          : "Failed to submit application",
         {
           description:
             err.response?.data?.error?.message ||
             err.message ||
             "Please try again later.",
-        }
+        },
       );
     } finally {
       setIsSubmitting(false);
@@ -353,8 +375,9 @@ export function TutorApplicationForm() {
           <div>
             <h3 className="font-medium text-blue-900">Application Approved</h3>
             <p className="text-sm text-blue-700 mt-1">
-              Your application has been approved! You can only update your <strong>Session Rate</strong>, <strong>Semester Rate</strong>, and <strong>Availability</strong>.
-              All other fields are locked.
+              Your application has been approved! You can only update your{" "}
+              <strong>Session Rate</strong>, <strong>Semester Rate</strong>, and{" "}
+              <strong>Availability</strong>. All other fields are locked.
             </p>
           </div>
         </div>
@@ -385,7 +408,11 @@ export function TutorApplicationForm() {
 
               <div>
                 <Label htmlFor="subject-type">Subject Type *</Label>
-                <Select value={subjectType} onValueChange={setSubjectType} disabled={isApproved}>
+                <Select
+                  value={subjectType}
+                  onValueChange={setSubjectType}
+                  disabled={isApproved}
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -400,15 +427,30 @@ export function TutorApplicationForm() {
               </div>
 
               <div>
+                <DepartmentSelect
+                  value={departmentId}
+                  onChange={setDepartmentId}
+                  label="Department (Optional)"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="level">Level *</Label>
-                <Select value={level} onValueChange={setLevel} disabled={isApproved} required>
+                <Select
+                  value={level}
+                  onValueChange={setLevel}
+                  disabled={isApproved}
+                  required
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">All Levels</SelectItem>
                     {[100, 200, 300, 400].map((lvl) => {
-                      const userLevelNum = user?.level ? parseInt(user.level) : 0;
+                      const userLevelNum = user?.level
+                        ? parseInt(user.level)
+                        : 0;
                       if (userLevelNum === 0 || lvl <= userLevelNum) {
                         return (
                           <SelectItem key={lvl} value={lvl.toString()}>
@@ -421,7 +463,8 @@ export function TutorApplicationForm() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Select the level you can tutor (must be ≤ your level: {user?.level || "N/A"})
+                  Select the level you can tutor (must be ≤ your level:{" "}
+                  {user?.level || "N/A"})
                 </p>
               </div>
             </CardContent>
@@ -666,9 +709,7 @@ export function TutorApplicationForm() {
             </CardHeader>
             <CardContent>
               <div>
-                <Label>
-                  Attachments & Credentials
-                </Label>
+                <Label>Attachments & Credentials</Label>
                 <div className="space-y-3 mt-3">
                   {attachmentFiles.length > 0 && (
                     <div className="space-y-2">
@@ -680,7 +721,9 @@ export function TutorApplicationForm() {
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{file.name}</p>
+                              <p className="text-sm font-medium truncate">
+                                {file.name}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
@@ -691,7 +734,9 @@ export function TutorApplicationForm() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveAttachmentFile(index)}
-                            disabled={isSubmitting || isUploadingAttachmentFiles}
+                            disabled={
+                              isSubmitting || isUploadingAttachmentFiles
+                            }
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -711,17 +756,23 @@ export function TutorApplicationForm() {
                     type="button"
                     variant="outline"
                     onClick={() => attachmentFilesInputRef.current?.click()}
-                    disabled={isApproved || isSubmitting || isUploadingAttachmentFiles || attachmentFiles.length >= 3}
+                    disabled={
+                      isApproved ||
+                      isSubmitting ||
+                      isUploadingAttachmentFiles ||
+                      attachmentFiles.length >= 3
+                    }
                     className="w-full"
                   >
                     <Paperclip className="h-4 w-4 mr-2" />
                     {attachmentFiles.length > 0
                       ? `Add More Files (${attachmentFiles.length}/3)`
-                      : 'Attach Documents'}
+                      : "Attach Documents"}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Upload supporting documents, certificates, or credentials (PDF, DOC, or images. Max 3 files, 5MB each)
+                  Upload supporting documents, certificates, or credentials
+                  (PDF, DOC, or images. Max 3 files, 5MB each)
                 </p>
               </div>
             </CardContent>
@@ -735,16 +786,25 @@ export function TutorApplicationForm() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || isUploadingAttachmentFiles}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isUploadingAttachmentFiles}
+            >
               {isUploadingAttachmentFiles ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Uploading Files...
                 </>
               ) : isSubmitting ? (
-                existingApplication ? "Updating..." : "Submitting..."
+                existingApplication ? (
+                  "Updating..."
+                ) : (
+                  "Submitting..."
+                )
+              ) : existingApplication ? (
+                "Update Application"
               ) : (
-                existingApplication ? "Update Application" : "Submit Application"
+                "Submit Application"
               )}
             </Button>
           </div>

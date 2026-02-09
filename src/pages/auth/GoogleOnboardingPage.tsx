@@ -38,6 +38,8 @@ const googleOnboardingSchema = z.object({
     .max(30, "Username must be at most 30 characters"),
   space_id: z.string().min(1, "Please select a space"),
   department_id: z.string().min(1, "Please select a department"),
+  department_id_2: z.string().optional(),
+  department_id_3: z.string().optional(),
   phoneNumber: z.string().min(10).max(10),
   level: z.string().optional(),
   interests: z.array(z.string()).min(1, "Please select at least one interest"),
@@ -70,6 +72,8 @@ export const GoogleOnboardingPage: React.FC = () => {
       username: "",
       space_id: "",
       department_id: "",
+      department_id_2: "",
+      department_id_3: "",
       level: "",
       interests: [],
       phoneNumber: "",
@@ -110,33 +114,7 @@ export const GoogleOnboardingPage: React.FC = () => {
 
   const totalSteps = 4;
 
-  // Define which fields need validation for each step
-  const getStepFields = (step: number): (keyof GoogleOnboardingFormData)[] => {
-    switch (step) {
-      case 1:
-        return ["role"];
-      case 2:
-        return ["username", "phoneNumber"];
-      case 3:
-        return ["space_id", "department_id"];
-      case 4:
-        return ["interests"];
-      default:
-        return [];
-    }
-  };
-
   const nextStep = async () => {
-    // Validate current step fields before proceeding
-    const fieldsToValidate = getStepFields(currentStep);
-    const isValid = await form.trigger(fieldsToValidate);
-
-    if (!isValid) {
-      toast.error("Please fill in all required fields correctly");
-      return;
-    }
-
-    // Additional validation for step 2 (username availability)
     if (currentStep === 2) {
       const username = form.getValues("username");
 
@@ -187,6 +165,8 @@ export const GoogleOnboardingPage: React.FC = () => {
         id_token: googleData.id_token,
         space_id: data.space_id,
         department_id: data.department_id,
+        department_id_2: data.department_id_2,
+        department_id_3: data.department_id_3,
         username: data.username,
         phone_number: data.phoneNumber,
         is_student: data.is_student,

@@ -72,12 +72,13 @@ import {
   X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { Community } from "@/types/communities";
 import { User } from "@/types/global";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import { adminApi } from "@/api/admin.api";
 import { groupsApi } from "@/api/groups.api";
-import { type AdminGroup } from "@/data/mockAdminCommunitiesData";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminSpace } from "@/contexts/AdminSpaceContext";
@@ -538,13 +539,21 @@ export function CommunitiesGroups() {
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [searchUsers, setSearchUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userSearchLoading, setUserSearchLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [totalGroups, setTotalGroups] = useState(0);
+
+  const [communitiesOffset, setCommunitiesOffset] = useState(0);
+  const [communitiesHasMore, setCommunitiesHasMore] = useState(true);
   const [totalCommunities, setTotalCommunities] = useState(0);
+
+  const [groupsOffset, setGroupsOffset] = useState(0);
+  const [groupsHasMore, setGroupsHasMore] = useState(true);
+  const [totalGroups, setTotalGroups] = useState(0);
+
+  const limit = 20;
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -565,22 +574,31 @@ export function CommunitiesGroups() {
 
   const fetchCommunities = useCallback(async () => {
     try {
-      setLoading(true);
+      if (communitiesOffset === 0) {
+        setLoading(true);
+      } else {
+        setIsFetching(true);
+      }
 
-      const categoryParam =
-        categoryFilter === "all" ? undefined : categoryFilter;
       const statusParam = statusFilter === "all" ? undefined : statusFilter;
+      const search = debouncedSearch || undefined;
 
       const response = await adminApi.getCommunities(
-        categoryParam,
-        statusParam,
-        currentPage,
-        pageSize,
         selectedSpaceId,
+        search,
+        statusParam,
+        limit,
+        communitiesOffset,
       );
 
-      setCommunities(response.communities || []);
-      setTotalCommunities(response.communities?.length || 0);
+      if (communitiesOffset === 0) {
+        setCommunities(response.communities || []);
+      } else {
+        setCommunities(prev => [...prev, ...(response.communities || [])]);
+      }
+
+      setTotalCommunities(response.total || 0);
+      setCommunitiesHasMore((response.communities || []).length === limit);
     } catch (error) {
       console.error("Failed to fetch communities:", error);
       toast({
@@ -590,29 +608,44 @@ export function CommunitiesGroups() {
       });
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   }, [
     toast,
-    categoryFilter,
     statusFilter,
-    currentPage,
-    pageSize,
+    debouncedSearch,
+    communitiesOffset,
+    limit,
     selectedSpaceId,
   ]);
 
   const fetchGroups = useCallback(async () => {
     try {
-      setLoading(true);
+      if (groupsOffset === 0) {
+        setLoading(true);
+      } else {
+        setIsFetching(true);
+      }
 
       const status = statusFilter === "all" ? undefined : statusFilter;
+      const search = debouncedSearch || undefined;
+
       const response = await adminApi.getGroups(
-        status,
-        currentPage,
-        pageSize,
         selectedSpaceId,
+        search,
+        status,
+        limit,
+        groupsOffset,
       );
-      setGroups(response.groups as AdminGroup[]);
+
+      if (groupsOffset === 0) {
+        setGroups(response.groups as AdminGroup[]);
+      } else {
+        setGroups(prev => [...prev, ...(response.groups as AdminGroup[])]);
+      }
+
       setTotalGroups(response.total);
+      setGroupsHasMore((response.groups || []).length === limit);
     } catch (error) {
       console.error("Error fetching groups:", error);
       toast({
@@ -622,8 +655,9 @@ export function CommunitiesGroups() {
       });
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
-  }, [toast, statusFilter, currentPage, pageSize, selectedSpaceId]);
+  }, [toast, statusFilter, debouncedSearch, groupsOffset, limit, selectedSpaceId]);
 
   const searchUsersForModerator = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -657,6 +691,16 @@ export function CommunitiesGroups() {
       fetchGroups();
     }
   }, [activeTab, fetchCommunities, fetchGroups]);
+
+  useEffect(() => {
+    setCommunitiesOffset(0);
+    setCommunities([]);
+  }, [debouncedSearch, statusFilter, categoryFilter, selectedSpaceId]);
+
+  useEffect(() => {
+    setGroupsOffset(0);
+    setGroups([]);
+  }, [debouncedSearch, statusFilter, groupTypeFilter, selectedSpaceId]);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -1082,37 +1126,29 @@ export function CommunitiesGroups() {
     [toast],
   );
 
-  const filteredCommunities = communities.filter((community) => {
-    const matchesSearch =
-      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      community.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all" || community.category === categoryFilter;
-
-    return matchesSearch && matchesCategory;
+  const { loadMoreRef: loadMoreCommunitiesRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore: communitiesHasMore,
+    onLoadMore: () => setCommunitiesOffset(prev => prev + limit),
+    threshold: 300,
   });
 
-  const filteredGroups = groups.filter((group) => {
-    const matchesSearch =
-      group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.creatorInfo.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || group.status === statusFilter;
-    const matchesType =
-      groupTypeFilter === "all" || group.groupType === groupTypeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+  const { loadMoreRef: loadMoreGroupsRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore: groupsHasMore,
+    onLoadMore: () => setGroupsOffset(prev => prev + limit),
+    threshold: 300,
   });
 
   const handleSelectAllCommunities = useCallback(() => {
-    if (selectedCommunities.length === filteredCommunities.length) {
+    if (selectedCommunities.length === communities.length) {
       setSelectedCommunities([]);
     } else {
       setSelectedCommunities(
-        filteredCommunities.map((community) => community.id),
+        communities.map((community) => community.id),
       );
     }
-  }, [selectedCommunities, filteredCommunities]);
+  }, [selectedCommunities, communities]);
 
   const handleSelectCommunity = useCallback((communityId: string) => {
     setSelectedCommunities((prev) =>
@@ -1123,12 +1159,12 @@ export function CommunitiesGroups() {
   }, []);
 
   const handleSelectAllGroups = useCallback(() => {
-    if (selectedGroups.length === filteredGroups.length) {
+    if (selectedGroups.length === groups.length) {
       setSelectedGroups([]);
     } else {
-      setSelectedGroups(filteredGroups.map((group) => group.id));
+      setSelectedGroups(groups.map((group) => group.id));
     }
-  }, [selectedGroups, filteredGroups]);
+  }, [selectedGroups, groups]);
 
   const handleSelectGroup = useCallback((groupId: string) => {
     setSelectedGroups((prev) =>
@@ -1352,13 +1388,13 @@ export function CommunitiesGroups() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">
-          Communities ({filteredCommunities.length})
+          Communities ({communities.length})
         </h3>
         <div className="flex items-center space-x-2">
           <Checkbox
             checked={
-              selectedCommunities.length === filteredCommunities.length &&
-              filteredCommunities.length > 0
+              selectedCommunities.length === communities.length &&
+              communities.length > 0
             }
             onCheckedChange={handleSelectAllCommunities}
           />
@@ -1373,8 +1409,8 @@ export function CommunitiesGroups() {
             <TableHead className="w-[50px]">
               <Checkbox
                 checked={
-                  selectedCommunities.length === filteredCommunities.length &&
-                  filteredCommunities.length > 0
+                  selectedCommunities.length === communities.length &&
+                  communities.length > 0
                 }
                 onCheckedChange={handleSelectAllCommunities}
               />
@@ -1396,7 +1432,7 @@ export function CommunitiesGroups() {
                 </p>
               </TableCell>
             </TableRow>
-          ) : filteredCommunities.length === 0 ? (
+          ) : communities.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
@@ -1406,7 +1442,7 @@ export function CommunitiesGroups() {
               </TableCell>
             </TableRow>
           ) : (
-            filteredCommunities.map((community) => (
+            communities.map((community) => (
               <TableRow key={community.id}>
                 <TableCell>
                   <Checkbox
@@ -1497,6 +1533,17 @@ export function CommunitiesGroups() {
           )}
         </TableBody>
       </Table>
+      <div ref={loadMoreCommunitiesRef} className="h-4" />
+      {isFetching && activeTab === "communities" && (
+        <div className="flex items-center justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+      {totalCommunities > 0 && (
+        <div className="text-sm text-muted-foreground text-center py-2">
+          Showing {communities.length} of {totalCommunities} communities
+        </div>
+      )}
     </div>
   );
 
@@ -1505,7 +1552,7 @@ export function CommunitiesGroups() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <h3 className="text-lg font-medium">
-            Groups ({filteredGroups.length})
+            Groups ({groups.length})
           </h3>
           <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
             <SelectTrigger className="w-[140px]">
@@ -1523,8 +1570,8 @@ export function CommunitiesGroups() {
         <div className="flex items-center space-x-2">
           <Checkbox
             checked={
-              selectedGroups.length === filteredGroups.length &&
-              filteredGroups.length > 0
+              selectedGroups.length === groups.length &&
+              groups.length > 0
             }
             onCheckedChange={handleSelectAllGroups}
           />
@@ -1539,8 +1586,8 @@ export function CommunitiesGroups() {
             <TableHead className="w-[50px]">
               <Checkbox
                 checked={
-                  selectedGroups.length === filteredGroups.length &&
-                  filteredGroups.length > 0
+                  selectedGroups.length === groups.length &&
+                  groups.length > 0
                 }
                 onCheckedChange={handleSelectAllGroups}
               />
@@ -1564,7 +1611,7 @@ export function CommunitiesGroups() {
                 </p>
               </TableCell>
             </TableRow>
-          ) : filteredGroups.length === 0 ? (
+          ) : groups.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
@@ -1574,7 +1621,7 @@ export function CommunitiesGroups() {
               </TableCell>
             </TableRow>
           ) : (
-            filteredGroups.map((group) => (
+            groups.map((group) => (
               <TableRow key={group.id}>
                 <TableCell>
                   <Checkbox
@@ -1733,6 +1780,17 @@ export function CommunitiesGroups() {
           )}
         </TableBody>
       </Table>
+      <div ref={loadMoreGroupsRef} className="h-4" />
+      {isFetching && activeTab === "groups" && (
+        <div className="flex items-center justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+      {totalGroups > 0 && (
+        <div className="text-sm text-muted-foreground text-center py-2">
+          Showing {groups.length} of {totalGroups} groups
+        </div>
+      )}
     </div>
   );
 

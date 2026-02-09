@@ -128,7 +128,6 @@ export default function PostInteractions() {
   return (
     <AppLayout>
       <div className="flex-1 border-l xl:border-l-0 border-r border-border">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="flex items-center gap-4 p-4">
             <Button
@@ -145,7 +144,6 @@ export default function PostInteractions() {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'quotes' | 'reposts')}>
           <TabsList className="w-full rounded-none border-b bg-transparent h-auto p-0">
             <TabsTrigger
@@ -162,7 +160,6 @@ export default function PostInteractions() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Quotes Tab */}
           <TabsContent value="quotes" className="mt-0">
             {loadingQuotes ? (
               <div className="p-8 text-center">
@@ -184,7 +181,6 @@ export default function PostInteractions() {
                   ))}
                 </div>
 
-                {/* Infinite scroll trigger for quotes */}
                 {hasNextQuotesPage && (
                   <div ref={quotesLoadMoreRef} className="flex justify-center py-8">
                     {isFetchingNextQuotes && (
@@ -196,7 +192,6 @@ export default function PostInteractions() {
             )}
           </TabsContent>
 
-          {/* Reposts Tab */}
           <TabsContent value="reposts" className="mt-0">
             {loadingReposts ? (
               <div className="p-8 text-center">
@@ -258,7 +253,6 @@ export default function PostInteractions() {
                           </div>
                         </div>
 
-                        {/* Follow/Unfollow button */}
                         {user?.id !== repost.id && (
                           <Button
                             variant={repost.is_following ? 'outline' : 'default'}
@@ -277,7 +271,6 @@ export default function PostInteractions() {
                   ))}
                 </div>
 
-                {/* Infinite scroll trigger for reposts */}
                 {hasNextRepostsPage && (
                   <div ref={repostsLoadMoreRef} className="flex justify-center py-8">
                     {isFetchingNextReposts && (

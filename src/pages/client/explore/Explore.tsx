@@ -22,10 +22,12 @@ const Explore = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: searchResults, isLoading } = useQuery({
+  const { data: searchResults, isLoading, error } = useQuery({
     queryKey: ["explore", searchQuery, activeTab],
     queryFn: async () => {
-      if (!searchQuery.trim()) return null;
+      if (!searchQuery.trim()) {
+        return null;
+      }
 
       if (activeTab === "people") {
         const users = await searchApi.searchUsers({
@@ -176,7 +178,7 @@ const Explore = () => {
               new Date(a.created_at).getTime()
           );
         } else if (activeTab === "media") {
-          posts = posts.filter((post) => post.media && post.media.length > 0);
+          posts = posts.filter((post) => (post.media && post.media.length > 0) || post.video_url);
         } else if (activeTab === "top") {
           posts.sort(
             (a, b) =>

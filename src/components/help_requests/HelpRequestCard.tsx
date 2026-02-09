@@ -82,9 +82,7 @@ export function HelpRequestCard({
       onClick={handleCardClick}
     >
       <CardContent className="p-6">
-        {/* Vertical Layout */}
         <div className="space-y-4">
-          {/* Header with Avatar and Owner Info */}
           <div className="flex items-start gap-4">
             <Avatar className="h-14 w-14 rounded-sm">
               <AvatarImage src={helpRequest.owner_avatar} alt={ownerName} />
@@ -106,7 +104,6 @@ export function HelpRequestCard({
                 )}
               </div>
 
-              {/* Owner Info */}
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <User className="h-3 w-3" />
                 <span>
@@ -119,12 +116,10 @@ export function HelpRequestCard({
             </div>
           </div>
 
-          {/* Description */}
           <p className="text-sm text-muted-foreground line-clamp-2">
             {helpRequest.description}
           </p>
 
-          {/* Subject */}
           {helpRequest.subject && (
             <div className="flex items-start gap-2">
               <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -137,7 +132,6 @@ export function HelpRequestCard({
             </div>
           )}
 
-          {/* Type Badge & Deadline */}
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant={getTypeColor(helpRequest.type)}>
               {helpRequest.type.charAt(0).toUpperCase() +
@@ -163,7 +157,6 @@ export function HelpRequestCard({
             )}
           </div>
 
-          {/* Action Buttons */}
           {showActions === "help" && onHelp && (
             <div className="pt-2">
               <Button

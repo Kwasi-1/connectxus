@@ -235,7 +235,6 @@ export function TutorDetails() {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
-        {/* Back Button */}
         <Button
           variant="ghost"
           onClick={() => navigate(-1)}
@@ -245,11 +244,9 @@ export function TutorDetails() {
           Back
         </Button>
 
-        {/* Main Card */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex flex-col lg:flex-row gap-6">
-              {/* Avatar and Basic Info */}
               <div className="flex items-start gap-4 flex-1 min-w-0">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 rounded-sm flex-shrink-0">
                   <AvatarImage src={tutor.user?.avatar} alt={tutorName} />
@@ -273,7 +270,6 @@ export function TutorDetails() {
                     </p>
                   )}
 
-                  {/* Rating */}
                   <div className="flex items-center gap-4 mb-3">
                     {rating > 0 && (
                       <div className="flex items-center">
@@ -287,7 +283,6 @@ export function TutorDetails() {
                     )}
                   </div>
 
-                  {/* Badges */}
                   {tutor.badges && tutor.badges.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                       {tutor.badges.map((badge, index) => (
@@ -302,7 +297,6 @@ export function TutorDetails() {
                     </div>
                   )}
 
-                  {/* Subject */}
                   {tutor.subject && (
                     <Badge variant="outline" className="text-sm">
                       <BookOpen className="h-3 w-3 mr-1" />
@@ -312,7 +306,6 @@ export function TutorDetails() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex flex-col gap-3 lg:w-64">
                 <Button
                   onClick={() => setIsRequestModalOpen(true)}
@@ -354,9 +347,7 @@ export function TutorDetails() {
 
           <CardContent className="pt-6">
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Left Column - Details */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Bio */}
                 {tutor.bio && (
                   <div>
                     <h3 className="font-semibold mb-2 text-base sm:text-lg">
@@ -368,7 +359,6 @@ export function TutorDetails() {
                   </div>
                 )}
 
-                {/* Experience */}
                 {tutor.experience && (
                   <div>
                     <h3 className="font-semibold mb-2 flex items-center text-base sm:text-lg">
@@ -381,7 +371,6 @@ export function TutorDetails() {
                   </div>
                 )}
 
-                {/* Qualifications */}
                 {tutor.qualifications && (
                   <div>
                     <h3 className="font-semibold mb-2 flex items-center text-base sm:text-lg">
@@ -394,7 +383,6 @@ export function TutorDetails() {
                   </div>
                 )}
 
-                {/* Reviews */}
                 {reviews.length > 0 && (
                   <div>
                     <h3 className="font-semibold mb-4 text-base sm:text-lg">
@@ -454,9 +442,7 @@ export function TutorDetails() {
                 )}
               </div>
 
-              {/* Right Column - Pricing & Availability */}
               <div className="space-y-4 sm:space-y-6">
-                {/* Pricing */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center">
@@ -488,7 +474,6 @@ export function TutorDetails() {
                   </CardContent>
                 </Card>
 
-                {/* Availability */}
                 {tutor.availability &&
                   Array.isArray(tutor.availability) &&
                   tutor.availability.length > 0 && (
@@ -517,7 +502,6 @@ export function TutorDetails() {
           </CardContent>
         </Card>
 
-        {/* Request Modal */}
         <RequestTutoringModal
           open={isRequestModalOpen}
           onOpenChange={setIsRequestModalOpen}

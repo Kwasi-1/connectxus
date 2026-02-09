@@ -53,7 +53,6 @@ export function Analytics() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab - 4 Key Metrics */}
         <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
@@ -103,7 +102,6 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
@@ -155,7 +153,6 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Tutoring Tab */}
         <TabsContent value="tutoring" className="space-y-6">
           <Card>
             <CardHeader>
@@ -205,7 +202,6 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Content Tab */}
         <TabsContent value="content" className="space-y-6">
           <Card>
             <CardHeader>
@@ -239,7 +235,6 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Community Tab */}
         <TabsContent value="community" className="space-y-6">
           <Card>
             <CardHeader>
@@ -289,7 +284,6 @@ export function Analytics() {
           </Card>
         </TabsContent>
 
-        {/* Help Tab */}
         <TabsContent value="help" className="space-y-6">
           <Card>
             <CardHeader>

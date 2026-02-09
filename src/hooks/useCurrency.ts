@@ -1,8 +1,4 @@
-/**
- * Currency Hook
- * Provides currency formatting utilities for the entire app
- * Default currency: Ghana Cedis (GHS)
- */
+
 
 export interface CurrencyConfig {
   code: string;
@@ -17,12 +13,7 @@ const CURRENCY_CONFIG: CurrencyConfig = {
 };
 
 export function useCurrency() {
-  /**
-   * Format a number as currency
-   * @param amount - The amount to format (number or string)
-   * @param options - Optional formatting options
-   * @returns Formatted currency string
-   */
+
   const formatCurrency = (
     amount: number | string,
     options?: {

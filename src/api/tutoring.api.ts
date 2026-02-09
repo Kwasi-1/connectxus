@@ -47,6 +47,7 @@ export interface TutorApplication {
   availability?: any;
   session_rate?: number;
   semester_rate?: number;
+  department_id?: string;
   status: "pending" | "approved" | "rejected";
   reviewed_by?: string;
   reviewer_notes?: string;
@@ -234,6 +235,7 @@ export const submitTutorApplication = async (data: {
   motivation: string;
   reference_letters?: string;
   availability: string[];
+  department_id?: string;
 }): Promise<ApplicationStatusResponse> => {
   const response = await apiClient.post<ApiResponse<ApplicationStatusResponse>>(
     "/tutoring/tutors/applications",
@@ -244,6 +246,7 @@ export const submitTutorApplication = async (data: {
       discount: data.discount,
       subject_type: data.subject_type,
       level: data.level,
+      department_id: data.department_id,
       experience: data.experience,
       qualifications: data.qualifications,
       teaching_style: data.teaching_style,
@@ -439,6 +442,7 @@ export interface TutoringRequest {
   payment_details?: PaymentDetails;
   rating?: number;
   review?: string;
+  is_rated: boolean;
   completed_at?: string;
   expires_at?: string;
   refund_reason?: string;
@@ -670,7 +674,9 @@ export interface TutorService {
   subject_type: string;
   level?: string;
   payment_info?: TutorPaymentInfo & { account_name?: string };
+  payout_requested?: boolean;
   payout_requested_at?: string;
+  last_paid_at?: string;
   paid_requests: Array<{
     id: string;
     requester_id: string;
@@ -681,6 +687,9 @@ export interface TutorService {
     session_status?: string;
     payment_status?: string;
     paid_at?: string;
+    completed_at?: string;
+    money_credited?: boolean;
+    money_credited_at?: string;
     schedules?: string[];
     amount?: string;
     currency?: string;
@@ -694,6 +703,13 @@ export const getTutorServices = async (
   const response = await apiClient.get<ApiResponse<TutorService[]>>(
     "/tutoring/tutors/applications/my-services",
     { params: { page, limit } }
+  );
+  return response.data.data;
+};
+
+export const requestPayout = async (): Promise<{ message: string }> => {
+  const response = await apiClient.post<ApiResponse<{ message: string }>>(
+    "/tutoring/request-payout"
   );
   return response.data.data;
 };
@@ -715,6 +731,7 @@ export interface InitializeTutoringPaymentResponse {
   authorization_url: string;
   reference: string;
   amount: number;
+  is_free: boolean;
 }
 
 export const initializeTutoringPayment = async (data: {
@@ -727,11 +744,13 @@ export const initializeTutoringPayment = async (data: {
 };
 
 export const verifyTutoringPayment = async (data: {
+  request_id: string;
   reference: string;
 }): Promise<TutoringRequest> => {
   const response = await apiClient.post<ApiResponse<TutoringRequest>>(
     "/tutoring/payments/verify",
     {
+      request_id: data.request_id,
       reference: data.reference,
     }
   );

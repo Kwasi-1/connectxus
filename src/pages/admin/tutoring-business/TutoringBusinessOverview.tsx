@@ -198,7 +198,6 @@ export function TutoringBusinessOverview() {
         </h1>
       </div>
 
-      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metricsCards.map((metric, index) => (
           <Card key={index} className={`border-l-4 ${metric.bgColor}`}>
@@ -220,7 +219,6 @@ export function TutoringBusinessOverview() {
         ))}
       </div>
 
-      {/* Revenue Chart */}
       {chartData.length > 0 && (
         <Card>
           <CardHeader>
@@ -267,7 +265,6 @@ export function TutoringBusinessOverview() {
         </Card>
       )}
 
-      {/* Session Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>

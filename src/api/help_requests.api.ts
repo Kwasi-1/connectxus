@@ -12,9 +12,7 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-/**
- * Create a new help request
- */
+
 export const createHelpRequest = async (
   data: CreateHelpRequestRequest
 ): Promise<HelpRequest> => {
@@ -25,9 +23,7 @@ export const createHelpRequest = async (
   return response.data.data;
 };
 
-/**
- * Get a specific help request by ID (public)
- */
+
 export const getHelpRequest = async (id: string): Promise<HelpRequest> => {
   const response = await apiClient.get<ApiResponse<HelpRequest>>(
     `/help-requests/${id}`
@@ -35,9 +31,7 @@ export const getHelpRequest = async (id: string): Promise<HelpRequest> => {
   return response.data.data;
 };
 
-/**
- * Get available help requests (public requests in the same space)
- */
+
 export const getAvailableHelpRequests = async (params?: {
   type?: 'course' | 'project' | 'other';
   filter_level?: number;
@@ -52,9 +46,7 @@ export const getAvailableHelpRequests = async (params?: {
   return response.data.data;
 };
 
-/**
- * Get my help requests (requests I created)
- */
+
 export const getMyHelpRequests = async (params?: {
   limit?: number;
   offset?: number;
@@ -66,9 +58,7 @@ export const getMyHelpRequests = async (params?: {
   return response.data.data;
 };
 
-/**
- * Update a help request
- */
+
 export const updateHelpRequest = async (
   id: string,
   data: UpdateHelpRequestRequest
@@ -80,16 +70,12 @@ export const updateHelpRequest = async (
   return response.data.data;
 };
 
-/**
- * Delete a help request
- */
+
 export const deleteHelpRequest = async (id: string): Promise<void> => {
   await apiClient.delete(`/help-requests/${id}`);
 };
 
-/**
- * Toggle help request visibility between public and private
- */
+
 export const toggleHelpRequestVisibility = async (
   id: string
 ): Promise<HelpRequest> => {

@@ -115,7 +115,6 @@ export function AssignmentPaymentModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Assignment Details */}
           <div className="rounded-lg border p-4 space-y-2">
             <h3 className="font-semibold">Assignment Details</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -128,7 +127,6 @@ export function AssignmentPaymentModal({
             </div>
           </div>
 
-          {/* Pricing Breakdown */}
           <div className="space-y-3">
             <h3 className="font-semibold">Payment Breakdown</h3>
 
@@ -163,7 +161,6 @@ export function AssignmentPaymentModal({
             </div>
           </div>
 
-          {/* Important Notices */}
           <div className="space-y-3">
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 flex gap-3">
               <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -193,7 +190,6 @@ export function AssignmentPaymentModal({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

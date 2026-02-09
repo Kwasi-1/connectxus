@@ -389,7 +389,7 @@ export const NewStoryViewer = ({
                 className="flex-1 h-0.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm"
               >
                 <div
-                  className="h-full bg-gradient-to-r from-white to-white transition-all duration-100"
+                  className="h-full bg-gradient-to-r from-primary to-white transition-all duration-100"
                   style={{
                     width:
                       index < currentStoryIndex
@@ -402,16 +402,15 @@ export const NewStoryViewer = ({
               </div>
             ))}
           </div>
-          <div className="absolute -top-4 h-20 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-gradient-to-b from-black/20 to-transparent pb-6"></div>
 
           <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-between px-4 mt-3 bg-transparent pb-6">
             <div className="flex items-center gap-3">
-              <Avatar className="w-11 h-11 ring-2 ring-muted/50 shadow-lg">
+              <Avatar className="w-11 h-11 ring-2 ring-primary/60 shadow-lg">
                 <AvatarImage
                   src={userStories.user_avatar || ""}
                   alt={userStories.username}
                 />
-                <AvatarFallback className="">
+                <AvatarFallback className="bg-primary/20">
                   {userStories.username.substring(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -520,7 +519,7 @@ export const NewStoryViewer = ({
                   onChange={handleReplyChange}
                   onKeyPress={handleReplyKeyPress}
                   placeholder={`Reply to @${userStories.username}...`}
-                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md rounded-full"
+                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md"
                   disabled={isSendingReply}
                 />
                 {replyText.trim() && (

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminPageLayout } from "@/components/admin/AdminPageLayout";
 import {
   Card,
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -28,30 +29,38 @@ import {
   TrendingUp,
   UserPlus,
   Plus,
+  Trash2,
+  Building,
+  Star,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { SpaceSwitcher } from "@/components/admin/SpaceSwitcher";
 import { CreateSpaceModal } from "@/components/admin/CreateSpaceModal";
 import { AddDepartmentModal } from "@/components/admin/AddDepartmentModal";
+import { CreateHighlightModal } from "@/components/admin/CreateHighlightModal";
 import { adminApi } from "@/api/admin.api";
-
-interface Space {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  type: string;
-  logo?: string;
-  cover_image?: string;
-  location?: string;
-  website?: string;
-  contact_email?: string;
-  phone_number?: string;
-  status: string;
-  settings: any;
-  created_at: string;
-  updated_at: string;
-}
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ActivityItem {
   id: string;
@@ -61,146 +70,121 @@ interface ActivityItem {
   created_at: string;
 }
 
-interface SpaceStats {
-  name: string;
-  slug: string;
-  user_count: number;
-  post_count: number;
-  community_count: number;
-  group_count: number;
-}
-
 const SpaceActivities = () => {
-  const [currentSpaceId, setCurrentSpaceId] = useState<string>("");
+  const { selectedSpaceId, isLoading: isLoadingSpaces } = useAdminAuth();
   const [activityFilter, setActivityFilter] = useState("all");
   const [createSpaceModalOpen, setCreateSpaceModalOpen] = useState(false);
   const [addDepartmentModalOpen, setAddDepartmentModalOpen] = useState(false);
+  const [createHighlightModalOpen, setCreateHighlightModalOpen] =
+    useState(false);
+  const [feedbackSearch, setFeedbackSearch] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState("all");
+  const [feedbackCategory, setFeedbackCategory] = useState("all");
+  const queryClient = useQueryClient();
 
-  const { data: spacesResponse, isLoading: loadingSpaces } = useQuery({
-    queryKey: ["spaces"],
-    queryFn: adminApi.getSpaces,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const spaces = React.useMemo(() => {
-    if (!spacesResponse) return [];
-
-    try {
-      if (
-        spacesResponse.data?.spaces &&
-        Array.isArray(spacesResponse.data.spaces)
-      ) {
-        return spacesResponse.data.spaces;
-      }
-
-      if (spacesResponse.spaces && Array.isArray(spacesResponse.spaces)) {
-        return spacesResponse.spaces;
-      }
-
-      if (Array.isArray(spacesResponse)) {
-        return spacesResponse;
-      }
-
-      if (spacesResponse.data && Array.isArray(spacesResponse.data)) {
-        return spacesResponse.data;
-      }
-
-      for (const key in spacesResponse) {
-        if (Array.isArray(spacesResponse[key])) {
-          return spacesResponse[key];
-        }
-      }
-    } catch (error) {
-      console.error("Error parsing spaces response:", error);
-    }
-
-    return [];
-  }, [spacesResponse]);
-
-  React.useEffect(() => {
-    if (spaces.length > 0 && !currentSpaceId) {
-      setCurrentSpaceId(spaces[0].id);
-    }
-  }, [spaces, currentSpaceId]);
-
+  // Queries
   const {
     data: activitiesResponse,
     isLoading: loadingActivities,
-    isFetching: fetchingActivities,
     error: activitiesError,
   } = useQuery({
-    queryKey: ["space-activities", currentSpaceId, activityFilter],
-    queryFn: () => adminApi.getSpaceActivities(currentSpaceId, activityFilter),
-    enabled: !!currentSpaceId,
-    staleTime: 30000,
-    keepPreviousData: true,
+    queryKey: ["space-activities", selectedSpaceId, activityFilter],
+    queryFn: () =>
+      adminApi.getSpaceActivities(selectedSpaceId!, activityFilter),
+    enabled: !!selectedSpaceId,
   });
 
-  const {
-    data: statsResponse,
-    isLoading: loadingStats,
-    isFetching: fetchingStats,
-  } = useQuery({
-    queryKey: ["space-stats", currentSpaceId],
-    queryFn: () => adminApi.getSpaceStats(currentSpaceId),
-    enabled: !!currentSpaceId && currentSpaceId !== "all",
-    staleTime: 60000,
-    keepPreviousData: true,
+  const { data: stats } = useQuery({
+    queryKey: ["space-stats", selectedSpaceId],
+    queryFn: () => adminApi.getSpaceStats(selectedSpaceId!),
+    enabled: !!selectedSpaceId,
   });
 
+  const { data: trendingTopics, isLoading: loadingTrending } = useQuery({
+    queryKey: ["admin-trending-topics", selectedSpaceId],
+    queryFn: () => adminApi.getTrendingTopics(selectedSpaceId!),
+    enabled: !!selectedSpaceId,
+  });
+
+  const { data: departments, isLoading: loadingDepartments } = useQuery({
+    queryKey: ["admin-departments", selectedSpaceId],
+    queryFn: () => adminApi.getDepartments(selectedSpaceId),
+    enabled: !!selectedSpaceId,
+  });
+
+  const { data: highlights, isLoading: loadingHighlights } = useQuery({
+    queryKey: ["admin-highlights", selectedSpaceId],
+    queryFn: () => adminApi.getCampusHighlights(selectedSpaceId!),
+    enabled: !!selectedSpaceId,
+  });
+
+  const { data: feedbackData, isLoading: loadingFeedback } = useQuery({
+    queryKey: [
+      "admin-feedback",
+      selectedSpaceId,
+      feedbackSearch,
+      feedbackStatus,
+      feedbackCategory,
+    ],
+    queryFn: () =>
+      adminApi.getFeedback(
+        selectedSpaceId!,
+        feedbackSearch,
+        feedbackStatus,
+        feedbackCategory,
+      ),
+    enabled: !!selectedSpaceId,
+  });
+
+  const { data: spacesData, isLoading: loadingSpaces } = useQuery({
+    queryKey: ["admin-spaces"],
+    queryFn: () => adminApi.getSpaces({ limit: 100 }),
+  });
+
+  // Mutations
+  const deleteHighlightMutation = useMutation({
+    mutationFn: (id: string) => adminApi.removeCampusHighlight(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["admin-highlights", selectedSpaceId],
+      });
+      toast.success("Highlight removed");
+    },
+    onError: () => toast.error("Failed to remove highlight"),
+  });
+
+  const deleteTrendingMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteTrendingTopic(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["admin-trending-topics", selectedSpaceId],
+      });
+      toast.success("Trending topic deleted");
+    },
+    onError: () => toast.error("Failed to delete topic"),
+  });
+
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteDepartment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["admin-departments", selectedSpaceId],
+      });
+      toast.success("Department deleted");
+    },
+    onError: () => toast.error("Failed to delete department"),
+  });
+
+  // Helpers
   const activities = React.useMemo(() => {
     if (!activitiesResponse) return [];
-
-    try {
-      if (
-        activitiesResponse.data?.activities &&
-        Array.isArray(activitiesResponse.data.activities)
-      ) {
-        return activitiesResponse.data.activities;
-      }
-
-      if (
-        activitiesResponse.activities &&
-        Array.isArray(activitiesResponse.activities)
-      ) {
-        return activitiesResponse.activities;
-      }
-
-      if (Array.isArray(activitiesResponse)) {
-        return activitiesResponse;
-      }
-
-      if (activitiesResponse.data && Array.isArray(activitiesResponse.data)) {
-        return activitiesResponse.data;
-      }
-    } catch (error) {
-      console.error("Error parsing activities response:", error);
-    }
-
+    if (Array.isArray(activitiesResponse)) return activitiesResponse;
+    const response: any = activitiesResponse;
+    if (response.data && Array.isArray(response.data)) return response.data;
+    if (response.activities && Array.isArray(response.activities))
+      return response.activities;
     return [];
   }, [activitiesResponse]);
-
-  const stats = React.useMemo(() => {
-    if (!statsResponse) return null;
-
-    try {
-      if (
-        statsResponse.data &&
-        typeof statsResponse.data === "object" &&
-        statsResponse.data !== null
-      ) {
-        return statsResponse.data;
-      }
-
-      if (statsResponse.name || statsResponse.user_count !== undefined) {
-        return statsResponse;
-      }
-    } catch (error) {
-      console.error("Error parsing stats response:", error);
-    }
-
-    return null;
-  }, [statsResponse]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -240,368 +224,637 @@ const SpaceActivities = () => {
     }
   };
 
-  const formatActivityType = (type: string) => {
-    return type
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
-  const handleSpaceChange = (spaceId: string) => {
-    setCurrentSpaceId(spaceId);
-    toast.success("Space switched successfully");
-  };
-
-  const handleCreateSpace = () => {
-    setCreateSpaceModalOpen(true);
-  };
-
-  const handleSpaceCreated = (spaceId: string) => {
-    setCurrentSpaceId(spaceId);
-    toast.success("New space created and activated");
-  };
-
-  if (loadingSpaces) {
+  if (isLoadingSpaces) {
     return (
-      <AdminPageLayout
-        title="Space Activities"
-        description="Monitor and analyze space-level activities in real-time"
-      >
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-48 mt-2" />
-            </CardHeader>
-          </Card>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-20" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+      <AdminPageLayout title="Space Activities">
+        <Skeleton className="h-64 w-full" />
       </AdminPageLayout>
     );
   }
 
-  if (!loadingSpaces && spaces.length === 0) {
+  if (!selectedSpaceId) {
     return (
-      <AdminPageLayout
-        title="Space Activities"
-        description="Monitor and analyze space-level activities in real-time"
-      >
+      <AdminPageLayout title="Space Activities">
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">No Spaces Found</p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Create your first space to start monitoring activities
-              </p>
-              <Button onClick={handleCreateSpace}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Space
-              </Button>
-            </div>
+          <CardContent className="pt-6 text-center py-12">
+            <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">No Space Selected</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Select a space from the top bar to manage activities.
+            </p>
           </CardContent>
         </Card>
-        <CreateSpaceModal
-          open={createSpaceModalOpen}
-          onOpenChange={setCreateSpaceModalOpen}
-          onSuccess={handleSpaceCreated}
-        />
       </AdminPageLayout>
     );
   }
 
   return (
-    <AdminPageLayout
-      title="Space Activities"
-    >
-      <div className="space-y-3">
-        {currentSpaceId && (
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setAddDepartmentModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Department
-            </Button>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        {currentSpaceId && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Users
-                </CardTitle>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats && !stats ? (
-                  <Skeleton className="h-10 w-24" />
-                ) : (
-                  <div className="space-y-1">
-                    <div className="text-3xl font-bold tracking-tight">
-                      {stats?.user_count?.toLocaleString() || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Registered users{fetchingStats && " (updating...)"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Posts
-                </CardTitle>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 group-hover:scale-110 transition-transform duration-300">
-                  <FileText className="h-5 w-5 text-green-600 dark:text-green-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats && !stats ? (
-                  <Skeleton className="h-10 w-24" />
-                ) : (
-                  <div className="space-y-1">
-                    <div className="text-3xl font-bold tracking-tight">
-                      {stats?.post_count?.toLocaleString() || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Across all communities{fetchingStats && " (updating...)"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Communities
-                </CardTitle>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare className="h-5 w-5 text-purple-600 dark:text-purple-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats && !stats ? (
-                  <Skeleton className="h-10 w-24" />
-                ) : (
-                  <div className="space-y-1">
-                    <div className="text-3xl font-bold tracking-tight">
-                      {stats?.community_count || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Active communities{fetchingStats && " (updating...)"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Groups
-                </CardTitle>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats && !stats ? (
-                  <Skeleton className="h-10 w-24" />
-                ) : (
-                  <div className="space-y-1">
-                    <div className="text-3xl font-bold tracking-tight">
-                      {stats?.group_count || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Active groups{fetchingStats && " (updating...)"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Space Name
-                </CardTitle>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 group-hover:scale-110 transition-transform duration-300">
-                  <Activity className="h-5 w-5 text-cyan-600 dark:text-cyan-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats && !stats ? (
-                  <Skeleton className="h-10 w-24" />
-                ) : (
-                  <div className="space-y-1">
-                    <div className="text-xl font-bold truncate">
-                      {stats?.name || "Unknown"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      @{stats?.slug}
-                      {fetchingStats && " (updating...)"}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Activity Feed */}
-        {currentSpaceId && (
-          <Card className="border-border/50">
-            <CardHeader>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-lg">Recent Activities</CardTitle>
-                  <CardDescription className="mt-1">
-                    Monitor real-time space activities and user interactions
-                    {fetchingActivities && " (updating...)"}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Select
-                    value={activityFilter}
-                    onValueChange={setActivityFilter}
-                  >
-                    <SelectTrigger className="w-[200px] hover:border-primary/30 transition-colors">
-                      <SelectValue placeholder="Filter activities" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Activities</SelectItem>
-                      <SelectItem value="user_joined">User Joins</SelectItem>
-                      <SelectItem value="post_created">New Posts</SelectItem>
-                      <SelectItem value="comment_created">
-                        New Comments
-                      </SelectItem>
-                      <SelectItem value="event_created">New Events</SelectItem>
-                      <SelectItem value="community_created">
-                        New Communities
-                      </SelectItem>
-                      <SelectItem value="group_created">New Groups</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+    <AdminPageLayout title="Space Activities">
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Reusing existing stats card structure but simplified */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {loadingActivities && !activitiesResponse ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-start gap-4">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : activitiesError ? (
-                <div className="text-center py-12">
-                  <Activity className="h-12 w-12 mx-auto text-destructive mb-4" />
-                  <p className="text-muted-foreground">
-                    Failed to load activities
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {activitiesError instanceof Error
-                      ? activitiesError.message
-                      : "Unknown error"}
-                  </p>
-                </div>
-              ) : activities.length === 0 ? (
-                <div className="text-center py-12">
-                  <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    No recent activities found
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Try changing the filter to see more activities
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activities.map((activity: ActivityItem) => (
-                    <div
-                      key={activity.id}
-                      className="group flex items-start gap-4 pb-4 border-b last:border-0 hover:bg-muted/30 p-4 rounded-xl transition-all duration-200 hover:shadow-sm"
-                    >
-                      <div
-                        className={`p-3 rounded-xl ${getActivityColor(
-                          activity.activity_type
-                        )} bg-gradient-to-br shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}
-                      >
-                        {getActivityIcon(activity.activity_type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground leading-relaxed">
-                          {activity.description}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {activity.actor_name && (
-                            <>
-                              <span className="text-xs text-muted-foreground font-medium">
-                                {activity.actor_name}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                •
-                              </span>
-                            </>
-                          )}
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(
-                              new Date(activity.created_at),
-                              { addSuffix: true }
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="shrink-0 group-hover:border-primary/30 transition-colors"
-                      >
-                        {formatActivityType(activity.activity_type)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="text-2xl font-bold">{stats?.user_count || 0}</div>
             </CardContent>
           </Card>
-        )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.post_count || 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Communities</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats?.community_count || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Groups</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats?.group_count || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <CreateSpaceModal
-          open={createSpaceModalOpen}
-          onOpenChange={setCreateSpaceModalOpen}
-          onSuccess={handleSpaceCreated}
-        />
-        {currentSpaceId && (
+        <Tabs defaultValue="activities" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="activities">Activities</TabsTrigger>
+            <TabsTrigger value="spaces">Spaces</TabsTrigger>
+            <TabsTrigger value="trending">Trending</TabsTrigger>
+            <TabsTrigger value="departments">Departments</TabsTrigger>
+            <TabsTrigger value="highlights">Campus Highlights</TabsTrigger>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="spaces" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setCreateSpaceModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Create Space
+              </Button>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Spaces</CardTitle>
+                <CardDescription>
+                  Manage all spaces in the platform.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingSpaces ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !spacesData?.spaces?.length ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No active spaces found.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Slug</TableHead>
+                        <TableHead>Type</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {spacesData.spaces.map((space: any) => (
+                        <TableRow key={space.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {space.logo ? (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={space.logo} />
+                                  <AvatarFallback>
+                                    {space.name.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <Building className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              {space.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>{space.slug}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {space.type || "General"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activities" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Recent Activities</CardTitle>
+                  <CardDescription>
+                    Real-time feed of space events
+                  </CardDescription>
+                </div>
+                <Select
+                  value={activityFilter}
+                  onValueChange={setActivityFilter}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Activities</SelectItem>
+                    <SelectItem value="post_created">Posts</SelectItem>
+                    <SelectItem value="user_joined">Users</SelectItem>
+                    <SelectItem value="community_created">
+                      Communities
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {loadingActivities ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : activities.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No activities found.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {activities.map((activity: ActivityItem) => (
+                      <div
+                        key={activity.id}
+                        className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div
+                          className={`p-2 rounded-md ${getActivityColor(activity.activity_type)}`}
+                        >
+                          {getActivityIcon(activity.activity_type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {activity.description}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            {activity.actor_name && (
+                              <span>{activity.actor_name}</span>
+                            )}
+                            <span>•</span>
+                            <span>
+                              {formatDistanceToNow(
+                                new Date(activity.created_at),
+                                { addSuffix: true },
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Trending Topics</CardTitle>
+                <CardDescription>
+                  Topics currently trending in this space
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingTrending ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !trendingTopics?.length ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No trending topics.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Topic</TableHead>
+                        <TableHead>Volume</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {trendingTopics.map((topic: any) => (
+                        <TableRow key={topic.id}>
+                          <TableCell className="font-medium">
+                            {topic.topic}
+                          </TableCell>
+                          <TableCell>{topic.count}</TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive/90"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Trending Topic?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will remove "{topic.topic}" from
+                                    trending list. It will naturally reappear if
+                                    it trends again.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() =>
+                                      deleteTrendingMutation.mutate(topic.id)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="departments" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setAddDepartmentModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Add Department
+              </Button>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Departments</CardTitle>
+                <CardDescription>
+                  Manage academic and administrative departments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingDepartments ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !departments?.length ? (
+                  <div className="text-center py-8">
+                    <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      No departments found.
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {departments.map((dept: any) => (
+                        <TableRow key={dept.id}>
+                          <TableCell className="font-medium">
+                            {dept.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                dept.status === "active"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {dept.status || "Active"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive/90"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Department?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete{" "}
+                                    <strong>{dept.name}</strong>? This action
+                                    cannot be undone and may affect associated
+                                    data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() =>
+                                      deleteDepartmentMutation.mutate(dept.id)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="highlights" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setCreateHighlightModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Add Highlight
+              </Button>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Campus Highlights</CardTitle>
+                <CardDescription>
+                  Curated or algorithmically selected highlights for the campus.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingHighlights ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !highlights?.length ? (
+                  <div className="text-center py-8">
+                    <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      No highlights active.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Highlights are refreshed every 6 hours based on
+                      engagement.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {highlights.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                            {item.display_order}
+                          </div>
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={item.author_avatar} />
+                            <AvatarFallback>
+                              {item.author_username?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium line-clamp-1">
+                              {item.post_content || "Post Content"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              by @{item.author_username}
+                            </p>
+                          </div>
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Remove Highlight?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove the post from campus
+                                highlights.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() =>
+                                  deleteHighlightMutation.mutate(item.id)
+                                }
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="feedback" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>User Feedback</CardTitle>
+                    <CardDescription>
+                      View and manage feedback from users in this space.
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Search feedback..."
+                      value={feedbackSearch}
+                      onChange={(e) => setFeedbackSearch(e.target.value)}
+                      className="w-full sm:w-[200px]"
+                    />
+                    <Select
+                      value={feedbackStatus}
+                      onValueChange={setFeedbackStatus}
+                    >
+                      <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="reviewed">Reviewed</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={feedbackCategory}
+                      onValueChange={setFeedbackCategory}
+                    >
+                      <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="complaint">Complaint</SelectItem>
+                        <SelectItem value="suggestion">Suggestion</SelectItem>
+                        <SelectItem value="feature_request">
+                          Feature Request
+                        </SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingFeedback ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : !feedbackData?.feedback?.length ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No feedback found.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {feedbackData.feedback.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={item.avatar} />
+                                <AvatarFallback>
+                                  {item.username.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="text-sm">{item.full_name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  @{item.username}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {item.category.replace("_", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[300px]">
+                              <div className="font-medium truncate">
+                                {item.title}
+                              </div>
+                              <div className="text-sm text-muted-foreground truncate">
+                                {item.message}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.status === "new"
+                                  ? "destructive"
+                                  : item.status === "resolved"
+                                    ? "default"
+                                    : "secondary"
+                              }
+                              className="capitalize"
+                            >
+                              {item.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatDistanceToNow(new Date(item.created_at), {
+                              addSuffix: true,
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {selectedSpaceId && (
           <AddDepartmentModal
             open={addDepartmentModalOpen}
             onOpenChange={setAddDepartmentModalOpen}
-            spaceId={currentSpaceId}
+            spaceId={selectedSpaceId}
           />
         )}
       </div>
+
+      <CreateSpaceModal
+        open={createSpaceModalOpen}
+        onOpenChange={setCreateSpaceModalOpen}
+      />
+
+      <CreateHighlightModal
+        isOpen={createHighlightModalOpen}
+        onOpenChange={setCreateHighlightModalOpen}
+        spaceId={selectedSpaceId || ""}
+      />
     </AdminPageLayout>
   );
 };

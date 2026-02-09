@@ -26,9 +26,7 @@ export interface GetFilesByModuleResponse {
   count: number;
 }
 
-/**
- * Upload a file to the server
- */
+
 export const uploadFile = async (
   options: UploadFileOptions
 ): Promise<FileMetadata> => {
@@ -83,9 +81,7 @@ export const getFile = async (fileId: string): Promise<FileMetadata> => {
   return response.data;
 };
 
-/**
- * Get files by module (e.g., all files for a specific post)
- */
+
 export const getFilesByModule = async (
   moduleType: string,
   moduleId: string
@@ -96,16 +92,11 @@ export const getFilesByModule = async (
   return response.data.files;
 };
 
-/**
- * Delete a file
- */
 export const deleteFile = async (fileId: string): Promise<void> => {
   await apiClient.delete(`/v1/files/${fileId}`);
 };
 
-/**
- * Get download URL for a file (useful for forcing downloads)
- */
+
 export const getDownloadUrl = (fileId: string): string => {
   return `${apiClient.defaults.baseURL}/v1/files/${fileId}/download`;
 };

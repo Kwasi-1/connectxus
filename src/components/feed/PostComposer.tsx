@@ -51,7 +51,7 @@ export function PostComposer({ onPost }: PostComposerProps) {
       return;
     }
 
-    const maxSize = hasVideos ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for images
+    const maxSize = hasVideos ? 50 * 1024 * 1024 : 10 * 1024 * 1024; 
     const oversizedFiles = mediaFiles.filter((file) => file.size > maxSize);
     if (oversizedFiles.length > 0) {
       const sizeLimit = hasVideos ? "50MB" : "10MB";
@@ -142,7 +142,6 @@ export function PostComposer({ onPost }: PostComposerProps) {
             className="min-h-[40px] border-none resize-none text-xl placeholder:text-muted-foreground focus-visible:ring-0 p-0"
           />
 
-          {/* Media Preview */}
           {mediaPreviews.length > 0 && (
             <div className="mt-3">
               {mediaPreviews.length === 1 ? (

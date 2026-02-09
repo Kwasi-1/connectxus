@@ -14,13 +14,9 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col landing-fonts">
-      {/* Main Content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 p-7 min-h-screen">
-        {/* Left Section - Gradient Background with Text */}
         <div className="sticky top-7 hidden lg:flex overflow-hidden gradientbg rounded-md bg-image h-[calc(100vh-50px)]">
-          {/* <div className="absolute inset-0 " /> */}
           <div className="relative z-10 flex flex-col justify-between p-6 w-full">
-            {/* Logo */}
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 bg-primary rounded-sm flex items-center justify-center">
                 <img src={logo} alt="Logo" className="w-5 h-5" />
@@ -28,7 +24,6 @@ export const LandingPage: React.FC = () => {
               <span className="text-xl font-semibold">Campus Connect</span>
             </div>
 
-            {/* Main Content */}
             <div className="">
               <p className="text-[#0000004d] font-[500] text-xl mb-2">
                 The ultimate platform for university students.
@@ -40,23 +35,17 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Section - Auth Form */}
-        <div className="flex items-center justify-center p-2 sm:p-6 lg:p-12 lg:px-6 bg-background h-full">
+        <div className="flex items-center justify-center p-6 lg:p-12 lg:px-6 bg-background h-full">
           <div className="w-full max-w-lg">
-            {/* Back Button */}
             <button
-              className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-12 transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-12 transition-colors"
               onClick={() => window.history.back()}
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
 
-            {/* <img src={logo} alt="Logo" className="w-7 h-7" /> */}
-            <Logo className="w-14 h-14 mb-6 lg:hidden mx-auto" />
-
-            {/* Header */}
-            <div className="mb-8 text-center md:text-left">
+            <div className="mb-8">
               <h1 className="text-2xl font-semibold mb-3">
                 {isSignUp ? "Create Account" : "Welcome Back"}
               </h1>
@@ -67,7 +56,6 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Form */}
             {isSignUp ? (
               <SignUpForm onToggleMode={toggleMode} />
             ) : (
@@ -77,7 +65,6 @@ export const LandingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <FooterLinks />
     </div>
   );

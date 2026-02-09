@@ -27,15 +27,23 @@ export interface PostSearchResult {
   username?: string | null;
   full_name?: string | null;
   author_avatar?: string | null;
+  author_verified?: boolean | null;
   images?: string[];
+  media?: string[];
   video_url?: string | null;
   likes_count: number;
   comments_count: number;
   shares_count?: number;
   reposts_count?: number;
+  quotes_count?: number;
+  is_liked?: boolean | null;
+  is_reposted?: boolean | null;
   created_at: string;
   community_id?: string | null;
+  community_name?: string | null;
   group_id?: string | null;
+  visibility?: string;
+  status?: string;
 }
 
 export interface CommunitySearchResult {
@@ -124,6 +132,7 @@ export const searchPosts = async (
       },
     }
   );
+
   return response.data.data;
 };
 

@@ -21,6 +21,7 @@ import { FeedLoadingSkeleton } from "@/components/feed/PostCardSkeleton";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useNavigate } from "react-router-dom";
 import { getUserComments, UserComment } from "@/api/posts.api";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
 
 interface ProfileTabsProps {
   user: UserProfile;
@@ -82,10 +83,10 @@ export const ProfileTabs = ({
 
   useEffect(() => {
     const fetchUserComments = async () => {
-      if (activeTab === "replies" && user.id) {
+      if (activeTab === "replies" && user.username) {
         setCommentsLoading(true);
         try {
-          const comments = await getUserComments(user.id, {
+          const comments = await getUserComments(user.username, {
             page: 1,
             limit: 50,
           });
@@ -99,7 +100,7 @@ export const ProfileTabs = ({
     };
 
     fetchUserComments();
-  }, [activeTab, user.id]);
+  }, [activeTab, user.username]);
 
   const handleComment = (postId: string) => {
     navigate(`/post/${postId}`);
@@ -160,7 +161,6 @@ export const ProfileTabs = ({
             className="mx- px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
           >
             <div className="flex items-center gap-2 min-w-0">
-              {/* <tab.icon className="h-4 w-4" /> */}
               <span className="truncate">{tab.label}</span>
               {tab.count !== null && (
                 <span className="text-muted-foreground">({tab.count})</span>
@@ -187,7 +187,6 @@ export const ProfileTabs = ({
                   ))}
                 </div>
 
-                {/* Infinite scroll trigger */}
                 {hasMorePosts && (
                   <div ref={postsLoadMoreRef} className="py-4 text-center">
                     {isFetchingMorePosts && <FeedLoadingSkeleton count={2} />}
@@ -214,7 +213,6 @@ export const ProfileTabs = ({
         )}
       </TabsContent>
 
-      {/* Replies Tab */}
       <TabsContent value="replies" className="space-y-0 mt-0">
         {commentsLoading ? (
           <FeedLoadingSkeleton count={5} />
@@ -227,7 +225,6 @@ export const ProfileTabs = ({
                     key={comment.comment_id}
                     className="p-4 hover:bg-muted/5 transition-colors"
                   >
-                    {/* Original Post Preview */}
                     <div className="mb-3 p-3 bg-muted/20 rounded-lg border border-border/50">
                       <div className="flex items-center gap-2 mb-2">
                         <Avatar className="w-6 h-6">
@@ -252,7 +249,6 @@ export const ProfileTabs = ({
                       </p>
                     </div>
 
-                    {/* User's Comment */}
                     <div className="flex gap-3">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={user.avatar} />
@@ -313,7 +309,6 @@ export const ProfileTabs = ({
         )}
       </TabsContent>
 
-      {/* Media Tab */}
       <TabsContent value="media" className="space-y-0 mt-0">
         <div className="text-center py-12 text-muted-foreground">
           <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -343,7 +338,6 @@ export const ProfileTabs = ({
                       ))}
                     </div>
 
-                    {/* Infinite scroll trigger */}
                     {hasMoreLiked && (
                       <div ref={likedLoadMoreRef} className="py-4 text-center">
                         {isFetchingMoreLiked && (
@@ -409,6 +403,8 @@ export const ProfileTabs = ({
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
+            <NotificationSettings />
+
             <Card className="rounded-none border-0">
               <CardContent className="p-6 space-y-6 rounded-none">
                 <div className="flex items-center justify-between">

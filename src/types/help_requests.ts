@@ -25,6 +25,7 @@ export interface CreateHelpRequestRequest {
   type: 'course' | 'project' | 'general';
   deadline: string;
   status?: 'public' | 'private';
+  department_id?: string;
 }
 
 export interface UpdateHelpRequestRequest {

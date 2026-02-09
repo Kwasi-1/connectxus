@@ -41,6 +41,8 @@ export interface RegisterRequest {
   is_student: boolean;
   level?: string | null;
   department_id?: string | null;
+  department_id_2?: string | null;
+  department_id_3?: string | null;
   major?: string | null;
   year?: number | null;
   interests?: string[];
@@ -101,6 +103,8 @@ export interface CompleteGoogleOnboardingRequest {
   id_token: string;
   space_id: string;
   department_id: string;
+  department_id_2?: string;
+  department_id_3?: string;
   username: string;
   phone_number: string;
   is_student: boolean;

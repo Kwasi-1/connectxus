@@ -30,6 +30,15 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminApi } from "@/api/admin.api";
 interface SystemSetting {
@@ -49,7 +58,7 @@ export function SystemSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [modifiedSettings, setModifiedSettings] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   if (!hasRole("super_admin")) {
@@ -57,9 +66,8 @@ export function SystemSettings() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">
-Something went wrong
+            Something went wrong
           </h1>
-          
         </div>
       </div>
     );
@@ -96,16 +104,16 @@ Something went wrong
         const category = item.key.includes("user_")
           ? "users"
           : item.key.includes("email_") ||
-            item.key.includes("push_") ||
-            item.key.includes("notification")
-          ? "notifications"
-          : item.key.includes("password_") ||
-            item.key.includes("session_") ||
-            item.key.includes("auth")
-          ? "security"
-          : item.key.includes("post_") || item.key.includes("content_")
-          ? "content"
-          : "general";
+              item.key.includes("push_") ||
+              item.key.includes("notification")
+            ? "notifications"
+            : item.key.includes("password_") ||
+                item.key.includes("session_") ||
+                item.key.includes("auth")
+              ? "security"
+              : item.key.includes("post_") || item.key.includes("content_")
+                ? "content"
+                : "general";
 
         return {
           key: item.key,
@@ -136,10 +144,38 @@ Something went wrong
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) =>
       prev.map((setting) =>
-        setting.key === key ? { ...setting, value } : setting
-      )
+        setting.key === key ? { ...setting, value } : setting,
+      ),
     );
     setModifiedSettings((prev) => new Set(prev).add(key));
+  };
+
+  const [clearDataPassword, setClearDataPassword] = useState("");
+
+  const handleClearSystemData = async () => {
+    if (!clearDataPassword) return;
+
+    try {
+      setIsSaving(true);
+      await adminApi.clearSystemData(clearDataPassword);
+      toast({
+        title: "System Data Cleared",
+        description: "Non-premium system data has been successfully deleted.",
+      });
+      setClearDataPassword("");
+      // Optionally reload settings or stats if needed
+    } catch (error: any) {
+      console.error("Failed to clear system data:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.error ||
+          "Failed to clear system data. Check your password.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -160,7 +196,7 @@ Something went wrong
           return adminApi.updateSetting(
             key,
             setting.value,
-            setting.description
+            setting.description,
           );
         }
         return Promise.resolve();
@@ -327,22 +363,6 @@ Something went wrong
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold custom-font">System Settings</h1>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" disabled={isSaving}>
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${isSaving ? "animate-spin" : ""}`}
-            />
-            Reset to Defaults
-          </Button>
-          <Button size="sm" onClick={handleSaveSettings} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -372,92 +392,6 @@ Something went wrong
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger
-                value="general"
-                className="flex items-center space-x-2"
-              >
-                <Settings className="h-4 w-4" />
-                <span>General</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="users"
-                className="flex items-center space-x-2"
-              >
-                <Shield className="h-4 w-4" />
-                <span>Users</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="content"
-                className="flex items-center space-x-2"
-              >
-                <Globe className="h-4 w-4" />
-                <span>Content</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="notifications"
-                className="flex items-center space-x-2"
-              >
-                <Bell className="h-4 w-4" />
-                <span>Notifications</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="security"
-                className="flex items-center space-x-2"
-              >
-                <Key className="h-4 w-4" />
-                <span>Security</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {(
-              [
-                "general",
-                "users",
-                "content",
-                "notifications",
-                "security",
-              ] as const
-            ).map((category) => (
-              <TabsContent key={category} value={category} className="mt-6">
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    {getCategoryIcon(category)}
-                    <h3 className="text-lg font-semibold capitalize">
-                      {category} Settings
-                    </h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    {getSettingsByCategory(category).map((setting) => (
-                      <div
-                        key={setting.key}
-                        className="flex items-center justify-between py-4 border-b border-border last:border-b-0"
-                      >
-                        <div className="flex-1 pr-4">
-                          <Label className="text-sm font-medium">
-                            {setting.label}
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {setting.description}
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0">
-                          {renderSettingInput(setting)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      </Card>
-
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="flex items-center text-red-600">
@@ -468,14 +402,62 @@ Something went wrong
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between py-3 border-b border-border">
             <div>
-              <Label className="text-sm font-medium">Clear All User Data</Label>
+              <Label className="text-sm font-medium">Clear System Data</Label>
               <p className="text-sm text-muted-foreground">
-                Permanently delete all user accounts and data
+                Permanently delete all messages, tutors (excluding premium/pro),
+                help requests (excluding premium/pro), and expired events.
+                <span className="block mt-1 text-xs text-brand-500">
+                  Preserves data for: Tutor Premium, Help Request Premium, Pro,
+                  and Max subscribers.
+                </span>
               </p>
             </div>
-            <Button variant="destructive" size="sm">
-              Clear Data
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  Clear Data
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    system data based on the retention policy. Premium users'
+                    data will be preserved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">
+                      Enter Admin Password to confirm
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={clearDataPassword}
+                      onChange={(e) => setClearDataPassword(e.target.value)}
+                      placeholder="Admin Password"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setClearDataPassword("")}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleClearSystemData}
+                    disabled={!clearDataPassword || isSaving}
+                  >
+                    {isSaving ? "Clearing..." : "Confirm Clear Data"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border">

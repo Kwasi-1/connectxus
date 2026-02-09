@@ -109,7 +109,7 @@ export const getPostById = async (postId: string): Promise<Post> => {
 };
 
 export const createPost = async (
-  data: Omit<CreatePostRequest, "space_id">
+  data: CreatePostRequest
 ): Promise<Post> => {
   const response = await apiClient.post<ApiResponse<Post>>("/posts", data);
   return transformPost(response.data.data);
@@ -426,11 +426,11 @@ export interface UserComment {
 }
 
 export const getUserComments = async (
-  userId: string,
+  username: string,
   params?: PaginationParams
 ): Promise<UserComment[]> => {
   const response = await apiClient.get<ApiResponse<UserComment[]>>(
-    `/users/${userId}/comments`,
+    `/users/${username}/comments`,
     {
       params: {
         page: params?.page || 1,
@@ -471,6 +471,10 @@ export const postsApi = {
   getPostRepostsPaginated,
   getUserComments,
   reportPost,
+  getCampusHighlights: async (): Promise<any[]> => {
+    const response = await apiClient.get<ApiResponse<any[]>>("/campus-highlights");
+    return response.data.data;
+  },
 };
 
 export default postsApi;

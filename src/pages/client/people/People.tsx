@@ -8,12 +8,17 @@ import { Search, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PeopleFilters } from "@/components/people/PeopleFilters";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getAllPeopleInSpace,
   getPeopleInDepartment,
   getPeopleYouMayKnow,
-  getUserFollowing,
+  getMyFollowing,
   searchUsers,
   followUser,
   unfollowUser,
@@ -96,7 +101,7 @@ export function People() {
   } = useInfiniteQuery({
     queryKey: ["people", "following"],
     queryFn: ({ pageParam = 1 }) =>
-      getUserFollowing(user?.id || "", { page: pageParam, limit: 20 }),
+      getMyFollowing({ page: pageParam, limit: 20 }),
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 20 ? allPages.length + 1 : undefined;
     },
@@ -264,7 +269,6 @@ export function People() {
               Connect with students and tutors in your community
             </p>
 
-            {/* Search Input */}
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -278,21 +282,18 @@ export function People() {
           </div>
         </div>
         <div className="px-4 md:px-6 pb-4 md:pb-6">
-          {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
               {people.length} {people.length === 1 ? "person" : "people"} found
             </p>
           </div>
 
-          {/* Loading State */}
           {isLoading && (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           )}
 
-          {/* People Grid */}
           {!isLoading && (
             <div className="grid grid-cols-1 gap-4">
               {people.map((person) => (
@@ -309,7 +310,6 @@ export function People() {
                         }
                       }}
                     >
-                      {/* Avatar */}
                       <Avatar className="h-14 w-14 ring-2 ring-background transition-all">
                         <AvatarImage
                           src={person.avatar || undefined}
@@ -320,7 +320,6 @@ export function People() {
                         </AvatarFallback>
                       </Avatar>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="min-w-0">
@@ -339,7 +338,6 @@ export function People() {
                           </p>
                         )}
 
-                        {/* Stats */}
                         <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
                           <span>{person.followers_count || 0} followers</span>
                           {person.level && (
@@ -354,7 +352,6 @@ export function People() {
                           )}
                         </div>
 
-                        {/* Follow Button */}
                         <Button
                           size="sm"
                           variant={
@@ -382,7 +379,6 @@ export function People() {
                 </Card>
               ))}
 
-              {/* Infinite Scroll Loader */}
               {hasNextPage && (
                 <div ref={loadMoreRef} className="py-8 flex justify-center">
                   {isFetchingNextPage && (
@@ -391,7 +387,6 @@ export function People() {
                 </div>
               )}
 
-              {/* End of List */}
               {!hasNextPage && people.length > 0 && (
                 <div className="text-center py-8 text-sm text-muted-foreground">
                   You've reached the end
@@ -400,7 +395,6 @@ export function People() {
             </div>
           )}
 
-          {/* Empty State */}
           {!isLoading && people.length === 0 && (
             <Card className="p-12">
               <div className="text-center">

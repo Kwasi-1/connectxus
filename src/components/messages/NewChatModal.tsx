@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getUserFollowing } from "@/api/users.api";
+import { getMyFollowing } from "@/api/users.api";
 import { getOrCreateDirectConversation } from "@/api/messaging.api";
 import {
   Dialog,
@@ -32,9 +32,7 @@ export const NewChatModal = ({ open, onOpenChange }: NewChatModalProps) => {
   const { data: followingUsers = [], isLoading } = useQuery({
     queryKey: ["following-users", user?.id],
     queryFn: () =>
-      user
-        ? getUserFollowing(user.id, { page: 1, limit: 100 })
-        : Promise.resolve([]),
+      user ? getMyFollowing({ page: 1, limit: 100 }) : Promise.resolve([]),
     enabled: !!user && open,
   });
 

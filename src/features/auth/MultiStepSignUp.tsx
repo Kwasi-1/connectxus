@@ -45,6 +45,8 @@ const signUpSchema = z
     confirmPassword: z.string(),
     space_id: z.string().min(1, "Please select a space"),
     department_id: z.string().optional(),
+    department_id_2: z.string().optional(),
+    department_id_3: z.string().optional(),
     phoneNumber: z.string().min(10).max(10),
     level: z.string().optional(),
     interests: z
@@ -82,6 +84,8 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
       confirmPassword: "",
       space_id: "",
       department_id: "",
+      department_id_2: "",
+      department_id_3: "",
       level: "",
       interests: [],
       phoneNumber: "",
@@ -105,35 +109,7 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
 
   let totalSteps = 5;
 
-  // Define which fields need validation for each step
-  const getStepFields = (step: number): (keyof SignUpFormData)[] => {
-    switch (step) {
-      case 1:
-        return ["role"];
-      case 2:
-        return ["username", "email", "phoneNumber"];
-      case 3:
-        return ["space_id"]; // department_id and level are optional
-      case 4:
-        return ["interests"];
-      case 5:
-        return ["password", "confirmPassword"];
-      default:
-        return [];
-    }
-  };
-
   const nextStep = async () => {
-    // Validate current step fields before proceeding
-    const fieldsToValidate = getStepFields(currentStep);
-    const isValid = await form.trigger(fieldsToValidate);
-
-    if (!isValid) {
-      toast.error("Please fill in all required fields correctly");
-      return;
-    }
-
-    // Additional validation for step 2 (username availability)
     if (currentStep === 2) {
       const username = form.getValues("username");
 
@@ -302,7 +278,6 @@ export const MultiStepSignUp: React.FC<MultiStepSignUpProps> = ({
               </p>
             </div>
 
-            {/* <StudentFields control={form.control} /> */}
             {watchedRole === "student" ? (
               <StudentFields control={form.control} />
             ) : (

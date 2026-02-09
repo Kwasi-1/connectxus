@@ -191,7 +191,6 @@ export default function HelpRequests() {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="px-4 md:px-6 py-6 max-w-7xl mx-auto custom-fonts">
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -206,7 +205,6 @@ export default function HelpRequests() {
             </Button>
           </div>
 
-          {/* Search and Filter */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -243,7 +241,6 @@ export default function HelpRequests() {
             </Button>
           </div>
 
-          {/* Active Filters */}
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-2">
               {searchQuery && (
@@ -281,7 +278,6 @@ export default function HelpRequests() {
           )}
         </div>
 
-        {/* Tabs */}
         <Tabs
           defaultValue="available"
           value={activeTab}
@@ -297,7 +293,6 @@ export default function HelpRequests() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Available Help Tab */}
           <TabsContent value="available" className="mt-6">
             {loading ? (
               <div className="flex justify-center items-center py-12">
@@ -327,7 +322,6 @@ export default function HelpRequests() {
                   ))}
                 </div>
 
-                {/* Infinite Scroll Trigger */}
                 {hasNextAvailable && (
                   <div ref={loadMoreRef} className="flex justify-center py-8">
                     {fetchingNextAvailable && <LoadingSpinner size="md" />}
@@ -337,7 +331,6 @@ export default function HelpRequests() {
             )}
           </TabsContent>
 
-          {/* My Requests Tab */}
           <TabsContent value="my-requests" className="mt-6">
             {loading ? (
               <div className="flex justify-center items-center py-12">
@@ -371,7 +364,6 @@ export default function HelpRequests() {
                   ))}
                 </div>
 
-                {/* Infinite Scroll Trigger */}
                 {hasNextMy && (
                   <div ref={loadMoreRef} className="flex justify-center py-8">
                     {fetchingNextMy && <LoadingSpinner size="md" />}
@@ -383,7 +375,6 @@ export default function HelpRequests() {
         </Tabs>
       </div>
 
-      {/* Filter Sheet */}
       <Sheet open={showFilters} onOpenChange={setShowFilters}>
         <SheetContent>
           <SheetHeader>
@@ -394,7 +385,6 @@ export default function HelpRequests() {
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
-            {/* Type Filter */}
             <div className="space-y-2">
               <Label>Request Type</Label>
               <Select
@@ -415,7 +405,6 @@ export default function HelpRequests() {
               </Select>
             </div>
 
-            {/* Level Filter */}
             <div className="space-y-2">
               <Label>Level</Label>
               <Select
@@ -441,7 +430,6 @@ export default function HelpRequests() {
               </Select>
             </div>
 
-            {/* And Below Toggle */}
             {pendingFilters.level !== "all" && (
               <div className="flex items-center space-x-2">
                 <input
@@ -462,7 +450,6 @@ export default function HelpRequests() {
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={resetFilters} className="flex-1">
                 Reset

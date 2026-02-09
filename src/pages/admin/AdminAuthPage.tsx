@@ -154,7 +154,6 @@ export function AdminAuthPage() {
               </Button>
             </form>
 
-            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border"></div>
@@ -166,7 +165,6 @@ export function AdminAuthPage() {
               </div>
             </div>
 
-            {/* Google Sign In */}
             <Button
               type="button"
               variant="outline"
@@ -180,13 +178,7 @@ export function AdminAuthPage() {
                 : "Continue with Google"}
             </Button>
 
-            {/* <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Demo Credentials:</h4>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>Admin:</strong> admin@university.edu / admin123</p>
-                <p><strong>Super Admin:</strong> super@university.edu / super123</p>
-              </div>
-            </div> */}
+            
           </CardContent>
         </Card>
 

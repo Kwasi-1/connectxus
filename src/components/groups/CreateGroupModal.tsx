@@ -23,6 +23,7 @@ import { GroupCategory } from "@/types/communities";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFile } from "@/api/files.api";
 import { useAuth } from "@/contexts/AuthContext";
+import { DepartmentSelect } from "@/components/shared/DepartmentSelect";
 
 interface ProjectRole {
   id: string;
@@ -45,6 +46,7 @@ interface CreateGroupModalProps {
     projectRoles?: any[];
     projectDeadline?: Date;
     isAcceptingApplications?: boolean;
+    department_id?: string;
   }) => void;
 }
 
@@ -66,19 +68,24 @@ export function CreateGroupModal({
   const { toast } = useToast();
   const { user } = useAuth();
   const [groupType, setGroupType] = useState<"public" | "private" | "project">(
-    "public"
+    "public",
   );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<GroupCategory>("Study Group");
-  const [level, setLevel] = useState<number>(0); 
+  const [level, setLevel] = useState<number>(0);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
 
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+    null,
+  );
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
+    null,
+  );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([]);
@@ -101,7 +108,7 @@ export function CreateGroupModal({
   };
 
   const handleProfileImageUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -138,7 +145,7 @@ export function CreateGroupModal({
   };
 
   const handleCoverImageUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -253,6 +260,7 @@ export function CreateGroupModal({
       tags,
       groupType,
       level,
+      department_id: departmentId || undefined,
       avatar_file_id: avatarFileId,
       cover_image: coverImageUrl,
       ...(groupType === "project" && {
@@ -281,6 +289,7 @@ export function CreateGroupModal({
     setGroupType("public");
     setProjectRoles([]);
     setProjectDeadline("");
+    setDepartmentId("");
     setCurrentRole({ name: "", description: "", slots: 1 });
     if (profileImagePreview) {
       URL.revokeObjectURL(profileImagePreview);
@@ -303,6 +312,10 @@ export function CreateGroupModal({
         </DialogHeader>
 
         <div className="space-y-6">
+          <div className="space-y-2">
+            <DepartmentSelect value={departmentId} onChange={setDepartmentId} />
+          </div>
+
           <div className="space-y-2">
             <Label>Group Type</Label>
             <Select
@@ -641,7 +654,11 @@ export function CreateGroupModal({
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleClose} disabled={isUploadingImage}>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isUploadingImage}
+            >
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={isUploadingImage}>

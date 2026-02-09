@@ -40,6 +40,8 @@ export interface SignUpFormData {
   confirmPassword: string;
   space_id: string;
   department_id?: string;
+  department_id_2?: string;
+  department_id_3?: string;
   level?: string;
   interests?: UserInterest[];
   phoneNumber: string;

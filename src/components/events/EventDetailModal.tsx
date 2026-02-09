@@ -188,7 +188,6 @@ export const EventDetailModal = ({
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Event Image */}
             {event.image_url && (
               <div className="w-full h-64 rounded-lg overflow-hidden">
                 <img
@@ -199,7 +198,6 @@ export const EventDetailModal = ({
               </div>
             )}
 
-            {/* Description */}
             {event.description && (
               <div>
                 <h3 className="font-semibold mb-2">About</h3>
@@ -209,7 +207,6 @@ export const EventDetailModal = ({
 
             <Separator />
 
-            {/* Date & Time */}
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
@@ -232,7 +229,6 @@ export const EventDetailModal = ({
               )}
             </div>
 
-            {/* Location */}
             {event.location && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
@@ -245,7 +241,6 @@ export const EventDetailModal = ({
               </div>
             )}
 
-            {/* Registration Info */}
             {event.registration_required && (
               <div className="flex items-start gap-3">
                 <Users className="h-5 w-5 mt-0.5 text-muted-foreground" />
@@ -264,7 +259,6 @@ export const EventDetailModal = ({
               </div>
             )}
 
-            {/* Tags */}
             {event.tags && event.tags.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2">Tags</h3>
@@ -278,7 +272,6 @@ export const EventDetailModal = ({
               </div>
             )}
 
-            {/* Attendees (for managers) */}
             {canManage && attendees.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-3">Recent Attendees</h3>
@@ -302,7 +295,6 @@ export const EventDetailModal = ({
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             {!canManage && !isPast && (
               <>
@@ -334,7 +326,6 @@ export const EventDetailModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

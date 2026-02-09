@@ -29,10 +29,6 @@ apiClient.interceptors.request.use(
 
     if (config.url && (config.url.includes('/admin') || config.url.includes('/analytics'))) {
       const spaceId = localStorage.getItem('admin-current-space-id');
-      console.log('[DEBUG] Axios Interceptor - admin/analytics route detected');
-      console.log('[DEBUG] space_id from localStorage:', spaceId);
-      console.log('[DEBUG] URL:', config.url);
-      console.log('[DEBUG] Existing params:', config.params);
 
       if (spaceId && spaceId !== 'all' && spaceId !== 'null' && config.url) {
         const url = new URL(config.url, API_URL);
@@ -45,15 +41,11 @@ apiClient.interceptors.request.use(
             config.params = {};
           }
           config.params.space_id = spaceId;
-          console.log('[DEBUG] Injected space_id:', spaceId);
         } else {
-          console.log('[DEBUG] space_id already present, skipping injection');
         }
       } else {
-        console.log('[DEBUG] Skipping space_id injection - value is:', spaceId);
       }
 
-      console.log('[DEBUG] Final params:', config.params);
     }
 
     return config;

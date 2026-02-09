@@ -49,12 +49,10 @@ const Search = () => {
   return (
     <AppLayout>
       <div className="border-r border-border h-full tracking-wider">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="px-4 md:px-6 py-3">
             <h1 className="text-xl font-bold text-foreground mb-4">Search</h1>
 
-            {/* Search Input */}
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
@@ -78,9 +76,7 @@ const Search = () => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-4 md:px-6">
-          {/* Recent Searches */}
           {searchHistory.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -107,7 +103,6 @@ const Search = () => {
             </div>
           )}
 
-          {/* Trending */}
           <div>
             <h2 className="text-lg font-semibold mb-2 flex items-center">
               <TrendingUp className="h-5 w-5 mr-2" />

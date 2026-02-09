@@ -40,7 +40,7 @@ export function useFeed(options: UseFeedOptions) {
   } = options;
 
   const queryClient = useQueryClient();
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const seenIdsRef = useRef<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -72,6 +72,10 @@ export function useFeed(options: UseFeedOptions) {
   };
 
   const fetchFeed = async ({ pageParam = 1 }: { pageParam?: number }) => {
+    if (pageParam === 1) {
+      seenIdsRef.current.clear();
+    }
+
     const emptyResult = {
       posts: [] as FeedPost[],
       nextPage: undefined as number | undefined,
@@ -145,10 +149,12 @@ export function useFeed(options: UseFeedOptions) {
 
         posts = shuffleArray(posts);
 
-        const uniquePosts = posts.filter(post => post && post.id && !seenIds.has(post.id));
+        const uniquePosts = posts.filter(post => post && post.id && !seenIdsRef.current.has(post.id));
 
         const newIds = uniquePosts.map(p => p?.id).filter(Boolean);
-        setSeenIds(prev => new Set([...prev, ...newIds]));
+        newIds.forEach(id => {
+          if (id) seenIdsRef.current.add(id);
+        });
 
         return {
           posts: uniquePosts,
@@ -183,44 +189,35 @@ export function useFeed(options: UseFeedOptions) {
     getNextPageParam: (lastPage, allPages) => {
       try {
         if (!lastPage) {
-          console.debug('getNextPageParam: lastPage is null/undefined');
           return undefined;
         }
 
         if (typeof lastPage !== 'object') {
-          console.warn('getNextPageParam: lastPage is not an object', typeof lastPage);
           return undefined;
         }
 
         if (!('nextPage' in lastPage)) {
-          console.debug('getNextPageParam: nextPage property not found');
           return undefined;
         }
 
         if (!('posts' in lastPage)) {
-          console.warn('getNextPageParam: posts property not found');
           return undefined;
         }
 
         if (!('hasMore' in lastPage)) {
-          console.debug('getNextPageParam: hasMore property not found');
           return undefined;
         }
 
         if (!lastPage.hasMore) {
-          console.debug('getNextPageParam: no more pages');
           return undefined;
         }
 
         if (!lastPage.nextPage) {
-          console.debug('getNextPageParam: nextPage is null/undefined');
           return undefined;
         }
 
-        console.debug('getNextPageParam: returning nextPage', lastPage.nextPage);
         return lastPage.nextPage;
       } catch (e) {
-        console.error('Error in getNextPageParam:', e);
         return undefined;
       }
     },
@@ -247,7 +244,7 @@ export function useFeed(options: UseFeedOptions) {
 
   
   const handleRefresh = useCallback(() => {
-    setSeenIds(new Set());
+    seenIdsRef.current.clear();
     refetch();
   }, [refetch]);
 
@@ -409,11 +406,7 @@ export function useFeed(options: UseFeedOptions) {
       queryClient.setQueriesData({ queryKey: ['trending-posts'] }, removePost);
 
       
-      setSeenIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
+      seenIdsRef.current.delete(postId);
 
       return { previousData };
     },

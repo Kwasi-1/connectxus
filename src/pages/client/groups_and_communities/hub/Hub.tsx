@@ -79,33 +79,33 @@ const Hub = () => {
     error: groupsError,
   } = useQuery({
     queryKey: ["recommended-groups"],
-    queryFn: () => getRecommendedGroups({ page: 1, limit: 100 }),
+    queryFn: () => getRecommendedGroups({ page: 1, limit: 3 }),
     staleTime: 60000,
   });
 
   const { data: allGroups = [], isLoading: loadingAllGroups } = useQuery({
     queryKey: ["groups"],
-    queryFn: () => getGroups({ page: 1, limit: 100 }),
+    queryFn: () => getGroups({ page: 1, limit: 3 }),
     staleTime: 60000,
   });
 
   const { data: userGroups = [], isLoading: loadingUserGroups } = useQuery({
     queryKey: ["user-groups"],
-    queryFn: () => getUserGroups({ page: 1, limit: 100 }),
+    queryFn: () => getUserGroups({ page: 1, limit: 3 }),
     staleTime: 60000,
   });
 
   const { data: allCommunities = [], isLoading: loadingAllCommunities } =
     useQuery({
       queryKey: ["communities"],
-      queryFn: () => getCommunities({ page: 1, limit: 100 }),
+      queryFn: () => getCommunities({ page: 1, limit: 3 }),
       staleTime: 60000,
     });
 
   const { data: userCommunities = [], isLoading: loadingUserCommunities } =
     useQuery({
       queryKey: ["user-communities"],
-      queryFn: () => getUserCommunities({ page: 1, limit: 100 }),
+      queryFn: () => getUserCommunities({ page: 1, limit: 3 }),
       staleTime: 60000,
     });
 
@@ -114,7 +114,7 @@ const Hub = () => {
     isLoading: loadingRecommendedCommunities,
   } = useQuery({
     queryKey: ["recommended-communities"],
-    queryFn: () => getRecommendedCommunities({ page: 1, limit: 100 }),
+    queryFn: () => getRecommendedCommunities({ page: 1, limit: 3 }),
     staleTime: 60000,
   });
 
@@ -578,7 +578,7 @@ const Hub = () => {
                               .includes(eventSearchQuery.toLowerCase()) ||
                             event.category
                               .toLowerCase()
-                              .includes(eventSearchQuery.toLowerCase())
+                              .includes(eventSearchQuery.toLowerCase()),
                         )
                         .map((event) => (
                           <EventCard
@@ -587,11 +587,11 @@ const Hub = () => {
                             onClick={() => {
                               if (event.group_id) {
                                 navigate(
-                                  `/groups/${event.group_id}?tab=events`
+                                  `/groups/${event.group_id}?tab=events`,
                                 );
                               } else if (event.community_id) {
                                 navigate(
-                                  `/communities/${event.community_id}?tab=events`
+                                  `/communities/${event.community_id}?tab=events`,
                                 );
                               } else {
                                 setSelectedEvent(event);

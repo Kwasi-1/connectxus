@@ -141,6 +141,24 @@ export interface SuspendUserRequest {
   is_permanent?: boolean;
 }
 
+export interface CampusHighlight {
+  id: string;
+  space_id: string;
+  post_id: string;
+  display_order: number;
+  post_content?: string;
+  author_username?: string;
+  author_avatar?: string;
+  created_at: string;
+}
+
+export interface TrendingTopic {
+  id: string;
+  space_id: string;
+  topic: string; 
+  count: number;
+}
+
 export const adminApi = {
   login: async (data: AdminLoginRequest): Promise<AdminLoginResponse> => {
     const response = await apiClient.post<{ data: AdminLoginResponse }>(
@@ -277,15 +295,21 @@ export const adminApi = {
 
   getContentReports: async (
     spaceId: string,
+    search?: string,
     status?: string,
     contentType?: string,
-    limit: number = 50,
+    limit: number = 20,
     offset: number = 0
-  ): Promise<ContentReport[]> => {
+  ): Promise<{ reports: ContentReport[]; total: number; limit: number; offset: number }> => {
     const params = new URLSearchParams({
+      space_id: spaceId,
       limit: limit.toString(),
       offset: offset.toString(),
     });
+
+    if (search) {
+      params.append("search", search);
+    }
 
     if (status && status !== "all") {
       params.append("status", status);
@@ -329,13 +353,21 @@ export const adminApi = {
   },
 
   getUsers: async (
-    page: number = 1,
+    spaceId?: string | null,
+    search?: string,
+    status?: string,
     limit: number = 20,
-    spaceId?: string | null
-  ): Promise<{ users: any[]; total: number }> => {
-    const params: any = { page, limit };
+    offset: number = 0
+  ): Promise<{ users: any[]; total: number; limit: number; offset: number }> => {
+    const params: any = { limit, offset };
     if (spaceId && spaceId !== "all") {
       params.space_id = spaceId;
+    }
+    if (search) {
+      params.search = search;
+    }
+    if (status && status !== "all") {
+      params.status = status;
     }
     const response = await apiClient.get(`/admin/users`, { params });
     return response.data.data;
@@ -346,12 +378,22 @@ export const adminApi = {
   },
 
   getTutorApplications: async (
+    spaceId?: string | null,
+    search?: string,
     status?: string,
-    page: number = 1,
     limit: number = 20,
-    spaceId?: string | null
-  ): Promise<{ applications: any[]; page: number; limit: number }> => {
-    const params: any = { status, page, limit };
+    offset: number = 0
+  ): Promise<{ applications: any[]; total: number; limit: number; offset: number }> => {
+    const params: any = { limit, offset };
+    if (spaceId && spaceId !== "all") {
+      params.space_id = spaceId;
+    }
+    if (search) {
+      params.search = search;
+    }
+    if (status && status !== "all") {
+      params.status = status;
+    }
     const response = await apiClient.get(`/admin/applications/tutors`, {
       params,
     });
@@ -377,14 +419,21 @@ export const adminApi = {
   },
 
   getGroups: async (
+    spaceId?: string | null,
+    search?: string,
     status?: string,
-    page: number = 1,
     limit: number = 20,
-    spaceId?: string | null
-  ): Promise<{ groups: any[]; total: number; page: number; limit: number }> => {
-    const params: any = { status, page, limit };
+    offset: number = 0
+  ): Promise<{ groups: any[]; total: number; limit: number; offset: number }> => {
+    const params: any = { limit, offset };
     if (spaceId && spaceId !== "all") {
       params.space_id = spaceId;
+    }
+    if (search) {
+      params.search = search;
+    }
+    if (status && status !== "all") {
+      params.status = status;
     }
     const response = await apiClient.get(`/admin/groups`, { params });
     return response.data.data;
@@ -413,6 +462,12 @@ export const adminApi = {
     return response.data;
   },
 
+  clearSystemData: async (password: string): Promise<void> => {
+    await apiClient.post("/admin/system/clear-data", {
+      admin_password: password,
+    });
+  },
+
   getSettings: async (): Promise<any[]> => {
     const response = await apiClient.get("/admin/settings");
     return response.data.data.settings;
@@ -428,6 +483,27 @@ export const adminApi = {
       description,
     });
     return response.data.data.setting;
+  },
+
+  getFeedback: async (
+    spaceId: string,
+    search?: string,
+    status?: string,
+    category?: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ feedback: any[]; page: number; limit: number }> => {
+    const params: any = {
+      space_id: spaceId,
+      limit,
+      offset,
+    };
+    if (search) params.search = search;
+    if (status && status !== "all") params.status = status;
+    if (category && category !== "all") params.category = category;
+
+    const response = await apiClient.get("/admin/feedback", { params });
+    return response.data.data;
   },
 
   getUserGrowth: async (spaceId: string, since?: Date): Promise<any[]> => {
@@ -464,10 +540,15 @@ export const adminApi = {
   getAdmins: async (
     status?: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
+    spaceId?: string
   ): Promise<{ admins: any[]; page: number; limit: number }> => {
+    const params: any = { status, page, limit };
+    if (spaceId) {
+      params.space_id = spaceId;
+    }
     const response = await apiClient.get(`/admin/admins`, {
-      params: { status, page, limit },
+      params,
     });
     return response.data.data;
   },
@@ -512,15 +593,21 @@ export const adminApi = {
   },
 
   getCommunities: async (
-    category?: string,
+    spaceId?: string | null,
+    search?: string,
     status?: string,
-    page: number = 1,
     limit: number = 20,
-    spaceId?: string | null
-  ): Promise<{ communities: any[]; page: number; limit: number }> => {
-    const params: any = { category, status, page, limit };
+    offset: number = 0
+  ): Promise<{ communities: any[]; total: number; limit: number; offset: number }> => {
+    const params: any = { limit, offset };
     if (spaceId && spaceId !== "all") {
       params.space_id = spaceId;
+    }
+    if (search) {
+      params.search = search;
+    }
+    if (status && status !== "all") {
+      params.status = status;
     }
     const response = await apiClient.get(`/admin/communities`, { params });
     return response.data.data;
@@ -830,10 +917,8 @@ export const adminApi = {
 
   getTutoringBusinessTransactions: async (params: {
     space_id?: string;
-    transaction_type?: string;
+    search?: string;
     status?: string;
-    start_date?: string;
-    end_date?: string;
     limit?: number;
     offset?: number;
   }): Promise<{
@@ -870,10 +955,13 @@ export const adminApi = {
     return response.data.data;
   },
 
-  getTutoringBusinessPendingPayouts: async (
-    spaceId?: string
-  ): Promise<
-    Array<{
+  getTutoringBusinessPendingPayouts: async (params: {
+    space_id?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    payouts: Array<{
       tutor_id: string;
       applicant_id: string;
       username: string;
@@ -888,19 +976,22 @@ export const adminApi = {
       pending_sessions: number;
       pending_amount: string;
       oldest_request_date?: string;
-    }>
-  > => {
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> => {
     const response = await apiClient.get(
-      "/admin/tutoring-business/payouts/pending"
+      "/admin/tutoring-business/payouts/pending",
+      { params }
     );
     return response.data.data;
   },
 
   getTutoringBusinessPayoutHistory: async (params: {
     space_id?: string;
+    search?: string;
     status?: string;
-    start_date?: string;
-    end_date?: string;
     limit?: number;
     offset?: number;
   }): Promise<{
@@ -920,6 +1011,7 @@ export const adminApi = {
       tutor_avatar?: string;
       sessions_count: number;
     }>;
+    total: number;
     limit: number;
     offset: number;
   }> => {
@@ -949,7 +1041,8 @@ export const adminApi = {
 
   getTutoringBusinessDisputes: async (params: {
     space_id?: string;
-    payment_status?: string;
+    search?: string;
+    status?: string;
     limit?: number;
     offset?: number;
   }): Promise<{
@@ -1213,5 +1306,47 @@ export const adminApi = {
   }): Promise<any> => {
     const response = await apiClient.post("/departments/bulk", data);
     return response.data.data;
+  },
+
+  getDepartments: async (spaceId?: string | null): Promise<any[]> => {
+    if (spaceId && spaceId !== "all") {
+       const res = await apiClient.get(`/spaces/${spaceId}/departments`);
+       return res.data.data.departments;
+    } else {
+       const res = await apiClient.get(`/departments`);
+       return res.data.data.departments;
+    }
+  },
+
+  deleteDepartment: async (departmentId: string): Promise<void> => {
+
+    await apiClient.delete(`/departments/${departmentId}`);
+  },
+
+  getCampusHighlights: async (spaceId: string): Promise<CampusHighlight[]> => {
+    const response = await apiClient.get(`/campus-highlights?space_id=${spaceId}`);
+    return response.data.data;
+  },
+
+  addCampusHighlight: async (spaceId: string, postId: string): Promise<CampusHighlight> => {
+    const response = await apiClient.post("/campus-highlights", { space_id: spaceId, post_id: postId });
+    return response.data.data;
+  },
+
+  removeCampusHighlight: async (highlightId: string): Promise<void> => {
+    await apiClient.delete(`/campus-highlights/${highlightId}`);
+  },
+
+  updateCampusHighlightOrder: async (highlightId: string, order: number): Promise<void> => {
+    await apiClient.put(`/campus-highlights/${highlightId}/order`, { display_order: order });
+  },
+
+  getTrendingTopics: async (spaceId: string): Promise<TrendingTopic[]> => {
+    const response = await apiClient.get(`/topics/trending?space_id=${spaceId}`);
+    return response.data.data;
+  },
+
+  deleteTrendingTopic: async (topicId: string): Promise<void> => {
+    await apiClient.delete(`/topics/${topicId}`);
   },
 };

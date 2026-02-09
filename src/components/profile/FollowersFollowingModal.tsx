@@ -1,30 +1,32 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import {
-  getUserFollowers,
-  getUserFollowing,
+  getUserFollowersByUsername,
+  getUserFollowingByUsername,
   followUser,
   unfollowUser,
   UserProfile,
-} from '@/api/users.api';
-import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/api/users.api";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface FollowersFollowingModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  type: 'followers' | 'following';
+  username: string;
+  type: "followers" | "following";
 }
 
 export function FollowersFollowingModal({
   isOpen,
   onClose,
   userId,
+  username,
   type,
 }: FollowersFollowingModalProps) {
   const navigate = useNavigate();
@@ -33,7 +35,9 @@ export function FollowersFollowingModal({
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
+  const [followingState, setFollowingState] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const ITEMS_PER_PAGE = 20;
 
@@ -55,8 +59,11 @@ export function FollowersFollowingModal({
     }
 
     try {
-      const fetchFunction = type === 'followers' ? getUserFollowers : getUserFollowing;
-      const data = await fetchFunction(userId, {
+      const fetchFunction =
+        type === "followers"
+          ? getUserFollowersByUsername
+          : getUserFollowingByUsername;
+      const data = await fetchFunction(username, {
         page: pageNum,
         limit: ITEMS_PER_PAGE,
       });
@@ -98,7 +105,7 @@ export function FollowersFollowingModal({
       await followUser(targetUserId);
     } catch (error) {
       setFollowingState((prev) => ({ ...prev, [targetUserId]: wasFollowing }));
-      toast.error('Failed to follow user');
+      toast.error("Failed to follow user");
     }
   };
 
@@ -111,7 +118,7 @@ export function FollowersFollowingModal({
       await unfollowUser(targetUserId);
     } catch (error) {
       setFollowingState((prev) => ({ ...prev, [targetUserId]: wasFollowing }));
-      toast.error('Failed to unfollow user');
+      toast.error("Failed to unfollow user");
     }
   };
 
@@ -125,7 +132,7 @@ export function FollowersFollowingModal({
       <DialogContent className="sm:max-w-[500px] lg:max-w-xl p-0 max-h-[80vh] flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
           <h2 className="text-lg font-semibold tracking-wider">
-            {type === 'followers' ? 'Followers' : 'Following'}
+            {type === "followers" ? "Followers" : "Following"}
           </h2>
           <Button
             variant="ghost"
@@ -158,12 +165,14 @@ export function FollowersFollowingModal({
                       className="w-12 h-12 cursor-pointer"
                       onClick={() => handleUserClick(user.id)}
                     >
-                      <AvatarImage src={user.avatar || '/api/placeholder/48/48'} />
+                      <AvatarImage
+                        src={user.avatar || "/api/placeholder/48/48"}
+                      />
                       <AvatarFallback>
                         {user.full_name
-                          .split(' ')
+                          .split(" ")
                           .map((n) => n[0])
-                          .join('')}
+                          .join("")}
                       </AvatarFallback>
                     </Avatar>
 
@@ -193,15 +202,16 @@ export function FollowersFollowingModal({
                             <p className="text-sm text-muted-foreground mt-1">
                               {[user.department, user.level]
                                 .filter(Boolean)
-                                .join(' • ')}
+                                .join(" • ")}
                             </p>
                           )}
                         </div>
 
-                        {/* Follow/Unfollow Button */}
                         <Button
                           size="sm"
-                          variant={followingState[user.id] ? 'outline' : 'default'}
+                          variant={
+                            followingState[user.id] ? "outline" : "default"
+                          }
                           onClick={() =>
                             followingState[user.id]
                               ? handleUnfollow(user.id)
@@ -209,7 +219,7 @@ export function FollowersFollowingModal({
                           }
                           className="ml-2"
                         >
-                          {followingState[user.id] ? 'Following' : 'Follow'}
+                          {followingState[user.id] ? "Following" : "Follow"}
                         </Button>
                       </div>
 
@@ -226,7 +236,7 @@ export function FollowersFollowingModal({
                             <span>
                               <span className="font-semibold text-foreground">
                                 {user.followers_count}
-                              </span>{' '}
+                              </span>{" "}
                               followers
                             </span>
                           )}
@@ -234,7 +244,7 @@ export function FollowersFollowingModal({
                             <span>
                               <span className="font-semibold text-foreground">
                                 {user.following_count}
-                              </span>{' '}
+                              </span>{" "}
                               following
                             </span>
                           )}
@@ -261,7 +271,7 @@ export function FollowersFollowingModal({
                     Loading...
                   </>
                 ) : (
-                  'Show more'
+                  "Show more"
                 )}
               </Button>
             </div>

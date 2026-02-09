@@ -75,7 +75,7 @@ import { adminApi } from "@/api/admin.api";
 
 export function AdminManagement() {
   const { toast } = useToast();
-  const { hasRole } = useAdminAuth();
+  const { hasRole, selectedSpaceId } = useAdminAuth();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -92,6 +92,7 @@ export function AdminManagement() {
   const [newAdmin, setNewAdmin] = useState({
     name: "",
     email: "",
+    password: "",
     role: "admin" as AdminRole,
     permissions: [] as AdminPermission[],
     department: "",
@@ -165,7 +166,7 @@ export function AdminManagement() {
 
   useEffect(() => {
     loadAdmins();
-  }, [statusFilter]);
+  }, [statusFilter, selectedSpaceId]);
 
   const loadAdmins = async () => {
     try {
@@ -173,7 +174,7 @@ export function AdminManagement() {
       const data = await adminApi.getAdmins(
         statusFilter === "all" ? undefined : statusFilter,
         1,
-        100
+        100,
       );
 
       const transformedAdmins: AdminUser[] = data.admins.map((item: any) => ({
@@ -193,7 +194,6 @@ export function AdminManagement() {
 
       setAdmins(transformedAdmins);
     } catch (error) {
-      console.error("Failed to load admins:", error);
       toast({
         title: "Error",
         description: "Failed to load administrators. Please try again.",
@@ -220,17 +220,18 @@ export function AdminManagement() {
     return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
   });
 
-  const handleCreateAdmin = useCallback(() => {
+  const handleCreateAdmin = useCallback(async () => {
     try {
       if (
         !newAdmin.name.trim() ||
         !newAdmin.email.trim() ||
+        !newAdmin.password.trim() ||
         !newAdmin.university.trim()
       ) {
         toast({
           title: "Missing Information",
           description:
-            "Please fill in all required fields (Name, Email, University).",
+            "Please fill in all required fields (Name, Email, Password, University).",
           variant: "destructive",
         });
         return;
@@ -246,35 +247,24 @@ export function AdminManagement() {
         return;
       }
 
-      if (
-        admins.some(
-          (admin) => admin.email.toLowerCase() === newAdmin.email.toLowerCase()
-        )
-      ) {
-        toast({
-          title: "Email Already Exists",
-          description: "An admin with this email already exists.",
-          variant: "destructive",
-        });
-        return;
-      }
+      await adminApi.createUser({
+        username:
+          newAdmin.email.split("@")[0] + Math.floor(Math.random() * 1000),
+        email: newAdmin.email,
+        password: newAdmin.password,
+        full_name: newAdmin.name,
+        roles: [...newAdmin.permissions, newAdmin.role],
+        status: "active",
+        department: newAdmin.department,
+        verified: true,
+      });
 
-      const admin: AdminUser = {
-        id: Date.now().toString(),
-        ...newAdmin,
-        name: newAdmin.name.trim(),
-        email: newAdmin.email.trim().toLowerCase(),
-        avatar: `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop`,
-        createdAt: new Date(),
-        isActive: true,
-        createdBy: "current-super-admin",
-      };
-
-      setAdmins((prev) => [...prev, admin]);
+      loadAdmins();
       setShowCreateModal(false);
       setNewAdmin({
         name: "",
         email: "",
+        password: "",
         role: "admin",
         permissions: [],
         department: "",
@@ -283,7 +273,7 @@ export function AdminManagement() {
 
       toast({
         title: "Admin Created Successfully",
-        description: `${admin.name} has been added as an admin with ${admin.permissions.length} permissions.`,
+        description: `${newAdmin.name} has been added as an admin.`,
       });
     } catch (error) {
       console.error("Error creating admin:", error);
@@ -295,7 +285,7 @@ export function AdminManagement() {
     }
   }, [newAdmin, admins, toast]);
 
-  const handleEditAdmin = useCallback(() => {
+  const handleEditAdmin = useCallback(async () => {
     if (
       !editingAdmin ||
       !editingAdmin.name.trim() ||
@@ -309,40 +299,40 @@ export function AdminManagement() {
       return;
     }
 
-    if (
-      admins.some(
-        (admin) =>
-          admin.id !== editingAdmin.id &&
-          admin.email.toLowerCase() === editingAdmin.email.toLowerCase()
-      )
-    ) {
+    try {
+      // Update User Details
+      await adminApi.updateUser(editingAdmin.id, {
+        full_name: editingAdmin.name,
+        email: editingAdmin.email,
+        department: editingAdmin.department,
+      });
+
+      setAdmins((prev) =>
+        prev.map((admin) =>
+          admin.id === editingAdmin.id
+            ? {
+                ...editingAdmin,
+                name: editingAdmin.name.trim(),
+                email: editingAdmin.email.trim().toLowerCase(),
+              }
+            : admin,
+        ),
+      );
+
+      setShowEditModal(false);
+      setEditingAdmin(null);
+
       toast({
-        title: "Email Already Exists",
-        description: "Another admin with this email already exists.",
+        title: "Admin Updated",
+        description: `${editingAdmin.name}'s information has been updated.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update admin.",
         variant: "destructive",
       });
-      return;
     }
-
-    setAdmins((prev) =>
-      prev.map((admin) =>
-        admin.id === editingAdmin.id
-          ? {
-              ...editingAdmin,
-              name: editingAdmin.name.trim(),
-              email: editingAdmin.email.trim().toLowerCase(),
-            }
-          : admin
-      )
-    );
-
-    setShowEditModal(false);
-    setEditingAdmin(null);
-
-    toast({
-      title: "Admin Updated",
-      description: `${editingAdmin.name}'s information has been updated.`,
-    });
   }, [editingAdmin, admins, toast]);
 
   const handleUpdatePermissions = useCallback(
@@ -354,8 +344,8 @@ export function AdminManagement() {
           prev.map((admin) =>
             admin.id === adminId
               ? { ...admin, permissions: newPermissions }
-              : admin
-          )
+              : admin,
+          ),
         );
 
         const admin = admins.find((a) => a.id === adminId);
@@ -372,7 +362,7 @@ export function AdminManagement() {
         });
       }
     },
-    [admins, toast]
+    [admins, toast],
   );
 
   const handleToggleStatus = useCallback(
@@ -386,8 +376,8 @@ export function AdminManagement() {
 
         setAdmins((prev) =>
           prev.map((admin) =>
-            admin.id === adminId ? { ...admin, isActive: newStatus } : admin
-          )
+            admin.id === adminId ? { ...admin, isActive: newStatus } : admin,
+          ),
         );
 
         toast({
@@ -406,7 +396,7 @@ export function AdminManagement() {
         });
       }
     },
-    [admins, toast]
+    [admins, toast],
   );
 
   const handleDeleteAdmin = useCallback(() => {
@@ -450,7 +440,7 @@ export function AdminManagement() {
 
   const handlePermissionToggle = (
     permission: AdminPermission,
-    checked: boolean
+    checked: boolean,
   ) => {
     try {
       if (!permission) {
@@ -481,7 +471,7 @@ export function AdminManagement() {
 
   const handleEditPermissionToggle = (
     permission: AdminPermission,
-    checked: boolean
+    checked: boolean,
   ) => {
     try {
       if (!editingAdmin) return;
@@ -498,7 +488,7 @@ export function AdminManagement() {
                 ...prev,
                 permissions: [...prev.permissions, permission],
               }
-            : null
+            : null,
         );
       } else {
         setEditingAdmin((prev) =>
@@ -507,7 +497,7 @@ export function AdminManagement() {
                 ...prev,
                 permissions: prev.permissions.filter((p) => p !== permission),
               }
-            : null
+            : null,
         );
       }
     } catch (error) {
@@ -522,7 +512,7 @@ export function AdminManagement() {
 
   const handleSelectedAdminPermissionToggle = (
     permission: AdminPermission,
-    checked: boolean
+    checked: boolean,
   ) => {
     try {
       if (!selectedAdmin) return;
@@ -537,7 +527,7 @@ export function AdminManagement() {
         : selectedAdmin.permissions.filter((p) => p !== permission);
 
       setSelectedAdmin((prev) =>
-        prev ? { ...prev, permissions: newPermissions } : null
+        prev ? { ...prev, permissions: newPermissions } : null,
       );
     } catch (error) {
       console.error("Error toggling selected admin permission:", error);
@@ -571,9 +561,8 @@ export function AdminManagement() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">
-Something went wrong
+            Something went wrong
           </h1>
-          
         </div>
       </div>
     );
@@ -707,6 +696,21 @@ Something went wrong
                         placeholder="Enter email address"
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={newAdmin.password}
+                        onChange={(e) =>
+                          setNewAdmin((prev) => ({
+                            ...prev,
+                            password: e.target.value,
+                          }))
+                        }
+                        placeholder="Enter password"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -780,12 +784,12 @@ Something went wrong
                             <Checkbox
                               id={permission}
                               checked={newAdmin.permissions.includes(
-                                permission
+                                permission,
                               )}
                               onCheckedChange={(checked) =>
                                 handlePermissionToggle(
                                   permission,
-                                  Boolean(checked)
+                                  Boolean(checked),
                                 )
                               }
                             />
@@ -1063,7 +1067,7 @@ Something went wrong
                     value={editingAdmin.name}
                     onChange={(e) =>
                       setEditingAdmin((prev) =>
-                        prev ? { ...prev, name: e.target.value } : null
+                        prev ? { ...prev, name: e.target.value } : null,
                       )
                     }
                     placeholder="Enter full name"
@@ -1077,7 +1081,7 @@ Something went wrong
                     value={editingAdmin.email}
                     onChange={(e) =>
                       setEditingAdmin((prev) =>
-                        prev ? { ...prev, email: e.target.value } : null
+                        prev ? { ...prev, email: e.target.value } : null,
                       )
                     }
                     placeholder="Enter email address"
@@ -1093,7 +1097,7 @@ Something went wrong
                     value={editingAdmin.university || ""}
                     onChange={(e) =>
                       setEditingAdmin((prev) =>
-                        prev ? { ...prev, university: e.target.value } : null
+                        prev ? { ...prev, university: e.target.value } : null,
                       )
                     }
                     placeholder="Enter university name"
@@ -1105,7 +1109,7 @@ Something went wrong
                     value={editingAdmin.department || ""}
                     onValueChange={(value) =>
                       setEditingAdmin((prev) =>
-                        prev ? { ...prev, department: value } : null
+                        prev ? { ...prev, department: value } : null,
                       )
                     }
                   >
@@ -1129,7 +1133,7 @@ Something went wrong
                   value={editingAdmin.role}
                   onValueChange={(value: AdminRole) =>
                     setEditingAdmin((prev) =>
-                      prev ? { ...prev, role: value } : null
+                      prev ? { ...prev, role: value } : null,
                     )
                   }
                 >
@@ -1194,12 +1198,12 @@ Something went wrong
                         <Checkbox
                           id={`perm-${permission}`}
                           checked={selectedAdmin.permissions.includes(
-                            permission
+                            permission,
                           )}
                           onCheckedChange={(checked) =>
                             handleSelectedAdminPermissionToggle(
                               permission,
-                              Boolean(checked)
+                              Boolean(checked),
                             )
                           }
                         />
@@ -1236,11 +1240,11 @@ Something went wrong
                                   ? []
                                   : [
                                       ...availablePermissions.map(
-                                        (p) => p.value
+                                        (p) => p.value,
                                       ),
                                     ],
                             }
-                          : null
+                          : null,
                       )
                     }
                   >

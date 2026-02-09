@@ -155,7 +155,6 @@ export default function HelpRequestDetails() {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -224,9 +223,7 @@ export default function HelpRequestDetails() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Details */}
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
@@ -254,7 +251,6 @@ export default function HelpRequestDetails() {
             )}
           </div>
 
-          {/* Right Column - Info & Actions */}
           <div className="space-y-6">
             <Card>
               <CardHeader>

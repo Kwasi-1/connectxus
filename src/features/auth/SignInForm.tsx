@@ -177,7 +177,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
         </form>
       </Form>
 
-      {/* Divider */}
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border"></div>
@@ -187,7 +186,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onToggleMode }) => {
         </div>
       </div>
 
-      {/* Google Sign In */}
       <Button
         type="button"
         variant="outline"

@@ -85,7 +85,7 @@ export const MonetizationDetails = () => {
   });
 
   const paymentVerificationMutation = useMutation({
-    mutationFn: (data: { requestId: string; reference: string; amount: string }) =>
+    mutationFn: (data: { requestId: string; reference: string }) =>
       verifyTutoringPayment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -169,9 +169,8 @@ export const MonetizationDetails = () => {
       : serviceDetails.session_rate * 12 * 0.85 * 1.15; 
 
     paymentVerificationMutation.mutate({
-      requestId: selectedRequest.id,
+      request_id: selectedRequest.id,
       reference,
-      amount: amount.toFixed(2),
     });
   };
 
@@ -273,7 +272,6 @@ export const MonetizationDetails = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Account Selector - Only show when 2 accounts */}
                 {accounts.length === 2 && (
                   <div>
                     <label className="block text-sm font-medium mb-2">
@@ -297,7 +295,6 @@ export const MonetizationDetails = () => {
                   </div>
                 )}
 
-                {/* Display Account Details */}
                 {Array.isArray(accounts) && accounts.map((account) => (
                   <div
                     key={account.id}
@@ -328,7 +325,6 @@ export const MonetizationDetails = () => {
                   </div>
                 ))}
 
-                {/* Action Buttons */}
                 <div className="flex gap-3">
                   <Button
                     onClick={() => {
@@ -360,7 +356,6 @@ export const MonetizationDetails = () => {
                   )}
                 </div>
 
-                {/* Request Payout Button */}
                 <div className="pt-4 border-t">
                   <Button
                     onClick={handleRequestPayout}
@@ -474,7 +469,9 @@ export const MonetizationDetails = () => {
                           onClick={() => handlePayRequest(request)}
                           className="w-full mt-2"
                         >
-                          Pay Now
+                          {request.session_rate === "0" || request.payment_details?.amount === 0
+                            ? "Book Now"
+                            : "Pay Now"}
                         </Button>
                       )}
                     </div>

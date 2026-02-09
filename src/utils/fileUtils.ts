@@ -1,6 +1,4 @@
-/**
- * File utility functions for handling file uploads and validation
- */
+
 
 export interface FileValidationOptions {
   maxSizeMB?: number;
@@ -57,9 +55,6 @@ export const validateFile = (
   return { valid: true };
 };
 
-/**
- * Open file picker dialog
- */
 export const selectFile = async (
   options: FilePickerOptions = {}
 ): Promise<File | File[] | null> => {
@@ -99,9 +94,7 @@ export const selectFile = async (
   });
 };
 
-/**
- * Format file size for display
- */
+
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
 
@@ -112,16 +105,12 @@ export const formatFileSize = (bytes: number): string => {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-/**
- * Get file extension from filename
- */
+
 export const getFileExtension = (filename: string): string => {
   return filename.split('.').pop()?.toLowerCase() || '';
 };
 
-/**
- * Determine file category from MIME type
- */
+
 export const getFileCategory = (
   mimeType: string
 ): 'image' | 'video' | 'document' | 'audio' | 'other' => {
@@ -146,9 +135,7 @@ export const getFileCategory = (
   return 'other';
 };
 
-/**
- * Get icon name for file type (for use with icon libraries)
- */
+
 export const getFileIcon = (mimeType: string): string => {
   const category = getFileCategory(mimeType);
 
@@ -171,9 +158,7 @@ export const getFileIcon = (mimeType: string): string => {
   }
 };
 
-/**
- * Create object URL for file preview
- */
+
 export const createFilePreviewUrl = (file: File): string => {
   return URL.createObjectURL(file);
 };

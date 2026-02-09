@@ -62,7 +62,6 @@ export function ReviewSessionModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Rating Stars */}
           <div className="space-y-3">
             <Label htmlFor="rating">Rating *</Label>
             <div className="flex gap-2">
@@ -97,7 +96,6 @@ export function ReviewSessionModal({
             )}
           </div>
 
-          {/* Review Text */}
           <div className="space-y-3">
             <Label htmlFor="review">
               Share more about your experience (Optional)

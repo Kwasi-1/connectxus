@@ -247,7 +247,6 @@ export function TutoringBusinessDisputes() {
         <h1 className="text-3xl font-bold custom-font">Disputes & Refunds</h1>
       </div>
 
-      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -387,7 +386,6 @@ export function TutoringBusinessDisputes() {
             </Table>
           </div>
 
-          {/* Mobile View */}
           <div className="md:hidden space-y-4">
             {filteredDisputes.map((dispute) => (
               <Card
@@ -433,7 +431,6 @@ export function TutoringBusinessDisputes() {
         </CardContent>
       </Card>
 
-      {/* Dispute Detail & Action Sheet */}
       <Sheet
         open={!!selectedDispute}
         onOpenChange={() => setSelectedDispute(null)}

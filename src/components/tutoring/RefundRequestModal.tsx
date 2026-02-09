@@ -39,6 +39,7 @@ interface RefundRequestModalProps {
   onOpenChange: (open: boolean) => void;
   tutorName: string;
   refundAmount: number;
+  completedAt?: string;
   onSubmit: (reason: string, explanation?: string) => void;
   isLoading?: boolean;
 }
@@ -56,6 +57,7 @@ export function RefundRequestModal({
   onOpenChange,
   tutorName,
   refundAmount,
+  completedAt,
   onSubmit,
   isLoading = false,
 }: RefundRequestModalProps) {
@@ -70,6 +72,13 @@ export function RefundRequestModal({
   const handleSubmit = (data: RefundFormData) => {
     onSubmit(data.reason, data.explanation);
   };
+
+  const hoursSinceCompletion = completedAt
+    ? (Date.now() - new Date(completedAt).getTime()) / (1000 * 60 * 60)
+    : null;
+
+  const actualRefundAmount = refundAmount * 0.85;
+  const platformFee = refundAmount * 0.15;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,20 +98,53 @@ export function RefundRequestModal({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
           >
-            {/* Refund Amount */}
-            <div className="rounded-lg bg-muted p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Refund Amount:
-                </span>
-                <span className="text-lg font-semibold flex items-center">
-                  <DollarSign className="h-5 w-5" />
+            {hoursSinceCompletion !== null && hoursSinceCompletion > 24 && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/20 p-4">
+                <p className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">
+                  ⚠️ Refund Window Expired
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-300">
+                  Refunds are only available within 24 hours of session completion.
+                  It has been {hoursSinceCompletion.toFixed(1)} hours since completion.
+                </p>
+              </div>
+            )}
+
+            {hoursSinceCompletion !== null && hoursSinceCompletion <= 24 && (
+              <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-4">
+                <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                  ✓ Eligible for Refund
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  Time remaining: {(24 - hoursSinceCompletion).toFixed(1)} hours
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-lg bg-muted p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Original Amount:</span>
+                <span className="font-medium flex items-center">
+                  <DollarSign className="h-4 w-4" />
                   {refundAmount.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Platform Fee (15%):</span>
+                <span className="text-red-600 flex items-center">
+                  -<DollarSign className="h-4 w-4" />
+                  {platformFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="border-t pt-2 flex items-center justify-between">
+                <span className="font-medium">You'll Receive:</span>
+                <span className="text-lg font-bold text-green-600 flex items-center">
+                  <DollarSign className="h-5 w-5" />
+                  {actualRefundAmount.toFixed(2)}
                 </span>
               </div>
             </div>
 
-            {/* Reason Selection */}
             <FormField
               control={form.control}
               name="reason"
@@ -131,7 +173,6 @@ export function RefundRequestModal({
               )}
             />
 
-            {/* Explanation */}
             <FormField
               control={form.control}
               name="explanation"
@@ -150,22 +191,18 @@ export function RefundRequestModal({
               )}
             />
 
-            {/* Important Notice */}
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 text-sm">
               <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                Refund Review Process
+                Refund Policy
               </p>
               <ul className="space-y-1 text-blue-700 dark:text-blue-300 text-xs">
-                <li>• Your refund request will be reviewed by our team</li>
-                <li>• You'll receive a response within 48 hours</li>
-                <li>
-                  • Approved refunds are processed within 5-7 business days
-                </li>
-                <li>• Payment will be held until the review is complete</li>
+                <li>• Refunds are only available within 24 hours of session completion</li>
+                <li>• A 15% platform fee is deducted from the refund amount</li>
+                <li>• Your refund request will be reviewed by our admin team</li>
+                <li>• Approved refunds are processed within 3-5 business days</li>
               </ul>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
@@ -175,7 +212,13 @@ export function RefundRequestModal({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button
+                type="submit"
+                disabled={
+                  isLoading ||
+                  (hoursSinceCompletion !== null && hoursSinceCompletion > 24)
+                }
+              >
                 {isLoading ? "Submitting..." : "Submit Refund Request"}
               </Button>
             </div>

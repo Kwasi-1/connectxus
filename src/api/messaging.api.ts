@@ -6,7 +6,11 @@ interface ApiResponse<T> {
 }
 
 export interface PaginationParams {
-  page?: number;        limit?: number;     }
+  page?: number;        
+  limit?: number;     
+  cursor_date?: string;
+  cursor_id?: string;
+}
 
 export interface Attachment {
   url: string;
@@ -24,6 +28,7 @@ export interface Message {
   attachments?: Attachment[];
   message_type: 'text' | 'image' | 'file' | 'audio' | 'video';
   reply_to_id?: string | null;
+  root_message_id?: string | null;
   reactions?: any | null;
   is_read: boolean;
   read_at?: string | null;
@@ -81,6 +86,7 @@ export interface SendMessageRequest {
   file_ids?: string[];
   message_type?: 'text' | 'image' | 'file' | 'audio' | 'video';
   reply_to_id?: string | null;
+  root_message_id?: string | null;
 }
 
 export const getConversations = async (params?: PaginationParams): Promise<Conversation[]> => {

@@ -11,7 +11,9 @@ import { getAnnouncements } from "@/api/announcements.api";
 import { getSuggestedUsers, followUser, unfollowUser } from "@/api/users.api";
 import { getTrendingTopics } from "@/api/topics.api";
 import { formatDistanceToNow } from "date-fns";
-import { mockCampusHighlightStories } from "@/data/mockStories";
+import { postsApi } from "@/api/posts.api";
+
+import { storiesApi } from "@/api/stories.api";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const TrendingTopicSkeleton = () => (
@@ -57,7 +59,7 @@ export function RightSidebar() {
       ([entry]) => {
         setIsVisible(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sidebarRef.current) {
@@ -80,6 +82,21 @@ export function RightSidebar() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+  });
+
+  const { data: activeStories = [], isLoading: loadingStories } = useQuery({
+    queryKey: ["active-stories"],
+    queryFn: () => storiesApi.getActiveStories(),
+    staleTime: 300000,
+    enabled: isVisible,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: highlights = [], isLoading: loadingHighlights } = useQuery({
+    queryKey: ["campus-highlights"],
+    queryFn: () => postsApi.getCampusHighlights(),
+    staleTime: 600000,
+    enabled: isVisible,
   });
 
   const { data: announcements = [], isLoading: loadingAnnouncements } =
@@ -204,7 +221,6 @@ export function RightSidebar() {
             </button>
           )}
         </div>
-        
       </div>
 
       <div className="p-4 pl-6 pt-2 space-y-2">
@@ -227,7 +243,7 @@ export function RightSidebar() {
                   No trending topics at the moment
                 </div>
               ) : (
-                trendingTopics.map((topic, index) => (
+                trendingTopics.map((topic: any, index: number) => (
                   <div
                     key={topic.id}
                     className="hover:bg-muted p-3 rounded-lg cursor-pointer transition-colors"
@@ -262,101 +278,51 @@ export function RightSidebar() {
             </CardContent>
           </Card>
 
+          {/* New Campus Highlights Card */}
           <Card className="rounded-2xl">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-bold">
-                  Campus Highlights
-                </CardTitle>
-                <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full">
-                  {mockCampusHighlightStories.length} New
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Catch up on what's happening around campus!
-              </p>
-
-              {/* Story preview avatars */}
-              <div className="flex items-center -space-x-4">
-                {mockCampusHighlightStories.slice(0, 3).map((story, index) => (
-                  <Avatar
-                    key={story.id}
-                    className="w-10 h-10 border-2 border-background"
-                  >
-                    <AvatarImage src={story.media_url} alt={story.username} />
-                    <AvatarFallback>
-                      {story.username.substring(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                {mockCampusHighlightStories.length > 3 && (
-                  <div className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold">
-                    +{mockCampusHighlightStories.length - 3}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                variant="ghost"
-                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
-                onClick={() => navigate("/campus-highlights")}
-              >
-                View Campus Stories
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl hidden">
-            <CardHeader className="pb-3">
               <CardTitle className="text-xl font-bold">
-                What's happening
+                Campus Highlights
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {loadingTrending ? (
-                <>
-                  <TrendingTopicSkeleton />
-                  <TrendingTopicSkeleton />
-                  <TrendingTopicSkeleton />
-                </>
-              ) : trendingTopics.length === 0 ? (
-                <div className="p-3 text-left text-sm text-muted-foreground">
-                  No trending topics at the moment
+              {loadingHighlights ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : highlights.length === 0 ? (
+                <div className="p-3 text-sm text-muted-foreground">
+                  No highlights at the moment
                 </div>
               ) : (
-                trendingTopics.map((topic, index) => (
+                highlights.map((highlight: any) => (
                   <div
-                    key={index}
-                    className="hover:bg-muted p-3 rounded-lg cursor-pointer transition-colors"
-                    onClick={() =>
-                      navigate(
-                        `/explore?topic=${encodeURIComponent(topic.name)}`
-                      )
-                    }
+                    key={highlight.id}
+                    className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors border border-border/50"
+                    onClick={() => navigate(`/post/${highlight.post_id}`)}
                   >
-                    <p className="text-xs text-muted-foreground">
-                      {topic.category || "Trending"}
+                    <p className="font-medium text-sm line-clamp-2 mb-2 text-foreground">
+                      {highlight.post_content}
                     </p>
-                    <h4 className="font-semibold text-foreground">
-                      {topic.name}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {topic.posts_count || 0} posts
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={highlight.author_avatar} />
+                        <AvatarFallback>
+                          {highlight.author_username?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        @{highlight.author_username}
+                      </span>
+                    </div>
                   </div>
                 ))
               )}
-              <Button
-                variant="ghost"
-                className="w-full text-primary hover:opacity-70 hover:bg-transparent justify-start transition duration-300"
-                onClick={() => navigate("/explore")}
-              >
-                Show more
-              </Button>
             </CardContent>
           </Card>
+
+          
 
           <Card className="rounded-2xl">
             <CardHeader className="pb-3">
@@ -374,7 +340,7 @@ export function RightSidebar() {
                   No user suggestions available
                 </div>
               ) : (
-                suggestedUsers.map((user) => (
+                suggestedUsers.map((user: any) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between"
@@ -394,7 +360,7 @@ export function RightSidebar() {
                           <span className="font-semibold text-foreground">
                             {user.full_name
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n: string) => n[0])
                               .join("")}
                           </span>
                         )}

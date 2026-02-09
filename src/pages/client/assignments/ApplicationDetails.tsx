@@ -103,7 +103,6 @@ export default function ApplicationDetails() {
   return (
     <AppLayout showRightSidebar={false}>
       <div className="p-6 max-w-5xl mx-auto custom-fonts">
-        {/* Back Button */}
         <Button
           variant="ghost"
           size="sm"
@@ -114,7 +113,6 @@ export default function ApplicationDetails() {
           Back to Assignments
         </Button>
 
-        {/* Header */}
         <div className="bg-card border rounded-lg p-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -162,7 +160,6 @@ export default function ApplicationDetails() {
             )}
           </div>
 
-          {/* Key Info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="flex items-center gap-3">
               <User className="h-5 w-5 text-muted-foreground" />
@@ -203,7 +200,6 @@ export default function ApplicationDetails() {
           </div>
         </div>
 
-        {/* Assignment Details Section */}
         {isHelper && (
           <div className="bg-card border rounded-lg p-6 mb-6">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -219,12 +215,10 @@ export default function ApplicationDetails() {
                   </p>
                 </div>
               )}
-              {/* Assignment description would need to be added to the Application type */}
             </div>
           </div>
         )}
 
-        {/* Application Message */}
         {application.message && (
           <div className="bg-card border rounded-lg p-6 mb-6">
             <h2 className="text-xl font-bold mb-3">Application Message</h2>
@@ -234,7 +228,6 @@ export default function ApplicationDetails() {
           </div>
         )}
 
-        {/* Proof Attachments */}
         {application.proof_attachments &&
           application.proof_attachments.length > 0 && (
             <div className="bg-card border rounded-lg p-6 mb-6">
@@ -256,7 +249,6 @@ export default function ApplicationDetails() {
             </div>
           )}
 
-        {/* Payment Status Info */}
         {application.status === "accepted" &&
           application.payment_status === "not_paid" && (
             <div className="bg-card border border-orange-200 dark:border-orange-800 rounded-lg p-6 mb-6">
@@ -276,7 +268,6 @@ export default function ApplicationDetails() {
             </div>
           )}
 
-        {/* Submitted Work */}
         {application.submitted_at && (
           <div className="bg-card border rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -323,7 +314,6 @@ export default function ApplicationDetails() {
                 </div>
               )}
 
-            {/* Complete Assignment Button (Owner Only) */}
             {isOwner &&
               application.status === "submitted" &&
               application.payment_status === "paid" &&
@@ -339,7 +329,6 @@ export default function ApplicationDetails() {
                 </div>
               )}
 
-            {/* Review Form */}
             {showReviewForm && isOwner && (
               <div className="mt-6 border rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50">
                 <h3 className="font-semibold mb-4">Leave a Review</h3>
@@ -398,7 +387,6 @@ export default function ApplicationDetails() {
           </div>
         )}
 
-        {/* Review Section (Completed) */}
         {application.status === "completed" && (
           <div className="bg-card border border-green-200 dark:border-green-800 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -444,7 +432,6 @@ export default function ApplicationDetails() {
           </div>
         )}
 
-        {/* Awaiting Review Message (Helper View) */}
         {isHelper &&
           application.status === "submitted" &&
           application.payment_status === "paid" && (

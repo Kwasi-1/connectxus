@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { adminApi } from "@/api/admin.api";
 import { useAdminSpace } from "@/contexts/AdminSpaceContext";
 
@@ -60,90 +62,105 @@ export function TutoringBusinessTransactions() {
   const { selectedSpaceId } = useAdminSpace();
 
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 20;
 
-  useEffect(() => {
-    loadData();
-  }, [selectedSpaceId, statusFilter]);
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (offset === 0) {
+        setLoading(true);
+      } else {
+        setIsFetching(true);
+      }
       setError(null);
 
-      const result = await adminApi.getTutoringBusinessTransactions(
-        selectedSpaceId,
-        100, 
-        0, 
-        undefined, 
-        statusFilter === "all" ? undefined : statusFilter
-      );
+      const search = debouncedSearch || undefined;
+      const status = statusFilter === "all" ? undefined : statusFilter;
+
+      const result = await adminApi.getTutoringBusinessTransactions({
+        space_id: selectedSpaceId,
+        search,
+        status,
+        limit,
+        offset,
+      });
 
       const transformedTransactions: Transaction[] = result.transactions.map(
         (tx) => {
           const amount = parseFloat(tx.amount);
           return {
             id: tx.id,
-            studentName: tx.student_name,
-            tutorName: tx.tutor_name,
-            subject: tx.subject,
-            topic: tx.topic,
+            studentName: tx.payer_full_name || "N/A",
+            tutorName: tx.recipient_full_name || "N/A",
+            subject: tx.subject || "N/A",
+            topic: tx.subject || "N/A",
             amount: amount,
             platformFee: amount * 0.15,
             tutorAmount: amount * 0.85,
-            sessionType: tx.session_type,
+            sessionType: tx.session_type || "N/A",
             status: tx.status,
             date: tx.created_at,
             paymentMethod: tx.payment_method || "Card",
-            transactionRef: tx.transaction_reference || "",
+            transactionRef: tx.provider_reference || "",
           };
         }
       );
 
-      setTransactions(transformedTransactions);
+      if (offset === 0) {
+        setAllTransactions(transformedTransactions);
+      } else {
+        setAllTransactions(prev => [...prev, ...transformedTransactions]);
+      }
+
+      setTotalCount(result.total);
+      setHasMore(result.transactions.length === limit);
     } catch (err: any) {
       console.error("Failed to load transactions:", err);
       setError(err.message || "Failed to load transactions");
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
-  const totalTransactions = transactions.length;
-  const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalPlatformFees = transactions.reduce(
+  useEffect(() => {
+    loadData();
+  }, [offset, debouncedSearch, statusFilter, selectedSpaceId]);
+
+  useEffect(() => {
+    setOffset(0);
+    setAllTransactions([]);
+  }, [debouncedSearch, statusFilter, selectedSpaceId]);
+
+  const { loadMoreRef } = useInfiniteScroll({
+    loading: isFetching,
+    hasMore,
+    onLoadMore: () => setOffset(prev => prev + limit),
+    threshold: 300,
+  });
+
+  const totalTransactions = totalCount;
+  const totalRevenue = allTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalPlatformFees = allTransactions.reduce(
     (sum, t) => sum + t.platformFee,
     0
   );
-  const totalRefundedAmount = transactions
+  const totalRefundedAmount = allTransactions
     .filter((t) => t.status === "refunded")
     .reduce((sum, t) => sum + t.amount, 0);
-  const refundedCount = transactions.filter(
+  const refundedCount = allTransactions.filter(
     (t) => t.status === "refunded"
   ).length;
-
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.studentName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      transaction.tutorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject =
-      subjectFilter === "all" || transaction.subject === subjectFilter;
-    const matchesSessionType =
-      sessionTypeFilter === "all" ||
-      transaction.sessionType === sessionTypeFilter;
-
-    return matchesSearch && matchesSubject && matchesSessionType;
-  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -157,11 +174,6 @@ export function TutoringBusinessTransactions() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
-
-  const subjects = [
-    "all",
-    ...Array.from(new Set(transactions.map((t) => t.subject))),
-  ];
 
   if (loading) {
     return (
@@ -214,7 +226,6 @@ export function TutoringBusinessTransactions() {
         <h1 className="text-3xl font-bold custom-font">Transactions</h1>
       </div>
 
-      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -284,18 +295,6 @@ export function TutoringBusinessTransactions() {
                   className="pl-10"
                 />
               </div>
-              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject} value={subject}>
-                      {subject === "all" ? "All Subjects" : subject}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Status" />
@@ -305,19 +304,6 @@ export function TutoringBusinessTransactions() {
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={sessionTypeFilter}
-                onValueChange={setSessionTypeFilter}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="single">Single</SelectItem>
-                  <SelectItem value="semester">Semester</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -339,7 +325,7 @@ export function TutoringBusinessTransactions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTransactions.map((transaction) => (
+                {allTransactions.map((transaction) => (
                   <TableRow
                     key={transaction.id}
                     className="cursor-pointer hover:bg-muted/50"
@@ -387,9 +373,8 @@ export function TutoringBusinessTransactions() {
             </Table>
           </div>
 
-          {/* Mobile View */}
           <div className="md:hidden space-y-4">
-            {filteredTransactions.map((transaction) => (
+            {allTransactions.map((transaction) => (
               <Card
                 key={transaction.id}
                 className="p-4 cursor-pointer hover:bg-muted/50"
@@ -432,10 +417,21 @@ export function TutoringBusinessTransactions() {
               </Card>
             ))}
           </div>
+
+          <div ref={loadMoreRef} className="h-4" />
+          {isFetching && (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+          {totalCount > 0 && (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              Showing {allTransactions.length} of {totalCount} transactions
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Transaction Detail Sheet */}
       <Sheet
         open={!!selectedTransaction}
         onOpenChange={() => setSelectedTransaction(null)}
