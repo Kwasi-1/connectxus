@@ -27,7 +27,11 @@ const Feed = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { showOnboarding, completeOnboarding } = useOnboarding();
+  const {
+    showOnboarding,
+    completeOnboarding,
+    isLoading: isLoadingOnboarding,
+  } = useOnboarding();
 
   const [activeTab, setActiveTab] = useState<FeedTab>("following");
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
@@ -42,8 +46,12 @@ const Feed = () => {
   const [selectedUserStories, setSelectedUserStories] = useState<any>(null);
   const [selectedUserIndex, setSelectedUserIndex] = useState<number>(0);
 
-  const { groupedStories, isLoading: storiesLoading } = useStories();
+  // Block stories fetching during onboarding
+  const { groupedStories, isLoading: storiesLoading } = useStories({
+    enabled: !showOnboarding && !isLoadingOnboarding,
+  });
 
+  // Block feed fetching during onboarding
   const {
     posts,
     isLoading,
@@ -58,6 +66,7 @@ const Feed = () => {
   } = useFeed({
     type: "home",
     tab: activeTab,
+    enabled: !showOnboarding && !isLoadingOnboarding, // Don't fetch feed during onboarding
   });
 
   const { loadMoreRef } = useInfiniteScroll({
@@ -155,62 +164,89 @@ const Feed = () => {
 
   return (
     <>
-      <AppLayout onCreatePost={handleCreatePost}>
+      <AppLayout
+        onCreatePost={handleCreatePost}
+        isOnboardingActive={showOnboarding || isLoadingOnboarding}
+      >
         <div className="flex-1 border-x-0 xl:border-l-0 xl:border-r border-border">
           <FeedHeader
             activeFilter={activeTab}
             onFilterChange={handleTabChange}
           />
 
-          <NewStoriesList
-            groupedStories={groupedStories}
-            onStoryClick={handleStoryClick}
-            onAddStory={handleAddStory}
-            isLoading={storiesLoading}
-          />
-
-          <div className="min-h-screen">
-            <PostComposer onPost={handleCreatePost} />
-
-            {isLoading ? (
+          {/* Only show content after onboarding is complete or determined */}
+          {isLoadingOnboarding ? (
+            <div className="min-h-screen">
               <FeedLoadingSkeleton count={5} />
-            ) : (
-              <>
-                <div className="divide-y divide-border">
-                  {posts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      currentUserId={user?.id}
-                    />
-                  ))}
+            </div>
+          ) : showOnboarding ? (
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="text-center space-y-4 p-8">
+                <div className="text-4xl mb-4">👋</div>
+                <h3 className="text-xl font-semibold">
+                  Welcome to Campus Connect!
+                </h3>
+                <p className="text-muted-foreground max-w-md">
+                  Complete your profile setup to start exploring and connecting
+                  with your campus community.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <NewStoriesList
+                groupedStories={groupedStories}
+                onStoryClick={handleStoryClick}
+                onAddStory={handleAddStory}
+                isLoading={storiesLoading}
+              />
 
-                  {posts.length === 0 && (
-                    <div className="p-8 text-center">
-                      <p className="text-muted-foreground">
-                        No posts found. Start following people or create your
-                        first post!
-                      </p>
+              <div className="min-h-screen">
+                <PostComposer onPost={handleCreatePost} />
+
+                {isLoading ? (
+                  <FeedLoadingSkeleton count={5} />
+                ) : (
+                  <>
+                    <div className="divide-y divide-border">
+                      {posts.map((post) => (
+                        <PostCard
+                          key={post.id}
+                          post={post}
+                          currentUserId={user?.id}
+                        />
+                      ))}
+
+                      {posts.length === 0 && (
+                        <div className="p-8 text-center">
+                          <p className="text-muted-foreground">
+                            No posts found. Start following people or create
+                            your first post!
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {hasNextPage && (
-                  <div ref={loadMoreRef} className="py-4 text-center">
-                    {isFetchingNextPage && <FeedLoadingSkeleton count={2} />}
-                  </div>
+                    {hasNextPage && (
+                      <div ref={loadMoreRef} className="py-4 text-center">
+                        {isFetchingNextPage && (
+                          <FeedLoadingSkeleton count={2} />
+                        )}
+                      </div>
+                    )}
+
+                    {!hasNextPage && posts.length > 0 && (
+                      <div className="text-center py-4 text-muted-foreground text-sm">
+                        You've reached the end
+                      </div>
+                    )}
+                  </>
                 )}
+              </div>
 
-                {!hasNextPage && posts.length > 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    You've reached the end
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <FloatingActionButton onClick={handleMobilePostClick} />
+              <FloatingActionButton onClick={handleMobilePostClick} />
+            </>
+          )}
         </div>
       </AppLayout>
 

@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { completeOnboarding as apiCompleteOnboarding, getOnboardingStatus } from "@/api/users.api";
+import { getCurrentUser } from "@/api/users.api";
+
+const ONBOARDING_STORAGE_KEY = "campus_connect_onboarding_completed";
 
 interface OnboardingState {
   showOnboarding: boolean;
   isCompleting: boolean;
   isLoading: boolean;
-  completeOnboarding: () => Promise<void>;
+  completeOnboarding: () => void;
   resetOnboarding: () => void;
 }
 
+/**
+ * Hook to manage onboarding state using existing backend data
+ * No backend changes required - uses user profile data to determine status
+ * 
+ * Onboarding is shown only if:
+ * 1. User is not following anyone (following_count === 0)
+ * 2. User hasn't explicitly completed onboarding (stored in localStorage)
+ * 
+ * This ensures cross-platform consistency because following_count 
+ * is synced across devices via the backend.
+ */
 export function useOnboarding(): OnboardingState {
   const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -26,16 +39,28 @@ export function useOnboarding(): OnboardingState {
       
       try {
         setIsLoading(true);
-        const status = await getOnboardingStatus();
         
-        // Show onboarding if:
-        // 1. User hasn't completed onboarding AND
-        // 2. User is not following anyone
-        const shouldShow = !status.onboarding_completed && status.following_count === 0;
+        // Get locally stored completion state
+        const completedUsers = JSON.parse(
+          localStorage.getItem(ONBOARDING_STORAGE_KEY) || "{}"
+        );
+        const hasCompletedLocally = completedUsers[user.id] === true;
+        
+        // Fetch full user profile to get following count
+        const userProfile = await getCurrentUser();
+        const followingCount = userProfile.following_count || 0;
+        
+        // Show onboarding only if:
+        // 1. User hasn't completed it locally AND
+        // 2. User is not following anyone (indicates first-time user)
+        // 
+        // Note: Once user follows someone, onboarding won't show again
+        // even on new devices because following_count syncs via backend
+        const shouldShow = !hasCompletedLocally && followingCount === 0;
+        
         setShowOnboarding(shouldShow);
       } catch (error) {
         console.error("Error checking onboarding status:", error);
-        // On error, default to not showing onboarding
         setShowOnboarding(false);
       } finally {
         setIsLoading(false);
@@ -45,14 +70,19 @@ export function useOnboarding(): OnboardingState {
     checkOnboardingStatus();
   }, [user]);
 
-  const completeOnboarding = useCallback(async () => {
+  const completeOnboarding = useCallback(() => {
     if (!user || isCompleting) return;
     
     setIsCompleting(true);
     
     try {
-      // Call backend to mark onboarding as complete
-      await apiCompleteOnboarding();
+      // Mark onboarding as complete for this user
+      const completedUsers = JSON.parse(
+        localStorage.getItem(ONBOARDING_STORAGE_KEY) || "{}"
+      );
+      completedUsers[user.id] = true;
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(completedUsers));
+      
       setShowOnboarding(false);
     } catch (error) {
       console.error("Error completing onboarding:", error);
@@ -62,10 +92,17 @@ export function useOnboarding(): OnboardingState {
   }, [user, isCompleting]);
 
   const resetOnboarding = useCallback(() => {
-    // This is mainly for testing purposes
-    // In production, you'd need a backend endpoint to reset this
+    if (!user) return;
+    
+    // Remove local completion flag (useful for testing)
+    const completedUsers = JSON.parse(
+      localStorage.getItem(ONBOARDING_STORAGE_KEY) || "{}"
+    );
+    delete completedUsers[user.id];
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(completedUsers));
+    
     setShowOnboarding(true);
-  }, []);
+  }, [user]);
 
   return {
     showOnboarding,

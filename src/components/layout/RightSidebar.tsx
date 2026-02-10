@@ -45,7 +45,13 @@ const UserSkeleton = () => (
   </div>
 );
 
-export function RightSidebar() {
+interface RightSidebarProps {
+  isOnboardingActive?: boolean; // Block all queries during onboarding
+}
+
+export function RightSidebar({
+  isOnboardingActive = false,
+}: RightSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
@@ -53,6 +59,9 @@ export function RightSidebar() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Only enable queries if sidebar is visible AND onboarding is not active
+  const queriesEnabled = isVisible && !isOnboardingActive;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -78,7 +87,7 @@ export function RightSidebar() {
     queryFn: () => getTrendingTopics({ page: 1, limit: 5 }),
     staleTime: 600000,
     gcTime: 900000,
-    enabled: isVisible,
+    enabled: queriesEnabled, // Block during onboarding
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -88,7 +97,7 @@ export function RightSidebar() {
     queryKey: ["active-stories"],
     queryFn: () => storiesApi.getActiveStories(),
     staleTime: 300000,
-    enabled: isVisible,
+    enabled: queriesEnabled, // Block during onboarding
     refetchOnWindowFocus: false,
   });
 
@@ -96,7 +105,7 @@ export function RightSidebar() {
     queryKey: ["campus-highlights"],
     queryFn: () => postsApi.getCampusHighlights(),
     staleTime: 600000,
-    enabled: isVisible,
+    enabled: queriesEnabled, // Block during onboarding
   });
 
   const { data: announcements = [], isLoading: loadingAnnouncements } =
@@ -106,7 +115,7 @@ export function RightSidebar() {
         getAnnouncements({ status: "published", page: 1, limit: 5 }),
       staleTime: 600000,
       gcTime: 900000,
-      enabled: isVisible,
+      enabled: queriesEnabled, // Block during onboarding
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
@@ -118,7 +127,7 @@ export function RightSidebar() {
       queryFn: () => getSuggestedUsers({ page: 1, limit: 3 }),
       staleTime: 900000,
       gcTime: 1200000,
-      enabled: isVisible,
+      enabled: queriesEnabled, // Block during onboarding
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
@@ -321,8 +330,6 @@ export function RightSidebar() {
               )}
             </CardContent>
           </Card>
-
-          
 
           <Card className="rounded-2xl">
             <CardHeader className="pb-3">

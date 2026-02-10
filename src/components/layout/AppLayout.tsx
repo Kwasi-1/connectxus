@@ -12,6 +12,7 @@ interface AppLayoutProps {
   showRightSidebar?: boolean;
   rightSidebarContent?: ReactNode;
   onCreatePost?: (content: string, mediaUrls?: string[]) => void;
+  isOnboardingActive?: boolean; // Block sidebar queries during onboarding
 }
 
 export function AppLayout({
@@ -19,6 +20,7 @@ export function AppLayout({
   showRightSidebar = true,
   rightSidebarContent,
   onCreatePost,
+  isOnboardingActive = false,
 }: AppLayoutProps) {
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -61,7 +63,9 @@ export function AppLayout({
           {shouldShowRightSidebar && (
             <div className="w-96 hidden lg:block z-30">
               <div className="sticky top-0 self-start bg-background borderl border-border transistion duration-300">
-                {rightSidebarContent || <RightSidebar />}
+                {rightSidebarContent || (
+                  <RightSidebar isOnboardingActive={isOnboardingActive} />
+                )}
               </div>
             </div>
           )}
