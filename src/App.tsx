@@ -67,7 +67,8 @@ import { TutoringBusinessDisputes } from "./pages/admin/tutoring-business/Tutori
 import { TutoringBusinessAnalytics } from "./pages/admin/tutoring-business/TutoringBusinessAnalytics";
 import { HeroUIProvider } from "@heroui/react";
 import { LandingPage as LandingPageV2 } from "@/LandingPageV2";
-import { SpeedInsights } from "@vercel/speed-insights/react"
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { LightModeWrapper } from "@/components/public/LightModeWrapper";
 
 const queryClient = new QueryClient();
 
@@ -82,41 +83,116 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
+                {/* public pages */}
+
                 <Route
                   path="/"
                   element={
-                    <PublicRoute>
-                      <LandingPageV2 />
-                    </PublicRoute>
+                    <LightModeWrapper>
+                      <PublicRoute>
+                        <LandingPageV2 />
+                      </PublicRoute>
+                    </LightModeWrapper>
                   }
                 />
-                
-                <Route path="/about" element={<About />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/cookies" element={<Cookies />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/download" element={<Download />} />
+
+                <Route
+                  path="/about"
+                  element={
+                    <LightModeWrapper>
+                      <About />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/terms"
+                  element={
+                    <LightModeWrapper>
+                      <Terms />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/privacy"
+                  element={
+                    <LightModeWrapper>
+                      <Privacy />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/cookies"
+                  element={
+                    <LightModeWrapper>
+                      <Cookies />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/contact"
+                  element={
+                    <LightModeWrapper>
+                      <Contact />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/download"
+                  element={
+                    <LightModeWrapper>
+                      <Download />
+                    </LightModeWrapper>
+                  }
+                />
+
+                {/* end of public pages */}
                 <Route
                   path="auth/signup"
-                  element={<AuthPage initialMode="signUp" />}
+                  element={
+                    <LightModeWrapper>
+                      <AuthPage initialMode="signUp" />
+                    </LightModeWrapper>
+                  }
                 />
                 <Route
                   path="auth/signin"
-                  element={<AuthPage initialMode="signIn" />}
+                  element={
+                    <LightModeWrapper>
+                      <AuthPage initialMode="signIn" />
+                    </LightModeWrapper>
+                  }
                 />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route
+                  path="/verify-email"
+                  element={
+                    <LightModeWrapper>
+                      <VerifyEmailPage />
+                    </LightModeWrapper>
+                  }
+                />
                 <Route
                   path="/auth/google-onboarding"
-                  element={<GoogleOnboardingPage />}
+                  element={
+                    <LightModeWrapper>
+                      <GoogleOnboardingPage />
+                    </LightModeWrapper>
+                  }
                 />
                 <Route
                   path="/auth/forgot-password"
-                  element={<ForgotPasswordPage />}
+                  element={
+                    <LightModeWrapper>
+                      <ForgotPasswordPage />
+                    </LightModeWrapper>
+                  }
                 />
                 <Route
                   path="/auth/reset-password"
-                  element={<ResetPasswordPage />}
+                  element={
+                    <LightModeWrapper>
+                      <ResetPasswordPage />
+                    </LightModeWrapper>
+                  }
                 />
 
                 <Route
