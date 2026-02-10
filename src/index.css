@@ -145,13 +145,13 @@
 
   .dark {
     /* Campus Dark Theme */
-    --background: 0 0% 0%;
+    --background: 15 23% 4%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 0%;
+    --card: 15 23% 4%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 0%;
+    --popover: 15 23% 4%;
     --popover-foreground: 0 0% 100%;
 
     /* Dark theme primary - lighter blue */
@@ -162,7 +162,7 @@
     --secondary: 15 8% 15%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 206 7% 15%;
+    --muted: 15 8% 15%;
     --muted-foreground: 240 5% 64%;
 
     /* Dark accent - brighter green */
@@ -172,14 +172,14 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 206 7% 20%;
+    --border: 15 8% 15%;
     --input: 15 8% 15%;
     --ring: 217 91% 65%;
 
     /* Dark campus colors */
     --campus-orange: 25 95% 58%;
     --campus-purple: 262 83% 65%;
-    --sidebar-bg: 0 0% 0%;
+    --sidebar-bg: 15 23% 4%;
     --hover-bg: 15 8% 10%;
 
     /* Dark interactive states */
@@ -187,10 +187,10 @@
     --repost-color: 142 76% 40%;
     --comment-color: 217 91% 65%;
 
-    --sidebar-background: 0 0% 0%;
+    --sidebar-background: 15 23% 4%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 217 91% 65%;
-    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-primary-foreground: 15 23% 4%;
     --sidebar-accent: 15 8% 15%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 15 8% 15%;
