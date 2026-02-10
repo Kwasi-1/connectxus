@@ -161,6 +161,7 @@ export const ProfileTabs = ({
             className="mx- px-1 mx-auto h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent bg-transparent data-[state=active]:text-foreground hover:border-foreground/20"
           >
             <div className="flex items-center gap-2 min-w-0">
+              {/* <tab.icon className="h-4 w-4" /> */}
               <span className="truncate">{tab.label}</span>
               {tab.count !== null && (
                 <span className="text-muted-foreground">({tab.count})</span>

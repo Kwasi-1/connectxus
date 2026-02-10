@@ -11,8 +11,10 @@ import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { NewStoriesList } from "@/components/story/NewStoriesList";
 import { NewStoryViewer } from "@/components/story/NewStoryViewer";
 import { NewStoryModal } from "@/components/story/NewStoryModal";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { useFeed } from "@/hooks/useFeed";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { createPost } from "@/api/posts.api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,7 @@ const Feed = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { showOnboarding, completeOnboarding } = useOnboarding();
 
   const [activeTab, setActiveTab] = useState<FeedTab>("following");
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
@@ -32,7 +35,7 @@ const Feed = () => {
   const [isRepostModalOpen, setIsRepostModalOpen] = useState(false);
   const [postForRepost, setPostForRepost] = useState<FeedPost | null>(null);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(
-    null
+    null,
   );
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isAddStoryModalOpen, setIsAddStoryModalOpen] = useState(false);
@@ -138,7 +141,7 @@ const Feed = () => {
 
   const handleStoryClick = (userStories: any, storyIndex: number) => {
     const userIndex = groupedStories.findIndex(
-      (group) => group.user_id === userStories.user_id
+      (group) => group.user_id === userStories.user_id,
     );
     setSelectedUserStories(userStories);
     setSelectedStoryIndex(storyIndex);
@@ -260,6 +263,11 @@ const Feed = () => {
       <NewStoryModal
         isOpen={isAddStoryModalOpen}
         onClose={() => setIsAddStoryModalOpen(false)}
+      />
+
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onComplete={completeOnboarding}
       />
     </>
   );

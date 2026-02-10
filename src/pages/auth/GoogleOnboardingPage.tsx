@@ -72,8 +72,6 @@ export const GoogleOnboardingPage: React.FC = () => {
       username: "",
       space_id: "",
       department_id: "",
-      department_id_2: "",
-      department_id_3: "",
       level: "",
       interests: [],
       phoneNumber: "",
@@ -114,7 +112,33 @@ export const GoogleOnboardingPage: React.FC = () => {
 
   const totalSteps = 4;
 
+  // Define which fields need validation for each step
+  const getStepFields = (step: number): (keyof GoogleOnboardingFormData)[] => {
+    switch (step) {
+      case 1:
+        return ["role"];
+      case 2:
+        return ["username", "phoneNumber"];
+      case 3:
+        return ["space_id", "department_id"];
+      case 4:
+        return ["interests"];
+      default:
+        return [];
+    }
+  };
+
   const nextStep = async () => {
+    // Validate current step fields before proceeding
+    const fieldsToValidate = getStepFields(currentStep);
+    const isValid = await form.trigger(fieldsToValidate);
+
+    if (!isValid) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+
+    // Additional validation for step 2 (username availability)
     if (currentStep === 2) {
       const username = form.getValues("username");
 
@@ -165,8 +189,6 @@ export const GoogleOnboardingPage: React.FC = () => {
         id_token: googleData.id_token,
         space_id: data.space_id,
         department_id: data.department_id,
-        department_id_2: data.department_id_2,
-        department_id_3: data.department_id_3,
         username: data.username,
         phone_number: data.phoneNumber,
         is_student: data.is_student,
@@ -198,7 +220,7 @@ export const GoogleOnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center justify-center">
                 <h2 className="text-2xl font-semibold">
                   Welcome, {googleData.full_name}!
                 </h2>
@@ -206,7 +228,7 @@ export const GoogleOnboardingPage: React.FC = () => {
                   <img
                     src={googleData.avatar}
                     alt={"logo"}
-                    className="w-10 h-10 rounded-full mx-auto hidden"
+                    className="w-10 h-10 rounded-lg mx-auto hidden"
                   />
                 )}
               </div>
@@ -220,7 +242,7 @@ export const GoogleOnboardingPage: React.FC = () => {
                 <img
                   src={googleData.avatar}
                   alt={googleData.full_name}
-                  className="w-16 h-16 rounded-full mx-auto"
+                  className="w-16 h-16 rounded-lg mx-auto"
                 />
               )}
               <p className="text-sm text-muted-foreground">

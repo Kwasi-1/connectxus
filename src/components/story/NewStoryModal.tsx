@@ -32,10 +32,7 @@ interface NewStoryModalProps {
   onClose: () => void;
 }
 
-export const NewStoryModal = ({
-  isOpen,
-  onClose,
-}: NewStoryModalProps) => {
+export const NewStoryModal = ({ isOpen, onClose }: NewStoryModalProps) => {
   const { user } = useAuth();
   const { createStory, isCreating } = useStories();
   const [storyType, setStoryType] = useState<StoryType | null>(null);
@@ -45,7 +42,7 @@ export const NewStoryModal = ({
   const [caption, setCaption] = useState("");
   const [selectedFilter, setSelectedFilter] = useState(IMAGE_FILTERS[0]);
   const [activePanel, setActivePanel] = useState<"caption" | "filters" | null>(
-    null
+    null,
   );
   const [isUploading, setIsUploading] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -111,9 +108,13 @@ export const NewStoryModal = ({
 
           mediaRecorder.onstop = () => {
             const blob = new Blob(chunks, { type: "video/webm" });
-            const trimmedFile = new File([blob], file.name.replace(/\.\w+$/, ".webm"), {
-              type: "video/webm",
-            });
+            const trimmedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, ".webm"),
+              {
+                type: "video/webm",
+              },
+            );
             resolve(trimmedFile);
             video.pause();
             audioContext.close();
@@ -172,7 +173,9 @@ export const NewStoryModal = ({
 
         if (duration > 180) {
           setIsTrimming(true);
-          toast.info("Video is longer than 3 minutes. Automatically trimming to first 3 minutes...");
+          toast.info(
+            "Video is longer than 3 minutes. Automatically trimming to first 3 minutes...",
+          );
 
           try {
             const trimmedFile = await trimVideoToThreeMinutes(file);
@@ -207,10 +210,7 @@ export const NewStoryModal = ({
     }
   };
 
-  const handleTextStoryComplete = async (
-    text: string,
-    background: string
-  ) => {
+  const handleTextStoryComplete = async (text: string, background: string) => {
     if (audienceType === "community" && audienceIds.length === 0) {
       toast.error("Please select at least one community");
       return;
@@ -388,54 +388,54 @@ export const NewStoryModal = ({
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
         <div className="relative w-full h-full max-w-md mx-auto flex flex-col bg-gradient-to-br from-black via-gray-900 to-black">
-            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
-              <div className="flex items-center justify-between p-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCloseClick}
-                  className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
-                  disabled={isUploading}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowShareToSelector(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 px-4"
-                  disabled={isUploading}
-                >
-                  {getShareButtonText()}
-                </Button>
-              </div>
+          <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="flex items-center justify-between p-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCloseClick}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20"
+                disabled={isUploading}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowShareToSelector(true)}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 px-4"
+                disabled={isUploading}
+              >
+                {getShareButtonText()}
+              </Button>
             </div>
+          </div>
 
-            <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-              {mediaType === "image" ? (
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-                  style={{
-                    filter: selectedFilter.css,
-                  }}
-                />
-              ) : (
-                <video
-                  src={previewUrl}
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-                  style={{
-                    filter: selectedFilter.css,
-                  }}
-                  controls
-                  autoPlay
-                  loop
-                />
-              )}
-            </div>
+          <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+            {mediaType === "image" ? (
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                style={{
+                  filter: selectedFilter.css,
+                }}
+              />
+            ) : (
+              <video
+                src={previewUrl}
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                style={{
+                  filter: selectedFilter.css,
+                }}
+                controls
+                autoPlay
+                loop
+              />
+            )}
+          </div>
 
-            <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
+          <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3">
             <div className="flex gap-2">
               <Button
                 variant={activePanel === "caption" ? "secondary" : "ghost"}
@@ -487,7 +487,7 @@ export const NewStoryModal = ({
                         "flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all",
                         selectedFilter.name === filter.name
                           ? "bg-white/20 border-2 border-white"
-                          : "bg-white/5 border-2 border-transparent hover:bg-white/10"
+                          : "bg-white/5 border-2 border-transparent hover:bg-white/10",
                       )}
                     >
                       <div
@@ -566,49 +566,94 @@ export const NewStoryModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleReset}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="h-full md:h-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center">Create Story</DialogTitle>
+          <DialogTitle>Create Story</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-3 gap-4 py-6">
-          <button
-            onClick={() => setStoryType("text")}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <Type className="w-8 h-8 text-primary" />
-            </div>
-            <span className="font-semibold text-sm">Text</span>
-          </button>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <ImageIcon className="w-8 h-8 text-primary" />
+        <div className="py-4 -mt-32 md:mt-0">
+          <div className="flex items-center gap-3 mb-6">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={user?.avatar} alt={user?.name} />
+              <AvatarFallback>
+                {user?.name?.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                Story visible for 24 hours
+              </p>
             </div>
-            <span className="font-semibold text-sm">Image</span>
-          </button>
+          </div>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all"
-          >
-            <div className="p-4 rounded-full bg-primary/10">
-              <Video className="w-8 h-8 text-primary" />
-            </div>
-            <span className="font-semibold text-sm">Video</span>
-          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          <div className="gap-y-3 flex flex-row md:flex-col gap-x-2">
+            <button
+              onClick={() => setStoryType("text")}
+              className="w-full p-4 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <Type className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="md:font-semibold text-lg">
+                    Text <span className="hidden md:inline-block">Story</span>
+                  </p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Share your thoughts with custom backgrounds
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <ImageIcon className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="md:font-semibold text-lg">
+                    Image <span className="hidden md:inline-block">Story</span>
+                  </p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Upload a photo with caption & filters
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-5 border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent/50 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="p-3 bg-muted/20 rounded-full group-hover:bg-muted/30 transition-colors">
+                  <Video className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="md:font-semibold text-lg">
+                    Video <span className="hidden md:inline-block">Story</span>
+                  </p>
+                  <p className="hidden md:block text-sm text-muted-foreground">
+                    Upload a video with caption & filters
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
       </DialogContent>
     </Dialog>
   );
