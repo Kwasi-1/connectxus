@@ -37,6 +37,7 @@ export interface UserProfile {
   created_at?: string | null;
   updated_at?: string | null;
   auth_provider?: string; 
+  onboarding_completed?: boolean;
 }
 
 export interface UpdateUserRequest {
@@ -229,6 +230,21 @@ export const getUserFollowingByUsername = async (
   return response.data.data;
 };
 
+export const completeOnboarding = async (): Promise<void> => {
+  await apiClient.put('/users/onboarding/complete');
+};
+
+export const getOnboardingStatus = async (): Promise<{
+  onboarding_completed: boolean;
+  following_count: number;
+}> => {
+  const response = await apiClient.get<ApiResponse<{
+    onboarding_completed: boolean;
+    following_count: number;
+  }>>('/users/onboarding/status');
+  return response.data.data;
+};
+
 export const usersApi = {
   getUserById,
   getCurrentUser,
@@ -251,6 +267,8 @@ export const usersApi = {
   checkFollowingStatusByUsername,
   getUserFollowersByUsername,
   getUserFollowingByUsername,
+  completeOnboarding,
+  getOnboardingStatus,
 };
 
 export default usersApi;

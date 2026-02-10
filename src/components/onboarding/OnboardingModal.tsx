@@ -91,7 +91,7 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
     mutationFn: (data: {
       avatar?: string | null;
       cover_image?: string | null;
-    }) => updateUser(user?.id || "", data),
+    }) => updateUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
@@ -128,7 +128,7 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
         // Upload file
         const result = await uploadFile({
           file,
-          moduleType: "user",
+          moduleType: "users",
           moduleId: user?.id || "",
           accessLevel: "public",
         });
