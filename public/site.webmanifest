@@ -1,6 +1,6 @@
 {
-  "name": "Connectxus",
-  "short_name": "Connectxus",
+  "name": "connectxus",
+  "short_name": "connectxus",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
