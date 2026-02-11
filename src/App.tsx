@@ -38,6 +38,7 @@ import Privacy from "./pages/public/Privacy";
 import Cookies from "./pages/public/Cookies";
 import Contact from "./pages/public/Contact";
 import Download from "./pages/public/Download";
+import AccountDeletion from "./pages/public/AccountDeletion";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/auth/AuthPage";
 import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
@@ -141,6 +142,14 @@ const App = () => (
                   element={
                     <LightModeWrapper>
                       <Download />
+                    </LightModeWrapper>
+                  }
+                />
+                <Route
+                  path="/account-deletion"
+                  element={
+                    <LightModeWrapper>
+                      <AccountDeletion />
                     </LightModeWrapper>
                   }
                 />
