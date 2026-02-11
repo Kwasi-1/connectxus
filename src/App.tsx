@@ -146,7 +146,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/account-deletion"
+                  path="/account/delete"
                   element={
                     <LightModeWrapper>
                       <AccountDeletion />

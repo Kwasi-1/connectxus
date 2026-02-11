@@ -20,7 +20,7 @@ const AccountDeletion: React.FC = () => {
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Learn how to permanently delete your Campus Connect account and understand what data will be removed. Official account deletion policy for Google Play compliance."
+        "Learn how to permanently delete your Campus Connect account and understand what data will be removed. Official account deletion policy for Google Play compliance.",
       );
     } else {
       const meta = document.createElement("meta");
@@ -40,22 +40,26 @@ const AccountDeletion: React.FC = () => {
     {
       step: 2,
       title: "Navigate to Account Settings",
-      description: "Tap on your profile icon, then select 'Account' → 'Settings'",
+      description:
+        "Tap on your profile icon, then select 'Account' → 'Settings'",
     },
     {
       step: 3,
       title: "Scroll to Delete Account Section",
-      description: "Locate the 'Delete Account' button at the bottom of the Settings page",
+      description:
+        "Locate the 'Delete Account' button at the bottom of the Settings page",
     },
     {
       step: 4,
       title: "Confirm Deletion",
-      description: "Review the warning message and confirm that you want to permanently delete your account",
+      description:
+        "Review the warning message and confirm that you want to permanently delete your account",
     },
     {
       step: 5,
       title: "Account Deleted",
-      description: "Your account will be immediately deactivated and scheduled for permanent deletion",
+      description:
+        "Your account will be immediately deactivated and scheduled for permanent deletion",
     },
   ];
 
@@ -127,8 +131,11 @@ const AccountDeletion: React.FC = () => {
                   </h2>
                   <p className="text-muted-foreground mb-4">
                     Deleting your Campus Connect account is{" "}
-                    <strong className="text-foreground">permanent and cannot be undone</strong>.
-                    All your data will be permanently removed from our servers.
+                    <strong className="text-foreground">
+                      permanent and cannot be undone
+                    </strong>
+                    . All your data will be permanently removed from our
+                    servers.
                   </p>
                   <p className="text-muted-foreground">
                     Please ensure you have downloaded any content or information
@@ -172,7 +179,9 @@ const AccountDeletion: React.FC = () => {
                       <h3 className="text-lg font-semibold text-foreground mb-2">
                         {step.title}
                       </h3>
-                      <p className="text-muted-foreground">{step.description}</p>
+                      <p className="text-muted-foreground">
+                        {step.description}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -298,11 +307,15 @@ const AccountDeletion: React.FC = () => {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
-                        <span>Your profile becomes inaccessible to other users</span>
+                        <span>
+                          Your profile becomes inaccessible to other users
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
-                        <span>You're automatically logged out of all devices</span>
+                        <span>
+                          You're automatically logged out of all devices
+                        </span>
                       </li>
                     </ul>
                   </div>

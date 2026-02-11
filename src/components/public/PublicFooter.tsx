@@ -1,14 +1,14 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
 const footerLinks = [
-  { name: 'About', path: '/about' },
-  { name: 'Terms & Conditions', path: '/terms' },
-  { name: 'Privacy Policy', path: '/privacy' },
-  { name: 'Cookies Policy', path: '/cookies' },
-  { name: 'Contact Us', path: '/contact' },
-  { name: 'Download App', path: '/download' },
+  { name: "About", path: "/about" },
+  { name: "Terms & Conditions", path: "/terms" },
+  { name: "Privacy Policy", path: "/privacy" },
+  { name: "Account Deletion", path: "/account/delete" },
+  { name: "Cookies Policy", path: "/cookies" },
+  { name: "Contact Us", path: "/contact" },
+  { name: "Download App", path: "/download" },
 ];
 
 export const PublicFooter: React.FC = () => {
@@ -18,9 +18,9 @@ export const PublicFooter: React.FC = () => {
         <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           {footerLinks.map((link, index) => (
             <React.Fragment key={link.path}>
-              <Link 
+              <Link
                 to={link.path}
-                                className="hover:text-foreground transition-colors duration-200 hover:underline"
+                className="hover:text-foreground transition-colors duration-200 hover:underline"
               >
                 {link.name}
               </Link>
