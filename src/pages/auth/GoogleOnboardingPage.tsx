@@ -192,7 +192,7 @@ export const GoogleOnboardingPage: React.FC = () => {
         username: data.username,
         phone_number: data.phoneNumber,
         is_student: data.is_student,
-        level: data.level,
+        level: data.level ? parseInt(data.level, 10) : undefined,
         interests: data.interests,
       });
 

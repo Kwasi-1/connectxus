@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email: data.email,
         password: data.password,
         is_student: data.is_student,
-        level: data.level || null,
+        level: data.level ? parseInt(data.level, 10) : null,
         department_id: data.department_id || null,
         major: null,
         year: null,
