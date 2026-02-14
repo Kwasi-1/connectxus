@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,8 @@ import {
   getSuggestedUsers,
   followUser,
   UserProfile,
+  getPeopleInDepartment,
+  getAllPeopleInSpace,
 } from "@/api/users.api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -71,6 +73,8 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [suggestedUsers, setSuggestedUsers] = useState<UserProfile[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -78,13 +82,46 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   const currentStep = STEPS[currentStepIndex];
   const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
 
-  // Fetch suggested users for the follow step
-  const { data: suggestedUsers = [], isLoading: isLoadingSuggestions } =
-    useQuery({
-      queryKey: ["suggested-users-onboarding"],
-      queryFn: () => getSuggestedUsers({ limit: 12 }),
-      enabled: currentStep === "follow",
-    });
+  // Load suggested users with cascading fallbacks when entering follow step
+  const loadSuggestedUsers = useCallback(async () => {
+    if (isLoadingSuggestions || suggestedUsers.length > 0) return;
+
+    setIsLoadingSuggestions(true);
+
+    try {
+      let users: UserProfile[] = [];
+
+      // Try 1: Get suggested users (people you may know)
+      users = await getSuggestedUsers({ limit: 12 });
+      console.log("Suggested users (may-know):", users.length);
+
+      // Fallback 1: If no suggested users, try people in department
+      if (users.length === 0) {
+        users = await getPeopleInDepartment({ limit: 12 });
+        console.log("Department users:", users.length);
+      }
+
+      // Fallback 2: If no department users, try all people in space
+      if (users.length === 0) {
+        users = await getAllPeopleInSpace({ limit: 12 });
+        console.log("All space users:", users.length);
+      }
+
+      setSuggestedUsers(users);
+    } catch (error) {
+      console.error("Error loading suggested users:", error);
+      setSuggestedUsers([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [isLoadingSuggestions, suggestedUsers.length]);
+
+  // Load suggestions when entering follow step
+  useEffect(() => {
+    if (currentStep === "follow") {
+      loadSuggestedUsers();
+    }
+  }, [currentStep, loadSuggestedUsers]);
 
   // Update user mutation
   const updateUserMutation = useMutation({
@@ -102,9 +139,8 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
     mutationFn: followUser,
     onSuccess: (_, userId) => {
       setFollowedUsers((prev) => new Set(prev).add(userId));
-      queryClient.invalidateQueries({
-        queryKey: ["suggested-users-onboarding"],
-      });
+      // Refresh user profile to update following count
+      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to follow user");
@@ -176,7 +212,8 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
 
   const canProceed = () => {
     if (currentStep === "follow") {
-      return followedUsers.size >= 1;
+      // Allow proceeding if at least one user is followed OR if no users are available
+      return followedUsers.size >= 1 || suggestedUsers.length === 0;
     }
     return true; // Avatar and cover are optional
   };
@@ -197,9 +234,9 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   };
 
   const handleSkip = () => {
-    if (currentStep !== "follow") {
-      handleNext();
-    }
+    // Allow skipping any step
+    // For follow step: skip if no users available or user chooses not to follow anyone
+    handleNext();
   };
 
   const getInitials = (name: string) => {
@@ -392,13 +429,17 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No suggestions available at the moment</p>
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="font-medium text-lg mb-2">No users available</p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  There are no other users in your space yet. You can skip this
+                  step and start exploring.
+                </p>
               </div>
             )}
 
-            {followedUsers.size < 1 && (
+            {followedUsers.size < 1 && suggestedUsers.length > 0 && (
               <p className="text-center text-sm text-amber-500 mt-4">
                 Follow at least 1 person to continue
               </p>
@@ -470,7 +511,7 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            {currentStep !== "follow" && (
+            {currentStepIndex < 2 && (
               <Button
                 variant="ghost"
                 onClick={handleSkip}
